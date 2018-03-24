@@ -1,0 +1,872 @@
+import inspect
+import os
+import PyQt5.QtCore as QtCore
+from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtWidgets import (QMainWindow, QAction, QWidget, QTabWidget,
+                             QDesktopWidget, QHBoxLayout, QVBoxLayout, QGridLayout,
+                             QScrollArea, QWizard, QWizardPage, QPushButton,
+                             QLabel, QListWidget, QListWidgetItem, QLineEdit, QTextEdit,
+                             QFrame, QComboBox, QSpinBox,
+                             QFileDialog,
+                             )
+from PyQt5.QtGui import QIcon, QPixmap, QFont, QTextDocument
+from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog
+import SystemSettings
+import DbLayout
+import DbQuery
+import Manage
+import ManageDefs
+from Common import find_image, get_pixmap_from_base64, callback_factory, fill_listbox, add_item_to_listbox
+from Dialogs import YesNoDialog, EntryDialog, DualListDialog
+
+
+class CenterableWindow( QMainWindow ):
+
+    def __init__( self, parent=None ):
+        super().__init__( parent )
+
+    def center( self ):
+        qtRectangle = self.frameGeometry()
+        centerPoint = QDesktopWidget().availableGeometry().center()
+        qtRectangle.moveCenter( centerPoint )
+        self.move( qtRectangle.topLeft() )
+
+
+class MainWindow( CenterableWindow ):
+
+    def __init__( self, system_path ):
+        super().__init__()
+
+        self.system_path = system_path
+
+        #exitAct = QAction( QIcon( 'exit.png' ), 'Exit', self )
+        exit_action = QAction( 'Exit', self )
+        exit_action.setShortcut( 'Ctrl+Q' )
+        exit_action.setStatusTip( 'Exit application' )
+        exit_action.triggered.connect( self.close )
+
+        menubar = self.menuBar()
+        file_menu = menubar.addMenu( '&File' )
+        file_menu.addAction( exit_action )
+
+        DbQuery.initDB( os.path.join( system_path, 'db' ) )
+        database_menu = menubar.addMenu( '&Database' )
+        for db in DbLayout.db_order:
+            db_action = QAction( db, self )
+            db_action.setStatusTip( 'Open the {} Database'.format( db ) )
+            db_action.triggered.connect( callback_factory( self.open_db_window, db ) )
+            database_menu.addAction( db_action )
+        database_menu.addSeparator()
+        reset_db_action = QAction( 'Reset Database', self )
+        reset_db_action.setStatusTip( 'Reset the database to the default' )
+        reset_db_action.triggered.connect( self.reset_db )
+        database_menu.addAction( reset_db_action )
+
+        manage_menu = menubar.addMenu( '&Manage' )
+        for manage in self.get_manages():
+            manage_action = QAction( manage.__class__.__name__, self )
+            manage_action.setStatusTip( 'Open the {} Manage Window'.format( manage.__class__.__name__ ) )
+            manage_action.triggered.connect( callback_factory( self.open_manage_window, manage ) )
+            manage_menu.addAction( manage_action )
+
+        self.statusBar()
+
+        system_parent = os.path.abspath( os.path.join( system_path, os.pardir ) )
+        base_bath = os.path.abspath( os.path.join( system_parent, os.pardir ) )
+        icon_path = os.path.join( base_bath, 'images/icon.png' )
+        #print( icon_path )
+        self.setWindowIcon( QIcon( icon_path ) )
+        self.setWindowTitle( SystemSettings.systemName )
+        self.show()
+        self.center()
+
+    def open_db_window( self, table_name ):
+        DbWindow( table_name, self )
+
+    def reset_db( self ):
+        dialog = YesNoDialog( 'Reset Database', 'Are you sure you want to reset the database?', self )
+        accepted = dialog.exec_()
+        #print( accepted )
+        if accepted:
+            DbQuery.resetDB()
+
+    def get_manages( self ):
+        manages = []
+
+        manage_dict = Manage.__dict__
+        for k,v in manage_dict.items():
+            if inspect.isclass( v ) and issubclass( v, ManageDefs.Manage ) and v is not ManageDefs.Manage:
+                #print( v )
+                manage = v()
+                manages.append( manage )
+        return manages
+
+    def open_manage_window( self, manage ):
+        ManageWindow( manage, self )
+
+
+class DbWindow( CenterableWindow ):
+
+    def __init__( self, table_name, parent ):
+        super().__init__( parent )
+        
+        self.widget_registry = {}
+        self.table_name = table_name
+        self.parent = parent
+
+        self.setWindowModality( QtCore.Qt.ApplicationModal )
+        self.table = DbQuery.getTable( table_name )
+        cols = DbQuery.getCols( table_name )
+
+        layout = QHBoxLayout()
+
+        left_layout = QVBoxLayout()
+        self.portrait = portrait = QLabel( self )
+        pixmap = QPixmap( find_image( parent.system_path, table_name, '$dummy$' ) )
+        portrait.setPixmap( pixmap )
+        left_layout.addWidget( portrait, alignment=QtCore.Qt.AlignCenter )
+
+        self.listbox = listbox = QListWidget( self )
+        listbox.currentRowChanged.connect( self.fill_fields )
+        display_col = DbQuery.getDisplayCol( table_name )
+        for row in self.table:
+            item = QListWidgetItem()
+            item.setText( row[ display_col ] )
+            item.setData( QtCore.Qt.UserRole, row )
+            listbox.addItem( item )
+        left_layout.addWidget( listbox )
+        layout.addLayout( left_layout )
+
+        right_layout = QVBoxLayout()
+        scrollable = QScrollArea( self )
+        scroll_widget = QWidget( scrollable )
+        scroll_layout = QVBoxLayout( scrollable )
+        scroll_widget.setLayout( scroll_layout )
+        for col in cols:
+            widget = None
+            widget_layout = QHBoxLayout()
+            widget_layout.addWidget( QLabel( col[0] ) )
+            if 'TEXT' in col[1]:
+                widget = QTextEdit( self )
+            else:
+                widget = QLineEdit( self )
+            self.widget_registry[ col[0] ] = widget
+            widget_layout.addWidget( widget )
+            scroll_layout.addLayout( widget_layout )
+        scrollable.setWidget( scroll_widget )
+        right_layout.addWidget( scrollable )
+        layout.addLayout( right_layout )
+        
+        wid = QWidget()
+        self.setCentralWidget( wid )
+        wid.setLayout( layout )
+
+        self.setWindowTitle( table_name )
+        self.show()
+        self.center()
+
+    def fill_fields( self, row_index ):
+        item = self.listbox.item( row_index )
+        row = item.data( QtCore.Qt.UserRole )
+        for field_name, widget in self.widget_registry.items():
+            widget.setText( str( row[ field_name ] ) )
+
+        unique_col = DbQuery.parse_schema( DbQuery.getSchema( self.table_name ), 'UNIQUE' )
+        base64_image_col = DbQuery.getBase64Col( self.table_name )
+        if base64_image_col is None:
+            image_path = find_image( self.parent.system_path, self.table_name, row[unique_col] )
+            pixmap = QPixmap( image_path )
+            if pixmap.height() > 200 or pixmap.width() > 200:
+                pixmap = pixmap.scaled( 200, 200, QtCore.Qt.KeepAspectRatio )
+        else:
+            base64 = row[ base64_image_col ]
+            pixmap = get_pixmap_from_base64( base64 )
+
+        self.portrait.setPixmap( pixmap )
+
+
+class WidgetRegistry( dict ):
+    text_widgets = [ 'lineedit', 'textedit', 'textlabel' ]
+
+    def __init__( self, parent=None ):
+        super().__init__()
+        self.parent = parent
+
+    def register_widget( self, widget, gui_wizard_page=None ):
+        field_name = widget.get_field_name()
+        hide_field = False
+        if field_name.endswith( '_' ):
+            hide_field = True
+            field_name = field_name[:-1]
+        widget_type = widget.get_widget_type()
+        is_enabled = widget.is_edit_enabled()
+        widget_data = widget.get_data()
+
+        widget_layout = None
+        qt_widget = None
+
+        disabled_stylesheet = ':disabled { color: black }'
+        if widget_type.lower() == 'checkbox':
+            widget_layout = QHBoxLayout()
+            if widget_data:
+                text = widget_data
+            elif hide_field:
+                text = ''
+            else:
+                text = field_name
+            qt_widget = QCheckBox( text )
+            qt_widget.setEnabled( is_enabled )
+            qt_widget.setStyleSheet( disabled_stylesheet )
+            widget_layout.addWidget( qt_widget )
+            if gui_wizard_page:
+                qt_widget.clicked.connect( lambda: gui_wizard_page.completeChanged.emit() )
+
+        elif widget_type.lower() == 'textedit':
+            widget_layout = QVBoxLayout()
+            qt_widget = QTextEdit()
+            qt_widget.setEnabled( is_enabled )
+            qt_widget.setStyleSheet( disabled_stylesheet )
+            if not hide_field:
+                widget_layout.addWidget( QLabel( field_name ) )
+            widget_layout.addWidget( qt_widget )
+            if gui_wizard_page:
+                qt_widget.textChanged.connect( lambda: gui_wizard_page.completeChanged.emit() )
+
+        elif widget_type.lower() == 'lineedit':
+            widget_layout = QHBoxLayout()
+            if widget_data:
+                prefill = widget_data
+            else:
+               prefill = ''
+            qt_widget = QLineEdit( prefill )
+            qt_widget.setEnabled( is_enabled )
+            qt_widget.setStyleSheet( disabled_stylesheet )
+            if not hide_field:
+                widget_layout.addWidget( QLabel( field_name ) )
+            widget_layout.addWidget( qt_widget )
+            if gui_wizard_page:
+                qt_widget.textChanged.connect( lambda: gui_wizard_page.completeChanged.emit() )
+
+        elif widget_type.lower() == 'spinbox':
+            widget_layout = QHBoxLayout()
+            qt_widget = QSpinBox()
+            qt_widget.setEnabled( is_enabled )
+            qt_widget.setStyleSheet( disabled_stylesheet )
+            qt_widget.setRange( -1000000000, 1000000000 )
+            if not hide_field:
+                widget_layout.addWidget( QLabel( field_name ) )
+            widget_layout.addWidget( qt_widget )
+            if gui_wizard_page:
+                qt_widget.valueChanged.connect( lambda: gui_wizard_page.completeChanged.emit() )
+
+        elif widget_type.lower() == 'pushbutton':
+            widget_layout = QHBoxLayout()
+            if not hide_field:
+                button_text = field_name
+            else:
+                button_text = ''
+            qt_widget = QPushButton( button_text )
+            qt_widget.setEnabled( is_enabled )
+            qt_widget.setStyleSheet( disabled_stylesheet )
+            widget_layout.addWidget( qt_widget )
+
+        elif widget_type.lower() == 'combobox':
+            widget_layout = QHBoxLayout()
+            qt_widget = QComboBox()
+            qt_widget.setEnabled( is_enabled )
+            qt_widget.setStyleSheet( disabled_stylesheet )
+            for item in widget_data:
+                qt_widget.addItem( item )
+            if not hide_field:
+                widget_layout.addWidget( QLabel( field_name ) )
+            widget_layout.addWidget( qt_widget )
+            if gui_wizard_page:
+                qt_widget.currentIndexChanged.connect( lambda: gui_wizard_page.completeChanged.emit() )
+
+        elif widget_type.lower() == 'listbox':
+            widget_layout = QVBoxLayout()
+            qt_widget = QListWidget()
+            qt_widget.setEnabled( is_enabled )
+            qt_widget.setStyleSheet( disabled_stylesheet )
+            if widget_data:
+                self.fill_listbox( widget, widget_data )
+            if not hide_field:
+                widget_layout.addWidget( QLabel( field_name ) )
+            widget_layout.addWidget( qt_widget )
+            if gui_wizard_page:
+                qt_widget.currentRowChanged.connect( lambda: gui_wizard_page.completeChanged.emit() )
+
+        elif widget_type.lower() == 'duallist':
+            widget_layout = QVBoxLayout()
+            tabbed_avail_lists = QTabWidget( self.parent )
+            tabbed_avail_lists.tabBar().setStyleSheet( 'font: bold 8pt;' )
+
+            qt_widget = chosen_list = QListWidget( self.parent )
+            qt_widget.setEnabled( is_enabled )
+            qt_widget.setStyleSheet( disabled_stylesheet )
+            if gui_wizard_page:
+                model = chosen_list.model()
+                model.rowsInserted.connect( lambda: gui_wizard_page.completeChanged.emit() )
+                model.rowsRemoved.connect( lambda: gui_wizard_page.completeChanged.emit() )
+
+            tabbed_chosen_list = QTabWidget( self.parent )
+            tabbed_chosen_list.addTab( chosen_list, '' )
+            tabbed_chosen_list.tabBar().hide()
+
+            fill_avail = widget_data['fill_avail']
+            slots = widget_data['slots']
+            slots_name = widget_data['slots_name']
+            category_field = widget_data['category_field']
+            tool_tip = widget_data['tool_tip']
+            add = widget_data['add']
+            remove = widget_data['remove']
+
+            #if fill_avail:
+            #    avail_items = fill_avail( owned_items, fields )
+            #else:
+            #    avail_items = []
+
+            #if category_field:
+            #    category_hash = {}
+            #    for avail_item in avail_items:
+            #        if type( avail_item ).__name__ == 'dict':
+            #            avail_item_dict = avail_item
+            #        elif type( avail_item ).__name__ == 'tuple':
+            #            avail_item_dict = avail_item[1]
+            #        else:
+            #            continue
+            #        category = avail_item_dict[category_field]
+            #        if category not in list( category_hash.keys() ):
+            #            category_hash[category] = QListWidget( self )
+            #            tabbed_avail_lists.addTab( category_hash[category], category )
+            #        add_item_to_listbox( category_hash[category], avail_item, tool_tip, fields )
+            #else:
+            #    avail_list = QListWidget( self )
+            #    tabbed_avail_lists.addTab( avail_list, 'Avail' )
+            #    tabbed_avail_lists.tabBar().hide()
+            #    fill_listbox( avail_list, avail_items, tool_tip, fields )
+            #    if avail_list.count() > 0:
+            #        avail_list.setCurrentRow( 0 )
+
+            #fill_listbox( chosen_list, owned_items, tool_tip, fields )
+            qt_widget.tabbed_avail_lists = tabbed_avail_lists
+            qt_widget.chosen_list = chosen_list
+            qt_widget.fill_avail = fill_avail
+            qt_widget.category_field = category_field
+            qt_widget.gui_wizard_page = gui_wizard_page
+            qt_widget.slots = slots
+            qt_widget.slots_name = slots_name
+            qt_widget.tool_tip = tool_tip
+            qt_widget.category_hash = category_hash = {}
+
+            if chosen_list.count() > 0:
+                chosen_list.setCurrentRow( 0 )
+
+            add_button = QPushButton( 'Add', self.parent )
+            remove_button = QPushButton( 'Remove', self.parent )
+
+            #slots_label = QLabel( '<b>{}:</b>{}'.format( slots_name, slots_return ), self.parent )
+            slots_label = QLabel( '', self.parent )
+            qt_widget.slots_label = slots_label
+            widget_layout.addWidget( slots_label, 1, QtCore.Qt.AlignCenter )
+
+            list_layout = QHBoxLayout()
+            button_layout = QVBoxLayout()
+            button_layout.addWidget( add_button )
+            button_layout.addWidget( remove_button )
+
+            list_layout.addWidget( tabbed_avail_lists )
+            list_layout.addLayout( button_layout )
+            list_layout.addWidget( tabbed_chosen_list )
+            widget_layout.addLayout( list_layout )
+
+            def add_pressed():
+                current_list = tabbed_avail_lists.currentWidget()
+                if current_list.currentRow() == -1:
+                    return
+                current_item = current_list.currentItem()
+                if gui_wizard_page:
+                    add_return = add( current_item.data( QtCore.Qt.UserRole ), self.get_fields(), gui_wizard_page.wizard_pages, gui_wizard_page.external_data )
+                else:
+                    add_return = add( current_item.data( QtCore.Qt.UserRole ), self.get_fields() )
+                valid = add_return.get( 'valid' )
+                slots_new_value = add_return.get( 'slots_new_value' )
+                remove = add_return.get( 'remove' )
+                new_display = add_return.get( 'new_display' )
+                if valid is not True:
+                    return
+                if type( slots_new_value ).__name__ == 'str':
+                    slots_label.setText( '<b>{}: </b>{}'.format( slots_name, slots_new_value ) )
+                if remove is True:
+                    current_list.takeItem( current_list.currentRow() )
+                if type( new_display ).__name__ != 'str':
+                    new_display = current_item.text()
+                add_item_to_listbox( chosen_list, current_item.data( QtCore.Qt.UserRole ), tool_tip, self.get_fields(), current_list, wizard=gui_wizard_page )
+
+            def remove_pressed():
+                if chosen_list.currentRow() == -1:
+                    return
+                current_item = chosen_list.currentItem()
+                current_data = current_item.data( QtCore.Qt.UserRole )
+                if gui_wizard_page:
+                    remove_return = remove( current_data, self.get_fields(), gui_wizard_page.wizard_pages, gui_wizard_page.external_data )
+                else:
+                    remove_return = remove( current_data, self.get_fields() )
+                valid = remove_return.get( 'valid' )
+                slots_new_value = remove_return.get( 'slots_new_value' )
+                replace = remove_return.get( 'replace' )
+                new_display = remove_return.get( 'new_display' )
+                if valid is not True:
+                    return
+                if type( slots_new_value ).__name__ == 'str':
+                    slots_label.setText( '<b>{}: </b>{}'.format( slots_name, slots_new_value ) )
+                if type( new_display ).__name__ != 'str':
+                    new_display = current_item.text()
+                if replace is True:
+                    try:
+                        original_list = current_item.original_list
+                    except AttributeError:
+                        if category_field:
+                            #print( category_hash )
+                            category = str( current_data[category_field] )
+                            if category in category_hash.keys():
+                                original_list = category_hash[category]
+                            else:
+                                category_hash[category] = original_list = QListWidget( self.parent )
+                                tabbed_avail_lists.addTab( category_hash[category], category )
+                        else:
+                            original_list = tabbed_avail_lists.getCurrentWidget()
+                    add_item_to_listbox( original_list, current_data, tool_tip, self.get_fields(), original_list, wizard=gui_wizard_page )
+                chosen_list.takeItem( chosen_list.currentRow() )
+
+            add_button.pressed.connect( add_pressed )
+            remove_button.pressed.connect( remove_pressed )
+
+        elif widget_type.lower() == 'textlabel':
+            widget_layout = QHBoxLayout()
+            qt_widget = QLabel( widget_data )
+            qt_widget.setEnabled( is_enabled )
+            qt_widget.setStyleSheet( disabled_stylesheet )
+            widget_layout.addWidget( qt_widget )
+
+        elif widget_type.lower() == 'image':
+            widget_layout = QVBoxLayout()
+            pixmap = get_pixmap_from_base64( widget_data or '' )
+            qt_widget = QLabel()
+            qt_widget.setPixmap( pixmap )
+            qt_widget.base64 = widget_data or ''
+            qt_widget.setEnabled( is_enabled )
+            #qt_widget.setStyleSheet( disabled_stylesheet )
+            widget_layout.addWidget( qt_widget )
+
+        elif widget_type.lower() == 'hr':
+            widget_layout = QHBoxLayout()
+            hr = QFrame( self.parent )
+            #hr.setGeometry( QtCore.QRect( 0, 0, 20, 1 ) )
+            hr.setFrameShape( QFrame.HLine )
+            hr.setFrameShadow( QFrame.Sunken )
+            hr.setLineWidth( 2 )
+            hr.setMidLineWidth( 1 )
+            widget_layout.addWidget( hr )
+
+        else:
+            if widget_type.lower() != 'empty':
+                print( 'This widget contains an unknown type: {}'.format( widget_type ) )
+
+        if qt_widget is not None:
+            widget.qt_widget = qt_widget
+            self[ field_name ] = widget
+        return widget_layout
+
+    def fill_listbox( self, listbox, fill ):
+        listbox.clear()
+        for item in fill:
+            if type( item ).__name__ == 'str':
+                listbox.addItem( item )
+            elif type( item ).__name__ == 'dict':
+                table_name = item['TableName']
+                display_col = DbQuery.getDisplayCol( table_name )
+                display = item[ display_col ]
+                list_item = QListWidgetItem()
+                list_item.setText( display )
+                list_item.setData( QtCore.Qt.UserRole, item )
+                listbox.addItem( list_item )
+            elif type( item ).__name__ == 'tuple':
+                display = item[0]
+                item_dict = item[1]
+                list_item = QListWidgetItem()
+                list_item.setText( display )
+                list_item.setData( QtCore.Qt.UserRole, item_dict )
+                listbox.addItem( list_item )
+
+    def get_fields( self ):
+        fields = {}
+        for k,v in list( self.items() ):
+            widget_type = v.get_widget_type()
+            widget = v.qt_widget
+            if widget_type.lower() in self.text_widgets:
+                fields[k] = widget.text()
+            elif widget_type.lower() == 'checkbox':
+                fields[k] = widget.isChecked()
+            elif widget_type.lower() == 'spinbox':
+                fields[k] = widget.value()
+            elif widget_type.lower() == 'combobox':
+                fields[k] = widget.currentText()
+            elif widget_type.lower() == 'listbox' or widget_type.lower() == 'duallist':
+                item_list = []
+                for i in range( widget.count() ):
+                    item = widget.item( i )
+                    item_list.append( item.data( QtCore.Qt.UserRole ) )
+                fields[k] = item_list
+                current_item = widget.currentItem()
+                data = None
+                if current_item:
+                    data = current_item.data( QtCore.Qt.UserRole )
+                    if data is None:
+                        data = current_item.text()
+                fields[ '{} Current'.format( k ) ] = data
+            elif widget_type.lower() == 'image':
+                fields[k] = widget.base64
+        return fields
+
+    def fill_fields( self, fields ):
+        for k,v in fields.items():
+            widget_type = self[k].get_widget_type()
+            widget = self[k].qt_widget
+            if widget_type.lower() in self.text_widgets:
+                widget.setText( v )
+            elif widget_type.lower() == 'checkbox':
+                widget.setChecked( v )
+            elif widget_type.lower() == 'spinbox':
+                widget.setValue( v )
+            elif widget_type.lower() == 'combobox':
+                new_index = widget.findText( v )
+                widget.setCurrentIndex( new_index )
+            elif widget_type.lower() == 'listbox':
+                fill_listbox( widget, v )
+            elif widget_type.lower() == 'image':
+                widget.base64 = v or ''
+                pixmap = get_pixmap_from_base64( widget.base64 )
+                widget.setPixmap( pixmap )
+            elif widget_type.lower() == 'duallist':
+                gui_wizard_page = widget.gui_wizard_page
+                slots = widget.slots
+                slots_name = widget.slots_name
+                slots_label = widget.slots_label
+                tool_tip = widget.tool_tip
+                tabbed_avail_lists = widget.tabbed_avail_lists
+                chosen_list = widget.chosen_list
+                fill_avail = widget.fill_avail
+                category_field = widget.category_field
+                category_hash = widget.category_hash
+                owned_items = v
+
+                if gui_wizard_page:
+                    slots_return = slots( self.get_fields(), gui_wizard_page.wizard_pages, gui_wizard_page.external_data  )
+                else:
+                    slots_return = slots( self.get_fields()  )
+                if fill_avail:
+                    if gui_wizard_page:
+                        avail_items = fill_avail( owned_items, self.get_fields(), gui_wizard_page.wizard_pages, gui_wizard_page.external_data )
+                    else:
+                        avail_items = fill_avail( owned_items, self.get_fields() )
+                else:
+                    avail_items = []
+                slots_label.setText( '<b>{}: </b>{}'.format( slots_name, slots_return ) )
+ 
+                if category_field:
+                    tabbed_avail_lists.clear()
+                    #category_hash = {}
+                    for avail_item in avail_items:
+                        if type( avail_item ).__name__ == 'dict':
+                            avail_item_dict = avail_item
+                        elif type( avail_item ).__name__ == 'tuple':
+                            avail_item_dict = avail_item[1]
+                        else:
+                            continue
+                        category = str( avail_item_dict[category_field] )
+                        if category not in list( category_hash.keys() ):
+                            category_hash[category] = QListWidget( self.parent )
+                            tabbed_avail_lists.addTab( category_hash[category], category )
+                        add_item_to_listbox( category_hash[category], avail_item, tool_tip, fields, wizard=gui_wizard_page )
+                else:
+                    avail_list = QListWidget( self )
+                    tabbed_avail_lists.addTab( avail_list, 'Avail' )
+                    tabbed_avail_lists.tabBar().hide()
+                    fill_listbox( avail_list, avail_items, tool_tip, fields )
+                    if avail_list.count() > 0:
+                        avail_list.setCurrentRow( 0 )
+
+                fill_listbox( chosen_list, owned_items, tool_tip, fields, wizard=gui_wizard_page )
+
+    def process_action( self, action ):
+        fields = self.get_fields()
+        action_type = action.get_action_type()
+        callback = action.get_callback()
+        data = action.get_data()
+        widget1 = action.get_widget1()
+        widget1_field_name = widget1.get_field_name()
+        widget2 = action.get_widget2()
+        if widget2 is not None:
+            widget2_field_name = widget2.get_field_name()
+            if widget2_field_name.endswith( '_' ):
+                widget2_field_name = widget2_field_name[:-1]
+            widget2_widget_type = widget2.get_widget_type()
+
+        if action_type.lower() == 'fillfields':
+            if callback is not None:
+                callback_return = callback( fields )
+                self.fill_fields( callback_return )
+
+        elif action_type.lower() == 'savepdf' or action_type.lower() == 'printpreview':
+            if callback is not None:
+                callback_return = callback( fields )
+                if type( callback_return ).__name__ != 'tuple' or len( callback_return ) == 0:
+                   return
+                default_filename = callback_return[0]
+                pdf_markup = callback_return[1]
+                #print( pdf_markup )
+                font = QFont( 'Times', 10, QFont.Normal )
+                document = QTextDocument()
+                document.setDefaultFont( font )
+                document.setHtml( pdf_markup )
+                printer = QPrinter( QPrinter.PrinterResolution )
+                printer.setOutputFormat( QPrinter.PdfFormat )
+                printer.setPaperSize( QPrinter.A4 )
+                printer.setOutputFileName( default_filename )
+                printer.setPageMargins( 15, 15, 15, 15, QPrinter.Point )
+                printer.setColorMode( QPrinter.Color )
+                document.setPageSize( QtCore.QSizeF( printer.pageRect().size() ) ) # This disables printing the page number
+                if action_type.lower() == 'savepdf':
+                    #print( 'savepdf' )
+                    filename, _ = QFileDialog.getSaveFileName( None, 'Save', default_filename, 'PDF Files (*.pdf)' )
+                    if filename == None:
+                        return
+                    printer.setOutputFileName( filename )
+                    document.print( printer )
+                else:
+                    preview_dialog = QPrintPreviewDialog( printer )
+                    preview_dialog.paintRequested.connect( lambda prntr: document.print( prntr ) )
+                    preview_dialog.exec_()
+
+        elif action_type.lower() == 'entrydialog':
+            #print( 'entrydialog' )
+            value = [None]
+            title = widget1_field_name
+            if title.startswith( '&' ):
+                title = title[1:]
+            parent = self[ widget2_field_name ].qt_widget.parent()
+            if widget2_widget_type.lower() == 'lineedit':
+                dialog = EntryDialog( title, EntryDialog.LINE_EDIT, value, parent )
+            elif widget2_widget_type.lower() == 'textedit':
+                dialog = EntryDialog( title, EntryDialog.TEXT_EDIT, value, parent )
+            elif widget2_widget_type.lower() == 'spinbox':
+                dialog = EntryDialog( title, EntryDialog.SPIN_BOX, value, parent )
+            elif widget2_widget_type.lower() == 'image':
+                image_widget = self[ widget2_field_name ].qt_widget
+                image_data = image_widget.base64
+                dialog = EntryDialog( title, EntryDialog.IMAGE, value, parent, image_data )
+            accepted = dialog.exec_()
+            if accepted and callback:
+                callback_return = callback( value[0], fields )
+                self.fill_fields( callback_return )
+
+        elif action_type.lower() == 'listdialog':
+            title = widget1_field_name
+            if title.startswith( '&' ):
+                title = title[1:]
+            parent = self[ widget2_field_name ].qt_widget.parent()
+            listbox = self[ widget2_field_name ].qt_widget
+            owned_items = []
+            for i in range( listbox.count() ):
+                item_data = listbox.item( i ).data( QtCore.Qt.UserRole )
+                owned_items.append( item_data )
+            dialog = DualListDialog( title, owned_items, action.get_data(), fields, parent )
+            accepted = dialog.exec_()
+            if accepted and callback:
+                callback_return = callback( dialog.get_item_list(), fields )
+                self.fill_fields( callback_return )
+
+        elif action_type.lower() == 'wizard':
+            wizard = data()
+            #parent = self[ widget2_field_name ].qt_widget.parent()
+            gui_wizard = GuiWizard( wizard, self.get_fields(), self.parent )
+            if gui_wizard.exec_():
+                accept_return = gui_wizard.get_accept_return()
+                if callback:
+                    callback_return = callback( accept_return, self.get_fields() )
+                    if callback_return:
+                        self.fill_fields( callback_return )
+
+        elif action_type.lower() == 'callbackonly':
+            if callback:
+                callback( self.get_fields() )
+
+    def fill_menu_bar( self, menu_bar, menu_list, parent ):
+        for menu in menu_list:
+            menu_name = menu.get_menu_name()
+            qt_menu = menu_bar.addMenu( menu_name )
+            menu_action_list = menu.get_action_list()
+            for menu_action in menu_action_list:
+                menu_widget1 = menu_action.get_widget1()
+                menu_widget1_field_name = menu_widget1.get_field_name()
+                qt_menu_action = QAction( menu_widget1_field_name, parent )
+                qt_menu.addAction( qt_menu_action )
+                qt_menu_action.triggered.connect( callback_factory( self.process_action, menu_action ) )
+
+
+class ManageWindow( CenterableWindow ):
+
+    onshow = pyqtSignal()
+
+    def __init__( self, manage, parent ):
+        super().__init__( parent )
+
+        self.manage = manage
+        self.parent = parent
+        #self.widget_registry = {}
+        self.widget_registry = WidgetRegistry( self )
+
+        class_name = type( manage ).__name__
+
+        layout = QGridLayout()
+        central_widget = QWidget()
+        central_widget.setLayout( layout )
+        self.setCentralWidget( central_widget )
+
+        widget_matrix = manage.get_widget_matrix()
+        for i, row in enumerate( widget_matrix ):
+            for j, widget in enumerate( row ):
+                #widget_layout = self.register_widget( widget )
+                widget_layout = self.widget_registry.register_widget( widget )
+                if widget.get_align() is None:
+                    align = QtCore.Qt.AlignLeft
+                elif widget.get_align().lower() == 'center':
+                    align = QtCore.Qt.AlignCenter
+                elif widget.get_align().lower() == 'left':
+                    align = QtCore.Qt.AlignLeft
+                elif widget.get_align().lower() == 'right':
+                    align = QtCore.Qt.AlignRight
+
+                if widget_layout is not None:
+                    layout.addLayout( widget_layout, i, j, widget.get_row_span(), widget.get_col_span(), align )
+
+        actions = manage.get_action_list()
+        for action in actions:
+            action_type = action.get_action_type()
+            widget1 = action.get_widget1()
+            widget1_type = widget1.get_widget_type()
+            widget1_field_name = widget1.get_field_name()
+            if widget1_field_name.endswith( '_' ):
+                widget1_field_name = widget1_field_name[:-1]
+            callback = action.get_callback()
+            data = action.get_data()
+            if action_type.lower() == 'onshow':
+                self.onshow.connect( callback_factory( self.on_show, callback ) )
+            elif widget1_type.lower() == 'pushbutton':
+                qt_widget = self.widget_registry[ widget1_field_name ].qt_widget
+                qt_widget.pushed.connect( callback_factory( self.widget_registry.process_action, action ) )
+            elif widget1_type.lower() == 'listbox':
+                qt_widget = self.widget_registry[ widget1_field_name ].qt_widget
+                qt_widget.currentRowChanged.connect( callback_factory( self.widget_registry.process_action, action ) )
+
+        menu_list = manage.get_menu_list()
+        self.widget_registry.fill_menu_bar( self.menuBar(), menu_list, self )
+
+        self.setWindowModality( QtCore.Qt.ApplicationModal )
+        self.setWindowTitle( class_name )
+        self.onshow.emit()
+        self.show()
+        self.center()
+
+    def on_show( self, callback ):
+        #print( 'on_show' )
+        fields = self.widget_registry.get_fields()
+        #print( fields )
+        callback_return = callback( fields )
+        self.widget_registry.fill_fields( callback_return )
+
+class GuiWizard( QWizard ):
+
+    def __init__( self, wizard, external_data, parent ):
+        super().__init__( parent )
+        self.widget_registry = widget_registry = WidgetRegistry( self )
+        wizard_pages = wizard.get_wizard_pages()
+        title = wizard.get_title()
+        self.external_data = external_data
+        self.accept_method = wizard.accept
+        self.setWizardStyle( QWizard.ClassicStyle )
+        self.setWindowTitle( title )
+        self.pages = pages = {}
+        for page in wizard_pages:
+            page_title = page.get_title()
+            pages[page_title] = page
+            gui_wizard_page = GuiWizardPage( page, pages, external_data, widget_registry, self )
+            self.setPage( gui_wizard_page.get_page_id(), gui_wizard_page )
+
+    def get_widget_registry( self ):
+        return self.widget_registry        
+
+    def get_accept_return( self ):
+        return self.accept_return
+
+    def accept( self ):
+        self.accept_return = self.accept_method( self.widget_registry.get_fields(), self.pages, self.external_data )
+        #QDialog.accept()
+        super().accept()
+
+class GuiWizardPage( QWizardPage ):
+
+    def __init__( self, wizard_page, wizard_pages, external_data, widget_registry, parent ):
+        super().__init__( parent )
+        #print( widget_registry )
+        self.wizard_page = wizard_page
+        self.wizard_pages = wizard_pages
+        self.external_data = external_data
+        self.widget_registry = widget_registry
+        self.page_id = page_id = wizard_page.get_page_id()
+        title = wizard_page.get_title()
+        subtitle = wizard_page.get_subtitle()
+        widget_matrix = wizard_page.get_widget_matrix()
+        self.setTitle( title )
+        self.setSubTitle( subtitle )
+        grid_layout = QGridLayout()
+        for i, row in enumerate( widget_matrix ):
+            for j, widget in enumerate( row ):
+                widget_layout = widget_registry.register_widget( widget, gui_wizard_page=self )
+                if widget.get_align() is None:
+                    align = QtCore.Qt.AlignLeft
+                elif widget.get_align().lower() == 'center':
+                    align = QtCore.Qt.AlignCenter
+                elif widget.get_align().lower() == 'left':
+                    align = QtCore.Qt.AlignLeft
+                elif widget.get_align().lower() == 'right':
+                    align = QtCore.Qt.AlignRight
+                if widget_layout != None:
+                    grid_layout.addLayout( widget_layout, i, j, widget.get_row_span(), widget.get_col_span(), align )
+        self.setLayout( grid_layout )
+
+    def get_page_id( self ):
+        return self.page_id
+
+    def initializePage( self ):
+        #print( self.widget_registry )
+        initialize_page_return = self.wizard_page.initialize_page( self.widget_registry.get_fields(), self.wizard_pages, self.external_data )
+        if initialize_page_return:
+            self.widget_registry.fill_fields( initialize_page_return )
+
+    def isComplete( self ):
+        is_complete_return = self.wizard_page.is_complete( self.widget_registry.get_fields(), self.wizard_pages, self.external_data )
+        return is_complete_return
+
+    def nextId( self ):
+        next_page_id = self.wizard_page.get_next_page_id( self.widget_registry.get_fields(), self.wizard_pages, self.external_data )
+        if next_page_id == -2:
+            found_current_page = False
+            for page_id in self.wizard().pageIds():
+                if page_id == self.page_id:
+                    found_current_page = True
+                elif found_current_page:
+                    return page_id
+            return -1
+        return next_page_id
