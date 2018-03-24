@@ -4,7 +4,7 @@ import PyQt5.QtCore as QtCore
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import (QMainWindow, QAction, QWidget, QTabWidget,
                              QDesktopWidget, QHBoxLayout, QVBoxLayout, QGridLayout,
-                             QScrollArea, QWizard, QWizardPage, QPushButton,
+                             QScrollArea, QWizard, QWizardPage, QPushButton, QCheckBox,
                              QLabel, QListWidget, QListWidgetItem, QLineEdit, QTextEdit,
                              QFrame, QComboBox, QSpinBox,
                              QFileDialog,
