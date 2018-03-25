@@ -6,45 +6,46 @@ import SystemSettings
 from GuiDefs import *
 
 
-class LevelUpWizard( Wizard ):
-    def __init__( self ):
+class LevelUpWizard(Wizard):
+    def __init__(self):
         #super( LevelUpWizard, self ).__init__( 'Level Up' )
-        super().__init__( 'Level Up' )
+        super().__init__('Level Up')
 
-        self.add_wizard_page( IntroPage() )
-        self.add_wizard_page( SpellbookPage() )
-        self.add_wizard_page( SpellsPage() )
-        self.add_wizard_page( ProficiencyPage() )
-        self.add_wizard_page( ReviewPage() )
+        self.add_wizard_page(IntroPage())
+        self.add_wizard_page(SpellbookPage())
+        self.add_wizard_page(SpellsPage())
+        self.add_wizard_page(ProficiencyPage())
+        self.add_wizard_page(ReviewPage())
 
-    def accept( self, fields, pages, external_data ):
+    def accept(self, fields, pages, external_data):
 #        print fields['Name']
         return
 
-class IntroPage( WizardPage ):
-    def __init__( self ):
+
+class IntroPage(WizardPage):
+    def __init__(self):
         #super( IntroPage, self ).__init__( 0, 'Level Up' )
-        super().__init__( 0, 'Level Up' )
-        self.set_subtitle( 'Level-up Wizard' )
+        super().__init__(0, 'Level Up')
+        self.set_subtitle('Level-up Wizard')
 
-        text = Widget( 'Intro Text', 'TextLabel',
-                        align='Center' , data='There are one or more classes ready to level up for this character!' )
-        self.add_row( [ text ] )
+        text = Widget('Intro Text', 'TextLabel',
+                      align='Center', data='There are one or more classes ready to level up for this character!')
+        self.add_row([text])
 
-        text2 = Widget( 'Intro Text2', 'TextLabel', align='Center', data='Click <b>Next</b> to continue.' )
-        self.add_row( [ text2 ] )
+        text2 = Widget('Intro Text2', 'TextLabel', align='Center', data='Click <b>Next</b> to continue.')
+        self.add_row([text2])
 
         self.ready_list = None
         self.ready_dict_list = None
         self.wizard_category = False
         self.priest_category = False
 
-    def initialize_page( self, fields, pages, external_data ):
+    def initialize_page( self, fields, pages, external_data):
         pc = external_data['Character List Current']
-        classes = pc['Classes'].split( '/' )
-        level = str( pc['Level'] ).split( '/' )
-        self.ready_list = ready_to_level_up( pc )
-        self.ready_dict_list = [ cl for cl in DbQuery.getTable( 'Classes' ) if cl['unique_id'] in self.ready_list ]
+        classes = pc['Classes'].split('/')
+        level = str(pc['Level']).split('/')
+        self.ready_list = ready_to_level_up(pc)
+        self.ready_dict_list = [cl for cl in DbQuery.getTable('Classes') if cl['unique_id'] in self.ready_list]
         self.wizard_category = False
         self.priest_category = False
         self.proficiency_slots_available = 0
@@ -52,11 +53,12 @@ class IntroPage( WizardPage ):
             if cl['Category'] == 'wizard':
                 self.wizard_category = cl
             if cl['Category'] == 'priest':
-                self.priest_category == cl
+                self.priest_category = cl
             wpa = cl['Weapon_Proficiency_Advancement'].split('/')
-            slots = int( wpa[0] )
-            per_level = int( wpa[1] )
-            pc_level = int( level[ classes.index( cl['unique_id'] ) ] )
+            slots = int(wpa[0])
+            per_level = int(wpa[1])
+            pc_level = int(level[classes.index(cl['unique_id'])])
+            self.proficiency_slots_available = 2
             if pc_level % per_level == 0:
                 self.proficiency_slots_available = slots
 
@@ -71,10 +73,12 @@ class IntroPage( WizardPage ):
 
         else:
             self.next_page_id = -1
-            return { 'Intro Text': 'There are no classes ready to level up for this character!',
-                     'Intro Text2': '' }
+            return {
+                'Intro Text': 'There are no classes ready to level up for this character!',
+                'Intro Text2': ''
+            }
 
-    def get_next_page_id( self, fields, pages, external_data ):
+    def get_next_page_id(self, fields, pages, external_data):
         return self.next_page_id
 
 
@@ -393,7 +397,7 @@ class SpellsPage2( WizardPage ):
         return { 'Daily Spells2': spells }
 
     def is_complete( self, fields, pages, external_data ):
-        if self.spell_slots == None:
+        if self.spell_slots is None:
             return False
 
         slot_list = self.spell_slots.split( '/' )
@@ -410,117 +414,222 @@ class SpellsPage2( WizardPage ):
             return pages['Review'].get_page_id()
 
 
-class ProficiencyPage( WizardPage ):
-    def __init__( self ):
+class ProficiencyPage(WizardPage):
+    def __init__(self):
         #super( ProficiencyPage, self ).__init__( 4, 'Proficiencies' )
-        super().__init__( 4, 'Proficiencies' )
-        self.set_subtitle( 'Choose available proficiencies' )
+        super().__init__(4, 'Proficiencies')
+        self.set_subtitle('Choose available proficiencies')
 
-        self.proficiency_table = [ row for row in DbQuery.getTable( 'Items' ) if row['Is_Proficiency'].lower() == "yes" ]
-        self.class_table = DbQuery.getTable( 'Classes' )
-        self.race_table = DbQuery.getTable( 'Races' )
+        self.proficiency_table = [row for row in DbQuery.getTable('Items') if row['Is_Proficiency'].lower() == "yes"]
+        self.class_table = DbQuery.getTable('Classes')
+        self.race_table = DbQuery.getTable('Races')
         self.slots_remaining = 0
-
-        prof_data = {
-        'fill_avail': self.fill_proficiencies,
-        'slots': self.get_proficiency_slots,
-        'slots_name': 'Proficiency',
-        'category_field': 'Damage_Type',
-        'tool_tip': self.get_tool_tip,
-        'add': self.add_proficiency,
-        'remove': self.remove_proficiency,
-        }
-        proficiencies = Widget( 'Proficiencies', 'DualList', data=prof_data )
-
-        self.add_row( [ proficiencies, ] )
-
-    def fill_proficiencies( self, owned_items, fields, pages, external_data ):
-        pc = external_data['Character List Current']
-
+        self.orig_proficiencies = []
         self.specialised_list = []
         self.double_specialised_list = []
-        class_id_list = [ cl.strip() for cl in pc['Classes'].split( '/' ) ]
-        class_list = [ row for row in self.class_table if row['unique_id'] in class_id_list ]
-        if len( class_list ) == 1:
+        self.shadow_list = None
+
+        prof_data = {
+            'fill_avail': self.fill_proficiencies,
+            'slots': self.get_proficiency_slots,
+            'slots_name': 'Proficiency',
+            # 'category_field': 'Damage_Type',
+            # 'category_callback': self.get_category_tab_name,
+            'tool_tip': self.get_tool_tip,
+            'add': self.add_proficiency,
+            'remove': self.remove_proficiency,
+        }
+        proficiencies = Widget('Proficiencies', 'DualList', data=prof_data)
+
+        self.add_row([proficiencies, ])
+
+    def fill_proficiencies(self, owned_items, fields, pages, external_data):
+        pc = external_data['Character List Current']
+
+        class_id_list = [cl.strip() for cl in pc['Classes'].split('/')]
+        class_list = [row for row in self.class_table if row['unique_id'] in class_id_list]
+        if len(class_list) == 1:
             class_dict = class_list[0]
-        elif len( class_list ) > 1:
-            class_dict = { 'classes': class_list }
-        race_dict = [ row for row in self.race_table if row['race_id'] == pc['Race'] ][0]
-        if 'classes' in class_dict:
-            wp_list = [ cl['Weapons_Permitted' ] for cl in class_dict[ 'classes' ] ]
-            weapons_permitted = SystemSettings.race_wp( wp_list, race_dict['unique_id'], self.proficiency_table )
         else:
-            weapons_permitted = [ weapon.strip().lower() for weapon in class_dict['Weapons_Permitted'].split( ',' ) ]
+            class_dict = {'classes': class_list}
+        race_dict = [row for row in self.race_table if row['unique_id'] == pc['Race']][0]
+        if 'classes' in class_dict:
+            wp_list = [cl['Weapons_Permitted'] for cl in class_dict['classes']]
+            weapons_permitted = SystemSettings.race_wp(wp_list, race_dict['unique_id'], self.proficiency_table)
+        else:
+            weapons_permitted = [weapon.strip().lower() for weapon in class_dict['Weapons_Permitted'].split(',')]
         item_list = []
-        for item_dict in item_dict_list:
-            item_tuple = ( item_dict['Name'], item_dict )
-            damage_type_list = [ damage_type.strip().lower() for damage_type in item_dict['Damage_Type'].split( ',' ) ]
+        for item_dict in self.proficiency_table:
+            item_tuple = (item_dict['Name'], item_dict)
+            damage_type_list = [damage_type.strip().lower() for damage_type in item_dict['Damage_Type'].split(',')]
             if 'any' in weapons_permitted:
-                item_list.append( item_tuple )
-            elif any( weapon in item_dict['Name'].lower() for weapon in weapons_permitted ):
-                item_list.append( item_tuple )
-            elif [ i for i in weapons_permitted if i in damage_type_list ]:
-                item_list.append( item_tuple )
+                item_list.append(item_tuple)
+            elif any(weapon in item_dict['Name'].lower() for weapon in weapons_permitted):
+                item_list.append(item_tuple)
+            elif [i for i in weapons_permitted if i in damage_type_list]:
+                item_list.append(item_tuple)
             elif 'single-handed swords (except bastard swords)' in weapons_permitted:
-                if item_dict['unique_id'].startswith( 'sword' ) and \
-                'both-hand' not in damage_type_list and 'two-hand' not in damage_type_list:
-                    item_list.append( item_tuple )
+                if item_dict['unique_id'].startswith('sword') and \
+                  'both-hand' not in damage_type_list and 'two-hand' not in damage_type_list:
+                    item_list.append(item_tuple)
         return item_list
 
-    def get_proficiency_slots( self, fields, pages, external_data ):
+    def get_proficiency_slots(self, fields, pages, external_data):
         self.slots_remaining = pages['Level Up'].proficiency_slots_available
         return self.slots_remaining
 
-    def get_tool_tip( self, item, fields, pages, external_data ):
-        return '{}'.format( item['Notes'] )
+    def get_category_tab_name(self, category, fields, pages, external_data):
+        return category.title()
 
-    def add_proficiency( self, item, fields, pages, external_data ):
+    def get_tool_tip(self, item, fields, pages, external_data):
+        return '{}'.format(item['Notes'])
+
+    def add_proficiency(self, item, fields, pages, external_data):
+        if self.slots_remaining > 0 and item not in self.double_specialised_list:
+            # print(item)
+            new_display = item['Name']
+            if self.shadow_list:
+                self.shadow_list = fields['Proficiencies']
+                if item in self.shadow_list:
+                    item_index = self.shadow_list.index(item)
+                    if item in self.specialised_list:
+                        self.double_specialised_list.append(item)
+                        new_display = (item_index, '{} - {}'.format(item['Name'], '2X Specialised'))
+                    else:
+                        self.specialised_list.append(item)
+                        new_display = (item_index, '{} - {}'.format(item['Name'], 'Specialised'))
+            elif item in fields['Proficiencies']:
+                return {}
+            self.slots_remaining -= 1
+            return {
+                'valid': True,
+                'slots_new_value': self.slots_remaining,
+                # 'remove': True,
+                # 'new_display': item['Name'],
+                'new_display': new_display,
+            }
         return {}
 
-    def remove_proficiency( self, item, fields, pages, external_data ):
-        return {}
+    def remove_proficiency(self, item, fields, pages, external_data):
+        orig_state = None
+        for orig_prof in self.orig_proficiencies:
+            if type(orig_prof).__name__ == 'dict':
+                if item == orig_prof:
+                    orig_state = 'P'
+                    break
+            elif type(orig_prof).__name__ == 'tuple':
+                if item == orig_prof[1]:
+                    specialised_text = orig_prof[0].split('-')[1].strip()
+                    if specialised_text == 'Specialised':
+                        orig_state = 'S'
+                        break
+                    elif specialised_text == '2X Specialised':
+                        orig_state = '2X'
+                        break
+        new_display = item['Name']
+        item_index = fields['Proficiencies'].index(item)
+        # print(orig_state)
+        if orig_state == 'P':
+            if item in self.double_specialised_list:
+                self.double_specialised_list.remove(item)
+                new_display = (item_index, '{} - {}'.format(item['Name'], 'Specialised'))
+            elif item in self.specialised_list:
+                self.specialised_list.remove(item)
+                new_display = (item_index, item['Name'])
+            else:
+                return {}
+        elif orig_state == 'S':
+            if item in self.double_specialised_list:
+                self.double_specialised_list.remove(item)
+                new_display = (item_index, '{} - {}'.format(item['Name'], 'Specialised'))
+            else:
+                return {}
+        elif orig_state == '2X':
+            return {}
+        else:
+            if item in self.double_specialised_list:
+                self.double_specialised_list.remove(item)
+                new_display = (item_index, '{} - {}'.format(item['Name'], 'Specialised'))
+            elif item in self.specialised_list:
+                self.specialised_list.remove(item)
+                new_display = (item_index, item['Name'])
+            else:
+                pass
+        self.slots_remaining += 1
+        return {
+            'valid': True,
+            'slots_new_value': self.slots_remaining,
+            'new_display': new_display,
+        }
 
-    def initialize_page( self, fields, pages, external_data ):
+    def initialize_page(self, fields, pages, external_data):
         pc = external_data['Character List Current']
 
-        pc_proficiency_list = [ row['Entry_ID'] for row in pc['Characters_meta'] if row['Type'] == 'Proficiency' ]
-        pc_proficiencies = [ row for row in self.proficiency_table if row['unique_id'] in pc_proficiency_list ]
+        # pc_proficiency_list = [row['Entry_ID'] for row in pc['Characters_meta'] if row['Type'] == 'Proficiency']
+        pc_proficiency_list = [row for row in pc['Characters_meta'] if row['Type'] == 'Proficiency']
+        pc_proficiency_ids = []
+        specialised_ids = []
+        double_specialised_ids = []
+        for row in pc_proficiency_list:
+            # print(row)
+            specialisation_level = row['Data']
+            if specialisation_level == 'S':
+                specialised_ids.append(row['Entry_ID'])
+            elif specialisation_level == '2X':
+                double_specialised_ids.append(row['Entry_ID'])
+            pc_proficiency_ids.append(row['Entry_ID'])
+        self.specialised_list = [row for row in self.proficiency_table if row['unique_id'] in specialised_ids]
+        self.double_specialised_list = [row for row in self.proficiency_table if row['unique_id'] in double_specialised_ids]
+        # pc_proficiencies = [row for row in self.proficiency_table if row['unique_id'] in pc_proficiency_ids]
+        self.orig_proficiencies = pc_proficiencies = []
+        for row in self.proficiency_table:
+            if row['unique_id'] in pc_proficiency_ids:
+                prof = row
+                if row['unique_id'] in double_specialised_ids:
+                    prof = ('{} - {}'.format(row['Name'], 'Double Specialised'), row)
+                elif row['unique_id'] in specialised_ids:
+                    prof = ('{} - {}'.format(row['Name'], 'Specialised'), row)
+                pc_proficiencies.append(prof)
+        pc_classes = pc['Classes'].split('/')
+        if 'fighter' in pc_classes:
+            self.shadow_list = pc_proficiencies
+        return {'Proficiencies': pc_proficiencies}
 
-        return { 'Proficiencies', pc_proficiencies }
-
-    def is_complete( self, fields, pages, external_data ):
+    def is_complete(self, fields, pages, external_data):
+        if self.slots_remaining > 0:
+            return False
         return True
 
 
-class ReviewPage( WizardPage ):
-    def __init__( self ):
+class ReviewPage(WizardPage):
+    def __init__(self):
         #super( ReviewPage, self ).__init__( 5, 'Review' )
-        super().__init__( 5, 'Review' )
-        self.set_subtitle( 'Make sure you like what you see' )
+        super().__init__(5, 'Review')
+        self.set_subtitle('Make sure you like what you see')
 
-        review_text = Widget( 'Review Text', 'TextLabel', align='Center' )
+        review_text = Widget('Review Text', 'TextLabel', align='Center')
 
-        self.add_row( [ review_text, ] )
+        self.add_row([review_text, ])
 
-    def initialize_page( self, fields, pages, external_data ):
+    def initialize_page(self, fields, pages, external_data):
         pc = external_data['Character List Current']
-        classes = pc['Classes'].split( '/' )
-        level = str( pc['Level'] ).split( '/' )
+        classes = pc['Classes'].split('/')
+        level = str(pc['Level']).split('/')
 
         ready_dict_list = pages['Level Up'].ready_dict_list
         hp_add = 0
         for cl in ready_dict_list:
-            pc_level = int( level[ classes.index( cl['unique_id'] ) ] )
+            pc_level = int(level[classes.index(cl['unique_id'])])
             if pc_level < cl['Hit_Die_Max']:
-                hp_roll = Dice.rollString( 'd{}'.format( cl['Hit_Die_Type'] ) )
+                hp_roll = Dice.rollString('d{}'.format(cl['Hit_Die_Type']))
             else:
-                hp_roll = [ row for row in cl['Classes_meta'] if row['Level'] == 'each' ][0]['Hit_Dice']
+                hp_roll = [row for row in cl['Classes_meta'] if row['Level'] == 'each'][0]['Hit_Dice']
 #            print hp_roll
-            hp_add += hp_roll // len( classes ) or 1
+            hp_add += hp_roll // len(classes) or 1
 
-            return { 'Review Text' : '<b>Hit Points Added: </b>{}'.format( str( hp_add ) ) }
+            return {'Review Text': '<b>Hit Points Added: </b>{}'.format(str(hp_add))}
 
-    def is_complete( self, fields, pages, external_data ):
+    def is_complete( self, fields, pages, external_data):
         return True
 
 

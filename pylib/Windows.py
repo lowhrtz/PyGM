@@ -286,40 +286,42 @@ class WidgetRegistry( dict ):
         elif widget_type.lower() == 'listbox':
             widget_layout = QVBoxLayout()
             qt_widget = QListWidget()
-            qt_widget.setEnabled( is_enabled )
-            qt_widget.setStyleSheet( disabled_stylesheet )
+            qt_widget.setEnabled(is_enabled)
+            qt_widget.setStyleSheet(disabled_stylesheet)
             if widget_data:
-                self.fill_listbox( widget, widget_data )
+                self.fill_listbox(widget, widget_data)
             if not hide_field:
-                widget_layout.addWidget( QLabel( field_name ) )
-            widget_layout.addWidget( qt_widget )
+                widget_layout.addWidget(QLabel(field_name))
+            widget_layout.addWidget(qt_widget)
             if gui_wizard_page:
-                qt_widget.currentRowChanged.connect( lambda: gui_wizard_page.completeChanged.emit() )
+                qt_widget.currentRowChanged.connect(lambda: gui_wizard_page.completeChanged.emit())
 
         elif widget_type.lower() == 'duallist':
             widget_layout = QVBoxLayout()
-            tabbed_avail_lists = QTabWidget( self.parent )
-            tabbed_avail_lists.tabBar().setStyleSheet( 'font: bold 8pt;' )
+            tabbed_avail_lists = QTabWidget(self.parent)
+            tabbed_avail_lists.tabBar().setStyleSheet('font: bold 8pt;')
 
-            qt_widget = chosen_list = QListWidget( self.parent )
-            qt_widget.setEnabled( is_enabled )
-            qt_widget.setStyleSheet( disabled_stylesheet )
+            qt_widget = chosen_list = QListWidget(self.parent)
+            qt_widget.setEnabled(is_enabled)
+            qt_widget.setStyleSheet(disabled_stylesheet)
             if gui_wizard_page:
                 model = chosen_list.model()
-                model.rowsInserted.connect( lambda: gui_wizard_page.completeChanged.emit() )
-                model.rowsRemoved.connect( lambda: gui_wizard_page.completeChanged.emit() )
+                model.rowsInserted.connect(lambda: gui_wizard_page.completeChanged.emit())
+                model.rowsRemoved.connect(lambda: gui_wizard_page.completeChanged.emit())
+                chosen_list.itemChanged.connect(lambda: gui_wizard_page.completeChanged.emit())
 
-            tabbed_chosen_list = QTabWidget( self.parent )
-            tabbed_chosen_list.addTab( chosen_list, '' )
+            tabbed_chosen_list = QTabWidget(self.parent)
+            tabbed_chosen_list.addTab(chosen_list, '')
             tabbed_chosen_list.tabBar().hide()
 
-            fill_avail = widget_data['fill_avail']
-            slots = widget_data['slots']
-            slots_name = widget_data['slots_name']
-            category_field = widget_data['category_field']
-            tool_tip = widget_data['tool_tip']
-            add = widget_data['add']
-            remove = widget_data['remove']
+            fill_avail = widget_data.get('fill_avail')
+            slots = widget_data.get('slots')
+            slots_name = widget_data.get('slots_name')
+            category_field = widget_data.get('category_field')
+            category_callback = widget_data.get('category_callback')
+            tool_tip = widget_data.get('tool_tip')
+            add = widget_data.get('add')
+            remove = widget_data.get('remove')
 
             #if fill_avail:
             #    avail_items = fill_avail( owned_items, fields )
@@ -353,6 +355,7 @@ class WidgetRegistry( dict ):
             qt_widget.chosen_list = chosen_list
             qt_widget.fill_avail = fill_avail
             qt_widget.category_field = category_field
+            qt_widget.category_callback = category_callback
             qt_widget.gui_wizard_page = gui_wizard_page
             qt_widget.slots = slots
             qt_widget.slots_name = slots_name
@@ -385,62 +388,81 @@ class WidgetRegistry( dict ):
                 if current_list.currentRow() == -1:
                     return
                 current_item = current_list.currentItem()
+                current_data = current_item.data(QtCore.Qt.UserRole)
                 if gui_wizard_page:
-                    add_return = add( current_item.data( QtCore.Qt.UserRole ), self.get_fields(), gui_wizard_page.wizard_pages, gui_wizard_page.external_data )
+                    add_return = add(current_data, self.get_fields(), gui_wizard_page.wizard_pages, gui_wizard_page.external_data)
                 else:
-                    add_return = add( current_item.data( QtCore.Qt.UserRole ), self.get_fields() )
-                valid = add_return.get( 'valid' )
-                slots_new_value = add_return.get( 'slots_new_value' )
-                remove = add_return.get( 'remove' )
-                new_display = add_return.get( 'new_display' )
+                    add_return = add(current_data, self.get_fields())
+                valid = add_return.get('valid')
+                slots_new_value = add_return.get('slots_new_value')
+                remove = add_return.get('remove')
+                new_display = add_return.get('new_display')
                 if valid is not True:
                     return
-                if type( slots_new_value ).__name__ == 'str':
-                    slots_label.setText( '<b>{}: </b>{}'.format( slots_name, slots_new_value ) )
+                # if type( slots_new_value ).__name__ == 'str':
+                slots_label.setText('<b>{}: </b>{}'.format(slots_name, str(slots_new_value)))
                 if remove is True:
-                    current_list.takeItem( current_list.currentRow() )
-                if type( new_display ).__name__ != 'str':
-                    new_display = current_item.text()
-                add_item_to_listbox( chosen_list, current_item.data( QtCore.Qt.UserRole ), tool_tip, self.get_fields(), current_list, wizard=gui_wizard_page )
+                    current_list.takeItem(current_list.currentRow())
+
+                replace_index = None
+                add_item = current_data
+                if type(new_display).__name__ == 'tuple':
+                    replace_index = new_display[0]
+                    new_display = new_display[1]
+                    add_item = (new_display, current_data)
+                elif type(new_display).__name__ == 'str':
+                    add_item = (new_display, current_data)
+                add_item_to_listbox(chosen_list, add_item, tool_tip, self.get_fields(), current_list, wizard=gui_wizard_page, index=replace_index)
 
             def remove_pressed():
                 if chosen_list.currentRow() == -1:
                     return
                 current_item = chosen_list.currentItem()
-                current_data = current_item.data( QtCore.Qt.UserRole )
+                current_data = current_item.data(QtCore.Qt.UserRole)
                 if gui_wizard_page:
-                    remove_return = remove( current_data, self.get_fields(), gui_wizard_page.wizard_pages, gui_wizard_page.external_data )
+                    remove_return = remove(current_data, self.get_fields(), gui_wizard_page.wizard_pages, gui_wizard_page.external_data)
                 else:
-                    remove_return = remove( current_data, self.get_fields() )
-                valid = remove_return.get( 'valid' )
-                slots_new_value = remove_return.get( 'slots_new_value' )
-                replace = remove_return.get( 'replace' )
-                new_display = remove_return.get( 'new_display' )
+                    remove_return = remove(current_data, self.get_fields())
+                valid = remove_return.get('valid')
+                slots_new_value = remove_return.get('slots_new_value')
+                replace = remove_return.get('replace')
+                new_display = remove_return.get('new_display')
                 if valid is not True:
                     return
-                if type( slots_new_value ).__name__ == 'str':
-                    slots_label.setText( '<b>{}: </b>{}'.format( slots_name, slots_new_value ) )
-                if type( new_display ).__name__ != 'str':
-                    new_display = current_item.text()
+                slots_label.setText('<b>{}: </b>{}'.format(slots_name, str(slots_new_value)))
+                # print(slots_new_value)
+                if type(new_display).__name__ == 'tuple':
+                    replace_index = new_display[0]
+                    new_display = new_display[1]
+                    remove_item = (new_display, current_data)
+                    add_item_to_listbox(chosen_list, remove_item, tool_tip, self.get_fields(), wizard=gui_wizard_page, index=replace_index)
+                    return
+                # elif type(new_display).__name__ == 'str':
+                #     remove_item = (new_display, current_data)
                 if replace is True:
                     try:
                         original_list = current_item.original_list
                     except AttributeError:
                         if category_field:
                             #print( category_hash )
-                            category = str( current_data[category_field] )
+                            category = str(current_data[category_field])
+                            if qt_widget.category_callback:
+                                if gui_wizard_page:
+                                    category = category_callback(category, self.get_fields(), gui_wizard_page.wizard_pages, gui_wizard_page.external_data)
+                                else:
+                                    category = category_callback(category, self.get_fields())
                             if category in category_hash.keys():
                                 original_list = category_hash[category]
                             else:
-                                category_hash[category] = original_list = QListWidget( self.parent )
-                                tabbed_avail_lists.addTab( category_hash[category], category )
+                                category_hash[category] = original_list = QListWidget(self.parent)
+                                tabbed_avail_lists.addTab(category_hash[category], category)
                         else:
                             original_list = tabbed_avail_lists.getCurrentWidget()
-                    add_item_to_listbox( original_list, current_data, tool_tip, self.get_fields(), original_list, wizard=gui_wizard_page )
-                chosen_list.takeItem( chosen_list.currentRow() )
+                    add_item_to_listbox(original_list, current_data, tool_tip, self.get_fields(), original_list, wizard=gui_wizard_page)
+                chosen_list.takeItem(chosen_list.currentRow())
 
-            add_button.pressed.connect( add_pressed )
-            remove_button.pressed.connect( remove_pressed )
+            add_button.pressed.connect(add_pressed)
+            remove_button.pressed.connect(remove_pressed)
 
         elif widget_type.lower() == 'textlabel':
             widget_layout = QHBoxLayout()
@@ -529,25 +551,25 @@ class WidgetRegistry( dict ):
                 fields[k] = widget.base64
         return fields
 
-    def fill_fields( self, fields ):
-        for k,v in fields.items():
+    def fill_fields(self, fields):
+        for k, v in fields.items():
             widget_type = self[k].get_widget_type()
             widget = self[k].qt_widget
             if widget_type.lower() in self.text_widgets:
-                widget.setText( v )
+                widget.setText(v)
             elif widget_type.lower() == 'checkbox':
-                widget.setChecked( v )
+                widget.setChecked(v)
             elif widget_type.lower() == 'spinbox':
-                widget.setValue( v )
+                widget.setValue(v)
             elif widget_type.lower() == 'combobox':
-                new_index = widget.findText( v )
-                widget.setCurrentIndex( new_index )
+                new_index = widget.findText(v)
+                widget.setCurrentIndex(new_index)
             elif widget_type.lower() == 'listbox':
-                fill_listbox( widget, v )
+                fill_listbox(widget, v)
             elif widget_type.lower() == 'image':
                 widget.base64 = v or ''
-                pixmap = get_pixmap_from_base64( widget.base64 )
-                widget.setPixmap( pixmap )
+                pixmap = get_pixmap_from_base64(widget.base64)
+                widget.setPixmap(pixmap)
             elif widget_type.lower() == 'duallist':
                 gui_wizard_page = widget.gui_wizard_page
                 slots = widget.slots
@@ -558,6 +580,7 @@ class WidgetRegistry( dict ):
                 chosen_list = widget.chosen_list
                 fill_avail = widget.fill_avail
                 category_field = widget.category_field
+                category_callback = widget.category_callback
                 category_hash = widget.category_hash
                 owned_items = v
 
@@ -578,26 +601,31 @@ class WidgetRegistry( dict ):
                     tabbed_avail_lists.clear()
                     #category_hash = {}
                     for avail_item in avail_items:
-                        if type( avail_item ).__name__ == 'dict':
+                        if type(avail_item).__name__ == 'dict':
                             avail_item_dict = avail_item
-                        elif type( avail_item ).__name__ == 'tuple':
+                        elif type(avail_item).__name__ == 'tuple':
                             avail_item_dict = avail_item[1]
                         else:
                             continue
-                        category = str( avail_item_dict[category_field] )
-                        if category not in list( category_hash.keys() ):
-                            category_hash[category] = QListWidget( self.parent )
-                            tabbed_avail_lists.addTab( category_hash[category], category )
-                        add_item_to_listbox( category_hash[category], avail_item, tool_tip, fields, wizard=gui_wizard_page )
+                        category = str(avail_item_dict[category_field])
+                        if category_callback:
+                            if gui_wizard_page:
+                                category = category_callback(category, self.get_fields(), gui_wizard_page.wizard_pages, gui_wizard_page.external_data)
+                            else:
+                                category = category_callback(category, self.get_fields())
+                        if category not in list(category_hash.keys()):
+                            category_hash[category] = QListWidget(self.parent)
+                            tabbed_avail_lists.addTab(category_hash[category], category)
+                        add_item_to_listbox(category_hash[category], avail_item, tool_tip, fields, wizard=gui_wizard_page)
                 else:
-                    avail_list = QListWidget( self )
-                    tabbed_avail_lists.addTab( avail_list, 'Avail' )
+                    avail_list = QListWidget(self.parent)
+                    tabbed_avail_lists.addTab(avail_list, 'Avail')
                     tabbed_avail_lists.tabBar().hide()
-                    fill_listbox( avail_list, avail_items, tool_tip, fields )
+                    fill_listbox(avail_list, avail_items, tool_tip, fields, wizard=gui_wizard_page)
                     if avail_list.count() > 0:
-                        avail_list.setCurrentRow( 0 )
+                        avail_list.setCurrentRow(0)
 
-                fill_listbox( chosen_list, owned_items, tool_tip, fields, wizard=gui_wizard_page )
+                fill_listbox(chosen_list, owned_items, tool_tip, fields, wizard=gui_wizard_page)
 
     def process_action( self, action ):
         fields = self.get_fields()
