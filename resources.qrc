@@ -1,0 +1,12 @@
+<RCC>
+    <qresource>
+        <file>images/new.png</file>
+        <file>images/open.png</file>
+        <file>images/quit.png</file>
+        <file>images/icon.png</file>
+        <file>images/dice.png</file>
+        <file>images/diceSmall.png</file>
+        <file>images/noImage.jpg</file>
+        <file>images/rollBanner.jpg</file>
+    </qresource>
+</RCC>
