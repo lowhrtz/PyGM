@@ -5,70 +5,77 @@ import re
 random.seed()
 DIVIDER = 'd'
 
-def randomInt( lower, upper ):
-    return random.randint( lower, upper )
 
-def rollString( dice_string ):
-    single_dice_format = re.compile( '^[d]{0,1}[0-9]+$' )
-    dice_format = re.compile( '^[0-9]+[d][0-9]+$' )
-    complex_format = re.compile( '^\\(?[0-9]+[d][0-9]+(\\s*\\+[0-9]+\\s*)?\\)?(\\s*[x|×]\\s*[0-9]+)?$' )
+def randomInt(lower, upper):
+    return random.randint(lower, upper)
 
-    if single_dice_format.match( dice_string ):
-        sides = int( dice_string.replace( 'd', '' ) )
-        return randomInt( 1, sides )
 
-    elif dice_format.match( dice_string ):
-        dice_string_list = dice_string.split( DIVIDER )
-        number = int( dice_string_list[0] )
-        sides = int( dice_string_list[1] )
+def rollString(dice_string):
+    single_dice_format = re.compile('^d?[0-9]+$')
+    dice_format = re.compile('^[0-9]+[d][0-9]+$')
+    complex_format = re.compile('^\\(?[0-9]+[d][0-9]+(\\s*\\+[0-9]+\\s*)?\\)?(\\s*[x|×]\\s*[0-9]+)?$')
+
+    if single_dice_format.match(dice_string):
+        sides = int(dice_string.replace('d', ''))
+        return randomInt(1, sides)
+
+    elif dice_format.match(dice_string):
+        dice_string_list = dice_string.split(DIVIDER)
+        number = int(dice_string_list[0])
+        sides = int(dice_string_list[1])
         result = 0
-        for _ in range( number ):
-            result += randomInt( 1, sides )
+        for _ in range(number):
+            result += randomInt(1, sides)
         return result 
 
-    elif complex_format.match( dice_string ):
-        dice_string_list = dice_string.split( DIVIDER )
-        number = dice_string_list[0].replace( '(', '' )
-        after_div = dice_string_list[1].replace( '(', '' )
-        sides = ''
-        add = ''
-        sub = ''
-        mul = ''
-        div = ''
-
-        for i in range( len( after_div ) ):
-            if after_div[i].isdigit():
-                sides += after_div[i]
-            else:
-                break
-        if '+' in after_div:
-            plus_split = after_div.split( '+' )
-            after_plus = plus_split[1]
-            add = ''
-            for i in range( len( after_plus ) ):
-                if after_plus[i].isdigit():
-                    add += after_plus[i]
-                else:
-                    break
-        if 'x' in after_div or '×' in after_div:
-            if 'x' in after_div:
-                x_split = after_div.split( 'x' )
-            else:
-                x_split = after_div.split( '×' )
-            after_x = x_split[1]
-            for i in range( len( after_x ) ):
-                if after_x[i].isdigit():
-                    mul += after_x[1]
-                else:
-                    break
-        sides = int( sides )
-        base_roll = 0
-        for _ in range( sides ):
-            base_roll += randomInt( 1, sides )
-        total = base_roll
-        if add:
-            total += int( add )
-        if mul:
-            total *= int( mul )
-        return total
+    elif complex_format.match(dice_string):
+        dice_match = re.compile('[0-9]*[d][0-9]+')
+        match = dice_match.search(dice_string)
+        start, end = match.span()
+        simple_dice = dice_string[start:end]
+        simple_roll = rollString(simple_dice)
+        eval_string = dice_string.replace(simple_dice, str(simple_roll))
+        return eval(eval_string.replace('×', '*').replace('x', '*'))
     return -1
+
+
+def dice_tuple(dice_string):
+    dice_split = [d.strip() for d in dice_string.split('×')]
+    dice_and_add = dice_split[0]
+    dice_and_add = dice_and_add.replace('(', '').replace(')', '')
+    dice_multiplier = None
+    if len(dice_split) > 1:
+        dice_multiplier = int(dice_split[1])
+    dice_and_add_split = [daa.strip() for daa in dice_and_add.split('+')]
+    base_dice = dice_and_add_split[0]
+    add = None
+    if len(dice_and_add_split) > 1:
+        add = int(dice_and_add_split[1])
+    base_dice_split = base_dice.split('d')
+    dice_number = int(base_dice_split[0])
+    dice_value = int(base_dice_split[1])
+    return dice_number, dice_value, add, dice_multiplier
+
+
+def dice_rating(dice_string):
+    dice_number, dice_value, add, dice_multiplier = dice_tuple(dice_string)
+    rating = dice_number * dice_value
+    if add:
+        rating += add
+    if dice_multiplier:
+        rating *= dice_multiplier
+    return rating
+
+
+def get_best_dice(dice_string_list):
+    best = None
+    for dice_string in dice_string_list:
+        if best:
+            dice_string_rating = dice_rating(dice_string)
+            best_rating = dice_rating(best)
+            if dice_string_rating > best_rating:
+                best = dice_string
+        else:
+            best = dice_string
+
+    return best

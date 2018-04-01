@@ -7,8 +7,8 @@ from GuiDefs import *
 
 
 class LevelUpWizard(Wizard):
+
     def __init__(self):
-        #super( LevelUpWizard, self ).__init__( 'Level Up' )
         super().__init__('Level Up')
 
         self.add_wizard_page(IntroPage())
@@ -18,13 +18,12 @@ class LevelUpWizard(Wizard):
         self.add_wizard_page(ReviewPage())
 
     def accept(self, fields, pages, external_data):
-#        print fields['Name']
+        # print fields['Name']
         return
 
 
 class IntroPage(WizardPage):
     def __init__(self):
-        #super( IntroPage, self ).__init__( 0, 'Level Up' )
         super().__init__(0, 'Level Up')
         self.set_subtitle('Level-up Wizard')
 
@@ -39,8 +38,10 @@ class IntroPage(WizardPage):
         self.ready_dict_list = None
         self.wizard_category = False
         self.priest_category = False
+        self.proficiency_slots_available = 0
+        self.next_page_id = -1
 
-    def initialize_page( self, fields, pages, external_data):
+    def initialize_page(self, fields, pages, external_data):
         pc = external_data['Character List Current']
         classes = pc['Classes'].split('/')
         level = str(pc['Level']).split('/')
@@ -58,12 +59,15 @@ class IntroPage(WizardPage):
             slots = int(wpa[0])
             per_level = int(wpa[1])
             pc_level = int(level[classes.index(cl['unique_id'])])
-            self.proficiency_slots_available = 2
+            # self.proficiency_slots_available = 2
             if pc_level % per_level == 0:
                 self.proficiency_slots_available = slots
 
         if self.wizard_category:
             self.next_page_id = pages['Spellbook'].get_page_id()
+
+        elif self.priest_category:
+            self.next_page_id = pages['Daily Priest Spells'].get_page_id()
 
         elif self.proficiency_slots_available:
             self.next_page_id = pages['Proficiencies'].get_page_id()
@@ -82,15 +86,14 @@ class IntroPage(WizardPage):
         return self.next_page_id
 
 
-class SpellbookPage( WizardPage ):
-    def __init__( self ):
-        #super( SpellbookPage, self ).__init__( 1, 'Spellbook' )
-        super().__init__( 1, 'Spellbook' )
-        self.set_subtitle( 'Choose a spell to add to your spellbook' )
+class SpellbookPage(WizardPage):
+    def __init__(self):
+        super().__init__(1, 'Spellbook')
+        self.set_subtitle('Choose a spell to add to your spellbook')
 
         self.orig_spells = []
         self.spell_slots = None
-        self.spells_table = DbQuery.getTable( 'Spells' )
+        self.spells_table = DbQuery.getTable('Spells')
 
         sb_data = {
             'fill_avail': self.fill_spells,
@@ -101,77 +104,80 @@ class SpellbookPage( WizardPage ):
             'add': self.add_spell,
             'remove': self.remove_spell,
         }
-        sb_list = Widget( 'Spellbook', 'DualList', align='Center', data=sb_data )
+        sb_list = Widget('Spellbook', 'DualList', align='Center', data=sb_data)
 
-        self.add_row( [ sb_list, ] )
+        self.add_row([sb_list, ])
 
-    def fill_spells( self, owned_items, fields, pages, external_data ):
+    def fill_spells(self, owned_items, fields, pages, external_data):
         self.orig_spells = owned_items
         spells_table = self.spells_table
-        spells_table = [ spell for spell in spells_table if spell['Type'] == pages['Level Up'].wizard_category['unique_id'] ]
+        spells_table = [spell for spell in spells_table
+                        if spell['Type'] == pages['Level Up'].wizard_category['unique_id']]
         pc = external_data['Character List Current']
-        classes = pc['Classes'].split( '/' )
-        levels = str( pc['Level'] ).split( '/' )
+        classes = pc['Classes'].split('/')
+        levels = str(pc['Level']).split('/')
         cl = pages['Level Up'].wizard_category
-        level = int( levels[ classes.index( cl['unique_id'] ) ] )
-        meta_row = [ row for row in cl['Classes_meta'] if row['Level'].isdigit() and int( row['Level'] ) == level ][0]
+        level = int(levels[classes.index(cl['unique_id'])])
+        meta_row = [row for row in cl['Classes_meta'] if row['Level'].isdigit() and int(row['Level']) == level][0]
         highest_spell_level = 0
-        for spell_level in range( 1, 10 ):
-            sl_column_name = 'Level_{}_Spells'.format( spell_level )
+        for spell_level in range(1, 10):
+            sl_column_name = 'Level_{}_Spells'.format(spell_level)
             if meta_row[sl_column_name] > 0:
                 highest_spell_level = spell_level
 
-        return [ spell for spell in spells_table if spell['Level'] == highest_spell_level and spell not in owned_items ]
+        return [spell for spell in spells_table if spell['Level'] == highest_spell_level and spell not in owned_items]
 
-    def get_spell_slots( self, fields, pages, external_data ):
+    def get_spell_slots(self, fields, pages, external_data):
         return self.spell_slots
 
-    def get_tool_tip( self, item, fields, pages, external_data ):
-        return '<b>{}</b><br />{}'.format( item['Name'], item['Description'] )
+    def get_tool_tip(self, item, fields, pages, external_data):
+        return '<b>{}</b><br />{}'.format(item['Name'], item['Description'])
 
-    def add_spell( self, spell, fields, pages, external_data ):
+    def add_spell(self, spell, fields, pages, external_data):
         if self.spell_slots == '1':
             self.spell_slots = '0'
-            return { 'valid': True,
-                     'slots_new_value': self.spell_slots,
-                     'remove': True,
-                     'new_display': spell['Name'],
-                     }
+            return {
+                'valid': True,
+                'slots_new_value': self.spell_slots,
+                'remove': True,
+                'new_display': spell['Name'],
+            }
         return {}
 
-    def remove_spell( self, spell, fields, pages, external_data ):
+    def remove_spell(self, spell, fields, pages, external_data):
         if spell in self.orig_spells:
             return {}
 
         if self.spell_slots == '0':
             self.spell_slots = '1'
-            return { 'valid' : True,
-                     'slots_new_value': self.spell_slots,
-                     'replace': True,
-                     'new_display': spell['Name'],
-                  }
+            return {
+                'valid': True,
+                'slots_new_value': self.spell_slots,
+                'replace': True,
+                'new_display': spell['Name'],
+            }
         return {}
 
-    def initialize_page( self, fields, pages, external_data ):
+    def initialize_page(self, fields, pages, external_data):
         self.spell_slots = '1'
-        spells_table = DbQuery.getTable( 'Spells' )
+        spells_table = DbQuery.getTable('Spells')
         pc = external_data['Character List Current']
         spellbook_ids = []
         for meta_row in pc['Characters_meta']:
             if meta_row['Type'] == 'Spellbook':
-                spellbook_ids.append( meta_row['Entry_ID'] )
+                spellbook_ids.append(meta_row['Entry_ID'])
         spellbook = []
         for spell in spells_table:
             if spell['spell_id'] in spellbook_ids:
-                spellbook.append( spell )
-        return { 'Spellbook': spellbook }
+                spellbook.append(spell)
+        return {'Spellbook': spellbook}
 
-    def is_complete( self, fields, pages, external_data ):
+    def is_complete(self, fields, pages, external_data):
         if self.spell_slots == '0':
             return True
         return False
 
-    def get_next_page_id( self, fields, pages, external_data ):
+    def get_next_page_id(self, fields, pages, external_data):
         return pages['Daily Wizard Spells'].get_page_id()
 
 
@@ -416,7 +422,6 @@ class SpellsPage2( WizardPage ):
 
 class ProficiencyPage(WizardPage):
     def __init__(self):
-        #super( ProficiencyPage, self ).__init__( 4, 'Proficiencies' )
         super().__init__(4, 'Proficiencies')
         self.set_subtitle('Choose available proficiencies')
 
@@ -579,7 +584,8 @@ class ProficiencyPage(WizardPage):
                 double_specialised_ids.append(row['Entry_ID'])
             pc_proficiency_ids.append(row['Entry_ID'])
         self.specialised_list = [row for row in self.proficiency_table if row['unique_id'] in specialised_ids]
-        self.double_specialised_list = [row for row in self.proficiency_table if row['unique_id'] in double_specialised_ids]
+        self.double_specialised_list = [row for row in self.proficiency_table
+                                        if row['unique_id'] in double_specialised_ids]
         # pc_proficiencies = [row for row in self.proficiency_table if row['unique_id'] in pc_proficiency_ids]
         self.orig_proficiencies = pc_proficiencies = []
         for row in self.proficiency_table:
@@ -603,7 +609,6 @@ class ProficiencyPage(WizardPage):
 
 class ReviewPage(WizardPage):
     def __init__(self):
-        #super( ReviewPage, self ).__init__( 5, 'Review' )
         super().__init__(5, 'Review')
         self.set_subtitle('Make sure you like what you see')
 
@@ -629,39 +634,39 @@ class ReviewPage(WizardPage):
 
             return {'Review Text': '<b>Hit Points Added: </b>{}'.format(str(hp_add))}
 
-    def is_complete( self, fields, pages, external_data):
-        return True
+    # def is_complete( self, fields, pages, external_data):
+    #     return True
 
 
-def ready_to_level_up( pc ):
-    classes_meta = DbQuery.getTable( 'Classes_meta' )
-    classes = pc['Classes'].split( '/' )
-    xp = str( pc['XP'] ).split( '/' )
-    level = str( pc['Level'] ).split( '/' )
+def ready_to_level_up(pc):
+    classes_meta = DbQuery.getTable('Classes_meta')
+    classes = pc['Classes'].split('/')
+    xp = str(pc['XP']).split('/')
+    level = str(pc['Level']).split('/')
     level_up_classes = []
-    for i, cl in enumerate( classes ):
-        cl_xp = int( xp[i] )
-        cl_level = int( level[i] )
-        xp_table = [ row for row in classes_meta if row['class_id'] == cl and row['Type'] == 'xp table' ]
+    for i, cl in enumerate(classes):
+        cl_xp = int(xp[i])
+        cl_level = int(level[i])
+        xp_table = [row for row in classes_meta if row['class_id'] == cl and row['Type'] == 'xp table']
         each = None
-        for j, row in enumerate( xp_table ):
+        for j, row in enumerate(xp_table):
             if row['Level'].lower() == 'each':
                 each = j
         if each is not None:
-            each = xp_table.pop( each )
+            each = xp_table.pop(each)
 
-        xp_table.sort( key=lambda x: int( x['Level'] ) )
-        top_row = xp_table[ len( xp_table ) - 1 ]
-        top_row_level = int( top_row['Level'] )
+        xp_table.sort(key=lambda x: int(x['Level']))
+        top_row = xp_table[len(xp_table) - 1]
+        top_row_level = int(top_row['Level'])
         if cl_level > top_row_level:
-            levels_past_top_row = ( cl_xp - top_row['XP'] ) // each['XP']
+            levels_past_top_row = (cl_xp - top_row['XP']) // each['XP']
             if top_row_level + levels_past_top_row > cl_level:
-                level_up_classes.append( cl )
+                level_up_classes.append(cl)
         else:
-            for j, row in enumerate( xp_table ):
-                if int( row['Level'] ) == cl_level + 1:
+            for j, row in enumerate(xp_table):
+                if int(row['Level']) == cl_level + 1:
                     if cl_xp >= row['XP']:
-                        level_up_classes.append( cl )
+                        level_up_classes.append(cl)
                     break
 
     return level_up_classes

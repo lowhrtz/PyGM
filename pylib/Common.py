@@ -6,8 +6,8 @@ import DbQuery
 
 
 def find_image(system_path, table_name, unique_id):
-    extensions = ['jpg', 'jpeg', 'gif', 'png',]
-    #base_path_name = os.path.join( THIS_DIR, '{}/portraits/{}/{}'.format( system_path, table_name, unique_id ) )
+    extensions = ['jpg', 'jpeg', 'gif', 'png', ]
+    # base_path_name = os.path.join( THIS_DIR, '{}/portraits/{}/{}'.format( system_path, table_name, unique_id ) )
     base_path_name = os.path.join(system_path, 'portraits/{}/{}'.format(table_name, unique_id))
     for ext in extensions:
         full_name = '{}.{}'.format(base_path_name, ext)
@@ -15,7 +15,7 @@ def find_image(system_path, table_name, unique_id):
             return full_name
 
     for ext in extensions:
-        #default_image = os.path.join( THIS_DIR, '{}/portraits/default.{}'.format( system_path, ext ) )
+        # default_image = os.path.join( THIS_DIR, '{}/portraits/default.{}'.format( system_path, ext ) )
         default_image = os.path.join(system_path, 'portraits/default.{}'.format(ext))
         if os.path.isfile(default_image):
             return default_image
@@ -25,7 +25,7 @@ def find_image(system_path, table_name, unique_id):
     return os.path.join(base_dir, 'images/noImage.jpg')
 
 
-def get_pixmap_from_base64( base64 ):
+def get_pixmap_from_base64(base64):
     byte_array = QtCore.QByteArray.fromBase64(base64.encode())
     image = QImage.fromData(byte_array)
     pixmap = QPixmap(image)

@@ -2,81 +2,81 @@ import base64
 import DbQuery
 import SystemSettings
 from decimal import Decimal
+from CharacterCreation import CharacterCreationWizard
 from LevelUp import LevelUpWizard
 from ManageDefs import Manage
 from GuiDefs import *
 
 
-class Characters( Manage ):
-    def __init__( self ):
+class Characters(Manage):
+    def __init__(self):
 
-        empty_widget = Widget( '', 'Empty' )
-        hr = Widget( 'hr', 'hr', col_span=4 )
+        empty_widget = Widget('', 'Empty')
+        hr = Widget('hr', 'hr', col_span=4)
 
-        intro = Widget( 'Intro', 'TextLabel', col_span=2, data='This is where you manage characters.' )
-        add_xp_button = Widget( 'Add XP', 'PushButton' )
+        intro = Widget('Intro', 'TextLabel', col_span=2, data='This is where you manage characters.')
+        add_xp_button = Widget('Add XP', 'PushButton')
 #        self.add_row( [ intro, empty_widget, add_xp_button ] )
 #        test_field = Widget( 'Test Field', 'LineEdit' )
 #        self.add_row( [ test_field ] )
 
-        #character_list = Widget( 'Character List_', 'ListBox', row_span=4, data=DbQuery.getTable( 'Characters' ) )
-        character_list = Widget( 'Character List_', 'ListBox', row_span=4 )
-        #name = Widget( 'Name', 'LineEdit', data='Lance the Impressive' )
-        name = Widget( 'Name', 'LineEdit' )
+        # character_list = Widget( 'Character List_', 'ListBox', row_span=4, data=DbQuery.getTable( 'Characters' ) )
+        character_list = Widget('Character List_', 'ListBox', row_span=4)
+        # name = Widget( 'Name', 'LineEdit', data='Lance the Impressive' )
+        name = Widget('Name', 'LineEdit')
 #        xp = Widget( 'XP', 'SpinBox', enable_edit=False )
-        xp = Widget( 'XP', 'LineEdit', enable_edit=False )
-        age = Widget( 'Age', 'SpinBox' )
-        self.add_row( [ character_list, name, xp, age ] )
+        xp = Widget('XP', 'LineEdit', enable_edit=False)
+        age = Widget('Age', 'SpinBox')
+        self.add_row([character_list, name, xp, age])
 
-        cl = Widget( 'Class', 'LineEdit', enable_edit=False )
-        hp = Widget( 'HP', 'SpinBox' )
-        height = Widget( 'Height', 'LineEdit' )
-        self.add_row( [ empty_widget, cl, hp, height ] )
+        cl = Widget('Class', 'LineEdit', enable_edit=False)
+        hp = Widget('HP', 'SpinBox')
+        height = Widget('Height', 'LineEdit')
+        self.add_row([empty_widget, cl, hp, height])
 
-        alignment = Widget( 'Alignment', 'ComboBox', data=SystemSettings.alignment )
-        ac = Widget( 'AC', 'SpinBox' )
-        weight = Widget( 'Weight', 'LineEdit' )
-        self.add_row( [ empty_widget, alignment, ac, weight ] )
+        alignment = Widget('Alignment', 'ComboBox', data=SystemSettings.alignment)
+        ac = Widget('AC', 'SpinBox', enable_edit=False)
+        weight = Widget('Weight', 'LineEdit')
+        self.add_row([empty_widget, alignment, ac, weight])
 
+        race = Widget('Race', 'LineEdit', enable_edit=False)
+        level = Widget('Level', 'LineEdit', enable_edit=False)
+        gender = Widget('Gender', 'ComboBox', data=SystemSettings.gender)
+        self.add_row([empty_widget, race, level, gender])
+        self.add_row([hr, ])
 
-        race = Widget( 'Race', 'LineEdit', enable_edit=False )
-        level = Widget( 'Level', 'LineEdit', enable_edit=False )
-        gender = Widget( 'Gender', 'ComboBox', data=SystemSettings.gender )
-        self.add_row( [ empty_widget, race, level, gender ] )
-        self.add_row( [ hr, ] )
+        portrait = Widget('Portrait_', 'Image', row_span=6, align='Center', data=image_data)
+        str = Widget('STR', 'LineEdit', stretch=False)
+        gp = Widget('GP', 'SpinBox', align='Center')
+        proficiencies = Widget('Proficiencies', 'ListBox', row_span=6)
+        self.add_row([portrait, str, gp, proficiencies])
 
-        portrait = Widget( 'Portrait_', 'Image', row_span=6, align='Center', data=image_data )
-        str = Widget( 'STR', 'LineEdit' )
-        gp = Widget( 'GP', 'SpinBox', align='Center' )
-        proficiencies = Widget( 'Proficiencies', 'ListBox', row_span=6 )
-        self.add_row( [ portrait, str, gp, proficiencies ] )
+        intel = Widget('INT', 'LineEdit', stretch=False)
+        pp = Widget('PP', 'SpinBox', align='Center')
+        self.add_row([empty_widget, intel, pp])
 
-        intel = Widget( 'INT', 'LineEdit' )
-        pp = Widget( 'PP', 'SpinBox', align='Center' )
-        self.add_row( [ empty_widget, intel, pp ] )
+        wis = Widget('WIS', 'LineEdit', stretch=False)
+        ep = Widget('EP', 'SpinBox', align='Center')
+        self.add_row([empty_widget, wis, ep])
 
-        wis = Widget( 'WIS', 'LineEdit' )
-        ep = Widget( 'EP', 'SpinBox', align='Center' )
-        self.add_row( [ empty_widget, wis, ep ] )
+        dex = Widget('DEX', 'LineEdit', stretch=False)
+        sp = Widget('SP', 'SpinBox', align='Center')
+        self.add_row([empty_widget, dex, sp])
 
-        dex = Widget( 'DEX', 'LineEdit' )
-        sp = Widget( 'SP', 'SpinBox', align='Center' )
-        self.add_row( [ empty_widget, dex, sp ] )
+        con = Widget('CON', 'LineEdit', stretch=False)
+        cp = Widget('CP', 'SpinBox', align='Center')
+        self.add_row([empty_widget, con, cp])
 
-        con = Widget( 'CON', 'LineEdit' )
-        cp = Widget( 'CP', 'SpinBox', align='Center' )
-        self.add_row( [ empty_widget, con, cp ] )
+        cha = Widget('CHA', 'LineEdit', stretch=False)
+        self.add_row([empty_widget, cha, ])
 
-        cha = Widget( 'CHA', 'LineEdit' )
-        self.add_row( [ empty_widget, cha, ] )
+        self.add_row([hr, ])
 
-        self.add_row( [ hr, ] )
-
-        equipment = Widget( 'Equipment', 'ListBox' )
-        spellbook = Widget( 'Spellbook', 'ListBox' )
-        daily_spells = Widget( 'Daily Spells', 'ListBox' )
-        daily_spells2 = Widget( 'Daily Spells 2_', 'ListBox' )
-        self.add_row( [ equipment, spellbook, daily_spells, daily_spells2 ] )
+        equipment = Widget('Equipment', 'ListBox')
+        spellbook = Widget('Spellbook', 'ListBox')
+        daily_spells = Widget('Daily Spells', 'ListBox')
+        daily_spells2 = Widget('Daily Spells 2_', 'ListBox')
+        self.add_row([equipment, spellbook, daily_spells, daily_spells2])
 
 #        pdf_button = Widget( 'Save PDF', 'PushButton' )
 #        self.add_row( [ pdf_button, ] )
@@ -84,63 +84,72 @@ class Characters( Manage ):
 #        ch = Widget( 'Text Edit', 'TextEdit' )
 #        self.add_row( [ ch, ] )
 
-        self.add_action( Action( 'OnShow', character_list, callback=self.get_character_table ) )
-        self.add_action( Action( 'FillFields', character_list, callback=self.fill_page ) )
+        self.add_action(Action('OnShow', character_list, callback=self.get_character_table))
+        self.add_action(Action('FillFields', character_list, callback=self.fill_page))
 #        self.add_action( Action( 'EntryDialog', add_xp_button, xp, callback=self.add_xp ) )
 
-        file_menu = Menu( '&File' )
-        file_menu.add_action( Action( 'FillFields', Widget( '&Save Character', 'MenuAction' ), callback=self.save_character ) )
-        self.add_menu( file_menu )
+        file_menu = Menu('&File')
+        file_menu.add_action(Action('FillFields', Widget('&Save Character', 'MenuAction'),
+                                    callback=self.save_character))
+        file_menu.add_action(Action('Wizard', Widget('&Create Character', 'MenuAction'), data=CharacterCreationWizard,
+                                    callback=self.character_creator_callback))
+        self.add_menu(file_menu)
 
-        print_menu = Menu( '&Print' )
-        print_menu.add_action( Action( 'SavePDF', Widget( '&Save PDF', 'MenuAction' ), character_list, callback=self.get_pdf_markup ) )
-        print_menu.add_action( Action( 'PrintPreview', Widget( '&Print Preview', 'MenuAction' ), character_list, callback=self.get_pdf_markup ) )
-        self.add_menu( print_menu )
+        print_menu = Menu('&Print')
+        print_menu.add_action(Action('SavePDF', Widget('&Save PDF', 'MenuAction'), character_list,
+                                     callback=self.get_pdf_markup))
+        print_menu.add_action(Action('PrintPreview', Widget('&Print Preview', 'MenuAction'), character_list,
+                                     callback=self.get_pdf_markup))
+        self.add_menu(print_menu)
 
-        character_menu = Menu( '&Character' )
-        character_menu.add_action( Action( 'EntryDialog', Widget( '&Add XP', 'MenuAction' ), hp, callback=self.add_xp ) )
-        character_menu.add_action( Action( 'Wizard', Widget( '&Level Up', 'MenuAction' ), data=LevelUpWizard ) )
-        character_menu.add_action( Action( 'EntryDialog', Widget( '&Change Portrait', 'MenuAction' ), portrait, callback=self.convert_image ) )
-        equipment_data = { 'fill_avail' : self.equipment_fill,
-                           'slots' : self.get_money_slots,
-                           'slots_name': 'Gold',
-                           'tool_tip': self.get_tool_tip,
-#                           'category_field': None,
-                           'category_field': 'Category',
-                           'add' : self.add_equipment,
-                           'remove' : self.remove_equipment }
+        character_menu = Menu('&Character')
+        character_menu.add_action(Action('EntryDialog', Widget('&Add XP', 'MenuAction'), hp, callback=self.add_xp))
+        character_menu.add_action(Action('Wizard', Widget('&Level Up', 'MenuAction'), data=LevelUpWizard))
+        character_menu.add_action(Action('EntryDialog', Widget('&Change Portrait', 'MenuAction'), portrait,
+                                         callback=self.convert_image))
+        equipment_data = {
+            'fill_avail': self.equipment_fill,
+            'slots': self.get_money_slots,
+            'slots_name': 'Gold',
+            'tool_tip': self.get_tool_tip,
+            # 'category_field': None,
+            'category_field': 'Category',
+            'add': self.add_equipment,
+            'remove': self.remove_equipment
+        }
         self.current_money = 0
-        character_menu.add_action( Action( 'ListDialog',
-                                           Widget( '&Buy/Sell Equipment', 'MenuAction' ),
-                                           equipment,
-                                           callback=self.equipment_callback,
-                                           data=equipment_data ) )
-        self.add_menu( character_menu )
+        character_menu.add_action(Action('ListDialog',
+                                         Widget('&Buy/Sell Equipment', 'MenuAction'),
+                                         equipment,
+                                         callback=self.equipment_callback,
+                                         data=equipment_data))
+        self.add_menu(character_menu)
 
-    def get_character_table( self, fields ):
-        return { 'Character List': DbQuery.getTable( 'Characters' ) }
+    def get_character_table(self, fields):
+        return {'Character List': DbQuery.getTable('Characters')}
 
-    def fill_page( self, fields ):
+    def fill_page(self, fields):
         character_dict = fields['Character List Current']
-        if character_dict is None: return {}
-        class_table = DbQuery.getTable( 'Classes' )
-        race_table = DbQuery.getTable( 'Races' )
-        items_table = DbQuery.getTable( 'Items' )
-        spells_table = DbQuery.getTable( 'Spells' )
+        if character_dict is None:
+            return {}
+        class_table = DbQuery.getTable('Classes')
+        race_table = DbQuery.getTable('Races')
+        items_table = DbQuery.getTable('Items')
+        spells_table = DbQuery.getTable('Spells')
 
-        class_id_list = character_dict['Classes'].split( '/' )
+        class_id_list = character_dict['Classes'].split('/')
         class_list = []
         for cl in class_table:
             if cl['unique_id'] in class_id_list:
                 class_list.append(cl)
-        if len( class_list ) == 1:
+        if len(class_list) == 1:
             class_dict = class_list[0]
             class_string = class_dict['Name']
         else:
             class_dict = {
                 'classes': class_list,
             }
-            class_string = '/'.join( [ cl['Name'] for cl in class_dict['classes'] ] )
+            class_string = '/'.join([cl['Name'] for cl in class_dict['classes']])
 
         for race in race_table:
             if race['unique_id'] == character_dict['Race']:
@@ -155,7 +164,7 @@ class Characters( Manage ):
         gp = pp = ep = sp = cp = 0
         for meta_row in character_dict['Characters_meta']:
             if meta_row['Type'] == 'Equipment':
-                equip_id_list.append( meta_row['Entry_ID'] )
+                equip_id_list.append(meta_row['Entry_ID'])
             elif meta_row['Type'] == 'Treasure':
                 if meta_row['Entry_ID'] == 'gp':
                     gp = meta_row['Data']
@@ -172,81 +181,81 @@ class Characters( Manage ):
                 elif meta_row['Entry_ID'] == 'cp':
                     cp = meta_row['Data']
             elif meta_row['Type'] == 'Spellbook':
-                spellbook_id_list.append( meta_row['Entry_ID'] )
+                spellbook_id_list.append(meta_row['Entry_ID'])
             elif meta_row['Type'] == 'DailySpells':
-                daily_spells_id_list.append( meta_row['Entry_ID'] )
+                daily_spells_id_list.append(meta_row['Entry_ID'])
             elif meta_row['Type'] == 'DailySpells2':
-                daily_spells2_id_list.append( meta_row['Entry_ID'] )
+                daily_spells2_id_list.append(meta_row['Entry_ID'])
             elif meta_row['Type'] == 'Proficiency':
-                proficiency_id_dict[ meta_row['Entry_ID'] ] = meta_row['Data']
+                proficiency_id_dict[meta_row['Entry_ID']] = meta_row['Data']
 
         proficiency_list = []
         for prof in items_table:
-            if prof['Is_Proficiency'].lower() == 'yes' and prof['unique_id'] in list( proficiency_id_dict.keys() ):
+            if prof['Is_Proficiency'].lower() == 'yes' and prof['unique_id'] in list(proficiency_id_dict.keys()):
                 prof_name = prof['Name']
-                prof['level'] = prof_level = proficiency_id_dict[  prof['unique_id'] ]
+                prof['level'] = prof_level = proficiency_id_dict[prof['unique_id']]
                 prof_add = ''
                 if prof_level == 'S':
                     prof_add = ' (Specialised)'
                 elif prof_level == '2XS':
                     prof_add = ' (Double Specialised)'
                 prof_display = prof_name + prof_add
-                proficiency_list.append( ( prof_display, prof ) )
+                proficiency_list.append((prof_display, prof))
 
         equipment_list = []
         for equip in items_table:
             if equip['unique_id'] in equip_id_list:
-                equipment_list.append( equip )
+                equipment_list.append(equip)
 
-        ac = SystemSettings.calculate_ac( character_dict, class_dict, race_dict, equipment_list )
+        ac = SystemSettings.calculate_ac(character_dict, class_dict, race_dict, equipment_list)
 
         spellbook_list = []
         daily_spells_list = []
         daily_spells2_list = []
         for spell in spells_table:
             if spell['spell_id'] in spellbook_id_list:
-                spellbook_list.append( spell )
+                spellbook_list.append(spell)
             if spell['spell_id'] in daily_spells_id_list:
-                daily_spells_list.append( spell )
+                daily_spells_list.append(spell)
             if spell['spell_id'] in daily_spells2_id_list:
-                daily_spells2_list.append( spell )
+                daily_spells2_list.append(spell)
 
         fill_dict = {
-            'Name' : character_dict['Name'],
-            'Class' : class_string,
-            'Alignment' : character_dict['Alignment'],
-            'Race' : race_dict['Name'],
-#            'XP' : int( character_dict['XP'] ),
-            'XP' : str( character_dict['XP'] ),
-            'HP' : int( character_dict['HP'] ),
-            'AC' : int( ac ),
-            'Level' : character_dict['Level'],
-            'Age' : int( character_dict['Age'] ),
-            'Height' : character_dict['Height'],
-            'Weight' : character_dict['Weight'],
-            'Gender' : character_dict['Gender'],
-            'STR' : character_dict['STR'],
-            'INT' : character_dict['INT'],
-            'WIS' : character_dict['WIS'],
-            'DEX' : character_dict['DEX'],
-            'CON' : character_dict['CON'],
-            'CHA' : character_dict['CHA'],
-            'Portrait' : character_dict['Portrait'],
-            'GP' : int( gp ),
-            'PP' : int( pp ),
-            'EP' : int( ep ),
-            'SP' : int( sp ),
-            'CP' : int( cp ),
-            'Proficiencies' : proficiency_list,
-            'Equipment' : equipment_list,
-            'Spellbook' : spellbook_list,
-            'Daily Spells' : daily_spells_list,
-            'Daily Spells 2' : daily_spells2_list,
+            'Name': character_dict['Name'],
+            'Class': class_string,
+            'Alignment': character_dict['Alignment'],
+            'Race': race_dict['Name'],
+            # 'XP' : int( character_dict['XP'] ),
+            'XP': str(character_dict['XP']),
+            'HP': int(character_dict['HP']),
+            'AC': int(ac),
+            'Level': character_dict['Level'],
+            'Age': int(character_dict['Age']),
+            'Height': character_dict['Height'],
+            'Weight': character_dict['Weight'],
+            'Gender': character_dict['Gender'],
+            'STR': character_dict['STR'],
+            'INT': character_dict['INT'],
+            'WIS': character_dict['WIS'],
+            'DEX': character_dict['DEX'],
+            'CON': character_dict['CON'],
+            'CHA': character_dict['CHA'],
+            'Portrait': character_dict['Portrait'],
+            'GP': int(gp),
+            'PP': int(pp),
+            'EP': int(ep),
+            'SP': int(sp),
+            'CP': int(cp),
+            'Proficiencies': proficiency_list,
+            'Equipment': equipment_list,
+            'Spellbook': spellbook_list,
+            'Daily Spells': daily_spells_list,
+            'Daily Spells 2': daily_spells2_list,
         }
 
         return fill_dict
 
-    def save_character( self, fields ):
+    def save_character(self, fields):
         if fields['Character List Current'] is None:
             return {}
         unique_id = fields['Character List Current']['unique_id']
@@ -257,8 +266,8 @@ class Characters( Manage ):
             fields['XP'],
             fields['Gender'],
             fields['Alignment'],
-            fields['Class'].lower().replace( ' ', '_' ),
-            fields['Race'].lower().replace( ' ', '_' ),
+            fields['Class'].lower().replace(' ', '_'),
+            fields['Race'].lower().replace(' ', '_'),
             fields['HP'],
             fields['Age'],
             fields['Height'],
@@ -275,89 +284,137 @@ class Characters( Manage ):
 
         DbQuery.begin()
 
-        success = DbQuery.updateRow( 'Characters', 'unique_id', unique_id, update_list )
+        success = DbQuery.updateRow('Characters', 'unique_id', unique_id, update_list)
         if success:
-            DbQuery.deleteRow( 'Characters_meta', 'character_id', unique_id )
+            DbQuery.deleteRow('Characters_meta', 'character_id', unique_id)
 
             for equip in fields['Equipment']:
-                data_list = [ unique_id, 'Equipment', equip['unique_id'], '', '' ]
-                DbQuery.insertRow( 'Characters_meta', data_list )
+                data_list = [unique_id, 'Equipment', equip['unique_id'], '', '']
+                DbQuery.insertRow('Characters_meta', data_list)
 
-            money_dict = { 'gp': fields['GP'],
-                           'pp': fields['PP'],
-                           'ep': fields['EP'],
-                           'sp': fields['SP'],
-                           'cp': fields['CP'] }
-            for denomination in list( money_dict.keys() ):
-                DbQuery.insertRow( 'Characters_meta', [ unique_id, 'Treasure', denomination, money_dict[denomination], '' ] )
+            money_dict = {
+                'gp': fields['GP'],
+                'pp': fields['PP'],
+                'ep': fields['EP'],
+                'sp': fields['SP'],
+                'cp': fields['CP']
+            }
+            for denomination in list(money_dict.keys()):
+                DbQuery.insertRow('Characters_meta', [unique_id, 'Treasure', denomination, money_dict[denomination], ''])
 
             for prof in fields['Proficiencies']:
-                data_list = [ unique_id, 'Proficiency', prof['unique_id'], prof['level'], prof['Notes'] ]
-                DbQuery.insertRow( 'Characters_meta', data_list )
+                data_list = [unique_id, 'Proficiency', prof['unique_id'], prof['level'], prof['Notes']]
+                DbQuery.insertRow('Characters_meta', data_list)
 
             for s in fields['Spellbook']:
-                data_list = [ unique_id, 'Spellbook', s['spell_id'], '', '' ]
-                DbQuery.insertRow( 'Characters_meta', data_list )
+                data_list = [unique_id, 'Spellbook', s['spell_id'], '', '']
+                DbQuery.insertRow('Characters_meta', data_list)
 
             for s in fields['Daily Spells']:
-                data_list = [ unique_id, 'DailySpells', s['spell_id'], '', '' ]
-                DbQuery.insertRow( 'Characters_meta', data_list )
+                data_list = [unique_id, 'DailySpells', s['spell_id'], '', '']
+                DbQuery.insertRow('Characters_meta', data_list)
 
             for s in fields['Daily Spells 2']:
-                data_list = [ unique_id, 'DailySpells2', s['spell_id'], '', '' ]
-                DbQuery.insertRow( 'Characters_meta', data_list )
+                data_list = [unique_id, 'DailySpells2', s['spell_id'], '', '']
+                DbQuery.insertRow('Characters_meta', data_list)
 
         DbQuery.commit()
-        return self.get_character_table( fields )
+        return self.get_character_table(fields)
 
-    def get_pdf_markup( self, fields ):
+    def character_creator_callback(self, character, fields):
+        # character = pages['ReviewPage'].make_character_dict()
+
+        data_list = [
+            character['unique_id'],
+            character['Name'],
+            character['Level'],
+            character['XP'],
+            character['Gender'],
+            character['Alignment'],
+            character['Classes'],
+            character['Race'],
+            character['HP'],
+            character['Age'],
+            character['Height'],
+            character['Weight'],
+            character['Portrait'],
+            character['Portrait_Image_Type'],
+            character['STR'],
+            character['INT'],
+            character['WIS'],
+            character['DEX'],
+            character['CON'],
+            character['CHA'],
+        ]
+
+        DbQuery.begin()
+        row_id = DbQuery.insertRow('Characters', data_list)
+
+        for meta_row in character['Characters_meta']:
+            data_list = [
+                meta_row['character_id'],
+                meta_row['Type'],
+                meta_row['Entry_ID'],
+                meta_row['Data'],
+                meta_row['Notes'],
+            ]
+            DbQuery.insertRow('Characters_meta', data_list)
+
+        DbQuery.commit()
+
+        character_table = DbQuery.getTable('Characters')
+        return {'Character List': character_table}
+
+    def get_pdf_markup(self, fields):
         character_dict = fields['Character List Current']
         if character_dict is None:
             return ()
 
-        return SystemSettings.get_character_pdf_markup( character_dict )
+        return SystemSettings.get_character_pdf_markup(character_dict)
 
-    def add_xp( self, dialog_return, fields ):
+    def add_xp(self, dialog_return, fields):
         xp_list = fields['XP'].split('/')
-        add_xp = int( dialog_return ) / len( xp_list )
-        for index, xp in enumerate( xp_list ):
-            xp_list[index] = int( xp ) + int( add_xp )
+        add_xp = int(dialog_return) / len(xp_list)
+        for index, xp in enumerate(xp_list):
+            xp_list[index] = int(xp) + int(add_xp)
 
-        return { 'XP' : '/'.join( str( xp ) for xp in xp_list ) }
+        return {'XP': '/'.join(str(xp) for xp in xp_list)}
 
-    def convert_image( self, filename, fields ):
-        with open( filename, 'rb' ) as image_file:
-            data = base64.b64encode( image_file.read() )
-        return { 'Portrait' : data.decode() }
+    def convert_image(self, filename, fields):
+        with open(filename, 'rb') as image_file:
+            data = base64.b64encode(image_file.read())
+        return {'Portrait': data.decode()}
 
-    def equipment_fill( self, owned_item_list, fields ):
+    def equipment_fill(self, owned_item_list, fields):
         return_list = []
-        for item in DbQuery.getTable( 'Items' ):
-            if item['Cost'].lower() != 'not sold' and not item['Cost'].lower().startswith( 'proficiency' ):
-                return_list.append( ( '{} - {}'.format( item['Name'], item['Cost'] ), item ) )
+        for item in DbQuery.getTable('Items'):
+            if item['Cost'].lower() != 'not sold' and not item['Cost'].lower().startswith('proficiency'):
+                return_list.append(('{} - {}'.format(item['Name'], item['Cost']), item))
 
         # These two lines sort the list to guarantee the tab order
         category_order = {'General': 0, 'Weapon': 1, 'Armour': 2, 'Clothing': 3}
-        return_list.sort( key=lambda x: category_order.get( x[1].get( 'Category', 'General' ), 4 ) )
+        return_list.sort(key=lambda x: category_order.get(x[1].get('Category', 'General'), 4))
 
         return return_list
 
-    def equipment_callback( self, owned_item_list, fields):
-#        coin_dict = SystemSettings.get_coinage_from_float( float( '{0:.2f}'.format( self.current_money ) ) )
-        coin_dict = SystemSettings.get_coinage_from_float( self.current_money )
-#        print self.current_money
-        return { 'GP': coin_dict['gp'],
-                 'PP': coin_dict['pp'],
-                 'EP': coin_dict['ep'],
-                 'SP': coin_dict['sp'],
-                 'CP': coin_dict['cp'],
-                 'Equipment': owned_item_list, }
+    def equipment_callback(self, owned_item_list, fields):
+        # coin_dict = SystemSettings.get_coinage_from_float( float( '{0:.2f}'.format( self.current_money ) ) )
+        coin_dict = SystemSettings.get_coinage_from_float(self.current_money)
+        # print self.current_money
+        return {
+            'GP': coin_dict['gp'],
+            'PP': coin_dict['pp'],
+            'EP': coin_dict['ep'],
+            'SP': coin_dict['sp'],
+            'CP': coin_dict['cp'],
+            'Equipment': owned_item_list,
+        }
 
-    def get_money_slots( self, fields ):
-#        money_dict = {}
-#        for row in fields['Character List Current']['Characters_meta']:
-#            if row['Entry_ID'] in list( SystemSettings.economy.keys() ):
-#                money_dict[ row['Entry_ID'] ] = int( row['Data'] )
+    def get_money_slots(self, fields):
+        # money_dict = {}
+        # for row in fields['Character List Current']['Characters_meta']:
+        #     if row['Entry_ID'] in list( SystemSettings.economy.keys() ):
+        #         money_dict[ row['Entry_ID'] ] = int( row['Data'] )
         money_dict = {
             'gp': fields['GP'],
             'pp': fields['PP'],
@@ -366,16 +423,16 @@ class Characters( Manage ):
             'cp': fields['CP'],
         }
 
-        self.current_money = money_slots = Decimal( str( SystemSettings.get_float_from_coinage( money_dict ) ) )
-        return '{0:.2f}'.format( money_slots )
+        self.current_money = money_slots = Decimal(str(SystemSettings.get_float_from_coinage(money_dict)))
+        return '{0:.2f}'.format(money_slots)
 
-    def convert_cost_string( self, cost_string ):
+    def convert_cost_string(self, cost_string):
         cost_split = cost_string.split()
         if cost_split[0].lower() == 'free':
-            cost = Decimal( '0' )
+            cost = Decimal('0')
             denomination = None
         else:
-            cost = Decimal( ''.join( d for d in cost_split[0] if d.isdigit() ) )
+            cost = Decimal(''.join(d for d in cost_split[0] if d.isdigit()))
             try:
                 denomination = cost_split[1]
             except IndexError:
@@ -383,7 +440,7 @@ class Characters( Manage ):
 
         if denomination:
             try:
-                ratio = Decimal( str( SystemSettings.economy[denomination] ) )
+                ratio = Decimal(str(SystemSettings.economy[denomination]))
                 final_cost = ratio * cost
             except KeyError:
                 final_cost = cost
@@ -392,33 +449,35 @@ class Characters( Manage ):
 
         return final_cost
 
-    def add_equipment( self, item, fields ):
-        cost = self.convert_cost_string( item['Cost'] )
+    def add_equipment(self, item, fields):
+        cost = self.convert_cost_string(item['Cost'])
         if cost < self.current_money:
             self.current_money -= cost
-            return { 'valid': True,
-                     'slots_new_value': '{0:.2f}'.format( self.current_money ),
-#                     'remove': True,
-                     'new_display': item['Name'],
-                     }
+            return {
+                'valid': True,
+                'slots_new_value': '{0:.2f}'.format( self.current_money ),
+                # 'remove': True,
+                'new_display': item['Name'],
+             }
         else:
             return {}
 
-    def remove_equipment( self, item, fields ):
+    def remove_equipment(self, item, fields):
         cost_string = item['Cost']
         if cost_string.lower() == 'not sold':
             return {}
         else:
-            cost = self.convert_cost_string( cost_string )
+            cost = self.convert_cost_string(cost_string)
             self.current_money += cost
-            return { 'valid': True,
-                     'slots_new_value': '{0:.2f}'.format( self.current_money ),
-#                     'replace': True,
-                     'new_display': item['Name'],
-                    }
+            return {
+                'valid': True,
+                'slots_new_value': '{0:.2f}'.format( self.current_money ),
+                # 'replace': True,
+                'new_display': item['Name'],
+            }
 
-    def get_tool_tip( self, item, fields ):
-        return '{}<br /><b>{}</b>'.format( item['Name'], item['Cost'] )
+    def get_tool_tip(self, item, fields):
+        return '{}<br /><b>{}</b>'.format(item['Name'], item['Cost'])
 
 
 image_data = '/9j/4AAQSkZJRgABAQEASABIAAD//gATQ3JlYXRlZCB3aXRoIEdJTVD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/\

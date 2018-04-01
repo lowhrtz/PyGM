@@ -12,17 +12,17 @@ attributes = [('STR', 'Strength', '3d6'),
               ('DEX', 'Dexderity', '3d6'),
               ('CON', 'Constitution', '3d6'),
               ('CHA', 'Charisma', '3d6'),
-#              ('COM','Comliness', '3d6'),
+              # ('COM','Comliness', '3d6'),
 ]
-life = ['HP',]
+life = ['HP', ]
 alignment = ['Lawful Good', 'Neutral Good', 'Chaotic Good', 'Lawful Neutral', 'True Neutral', 'Chaotic Neutral', 'Lawful Evil', 'Neutral Evil', 'Chaotic Evil']
-gender = ['Male','Female','NA']
+gender = ['Male', 'Female', 'NA']
 economy = {
-'gp':1,
-'pp':5,
-'ep':.5,
-'sp':.1,
-'cp':.01
+    'gp': 1,
+    'pp': 5,
+    'ep': .5,
+    'sp': .1,
+    'cp': .01
 }
 restrictive_races = ['dwarf', 'half_orc']
 
@@ -41,7 +41,7 @@ bonuses = {
             (18.75, '+2', '+3', '+125', '1-4', '25'),
             (18.9, '+2', '+4', '+150', '1-4', '30'),
             (18.99, '+2', '+5', '+200', '1-4(1 in 6)', '35'),
-            (19, '+3', '+6', '+300', '1-5(1 in 6)', '40'),],
+            (19, '+3', '+6', '+300', '1-5(1 in 6)', '40'), ],
     'INT': [(3, '0', '-', '-'),
             (4, '0', '-', '-'),
             (5, '0', '-', '-'),
@@ -58,7 +58,7 @@ bonuses = {
             (16, '5', '65', '7/11'),
             (17, '6', '75', '8/14'),
             (18, '7', '85', '9/18'),
-            (19, '8', '90', '10/22'),],
+            (19, '8', '90', '10/22'), ],
     'WIS': [(3, '-3', '0', '45'),
             (4, '-2', '0', '40'),
             (5, '-1', '0', '35'),
@@ -75,7 +75,7 @@ bonuses = {
             (16, '+2', '2/2', '0'),
             (17, '+3', '2/2/1', '0'),
             (18, '+4', '2/2/1/1', '0'),
-            (19, '+5', '3/2/1/1', '0'),],
+            (19, '+5', '3/2/1/1', '0'), ],
     'DEX': [(3, '-3', '-3', '+4'),
             (4, '-2', '-2', '+3'),
             (5, '-1', '-1', '+2'),
@@ -92,7 +92,7 @@ bonuses = {
             (16, '+1', '+1', '-2'),
             (17, '+2', '+2', '-3'),
             (18, '+3', '+3', '-4'),
-            (19, '+3', '+3', '-4'),],
+            (19, '+3', '+3', '-4'), ],
     'CON': [(3, '-2', '40', '35'),
             (4, '-1', '45', '40'),
             (5, '-1', '50', '45'),
@@ -109,7 +109,7 @@ bonuses = {
             (16, '+2', '96', '95'),
             (17, '+2 (+3 for Warriors)', '98', '97'),
             (18, '+2 (+4 for Warriors)', '100', '99'),
-            (19, '+2 (+5 for Warriors)', '100', '99'),],
+            (19, '+2 (+5 for Warriors)', '100', '99'), ],
     'CHA': [(3, '1', '-30', '-25'),
             (4, '1', '-25', '-20'),
             (5, '2', '-20', '-15'),
@@ -126,8 +126,16 @@ bonuses = {
             (16, '8', '+20', '+25'),
             (17, '10', '+30', '+30'),
             (18, '15', '+40', '+35'),
-            (19, '20', '+50', '+40'),],
+            (19, '20', '+50', '+40'), ],
 }
+
+SYSTEM_PATH = None
+
+
+def init_system_path(system_path):
+    global SYSTEM_PATH
+    SYSTEM_PATH = system_path
+
 
 def has_spells_at_level(level, single_class_dict):
     level = int(level)
@@ -136,6 +144,7 @@ def has_spells_at_level(level, single_class_dict):
     if level_dict['Casting_Level'] != 0 and level_dict['Casting_Level'] != '':
         return True
     return False
+
 
 def get_attribute_bonuses(attr_key, score):
     score = float(score)
@@ -147,6 +156,7 @@ def get_attribute_bonuses(attr_key, score):
         break
     return tuple(bonus for bonus in return_bonus[1:])
 
+
 def get_attribute_bonus_string( attr_key, score ):
     bonuses_dict = {}
     bonuses_dict['STR'] = 'To Hit: {}     Damage: {}     Encumbrance: {}     Minor Test: {}     Major Test: {}%'
@@ -157,6 +167,7 @@ def get_attribute_bonus_string( attr_key, score ):
     bonuses_dict['CHA'] = 'Max Henchman: {}     Loyalty: {}     Reaction: {}'
 
     return bonuses_dict[attr_key].format( *get_attribute_bonuses( attr_key, score ) )
+
 
 def calculate_ac(attr_dict, class_dict, race_dict, equipment_list):
     base_ac = 10
@@ -395,6 +406,31 @@ def get_tohit_row(level, class_dict, race_dict):
                               ]
     return tohit_list
 
+
+def convert_cost_string(cost_string):
+    cost_split = cost_string.split()
+    if cost_split[0].lower() == 'free':
+        cost = Decimal('0')
+        denomination = None
+    else:
+        cost = Decimal(''.join(d for d in cost_split[0] if d.isdigit()))
+        try:
+            denomination = cost_split[1]
+        except IndexError:
+            denomination = None
+
+    if denomination:
+        try:
+            ratio = Decimal(str(economy[denomination]))
+            final_cost = ratio * cost
+        except KeyError:
+            final_cost = cost
+    else:
+        final_cost = cost
+
+    return final_cost
+
+
 def get_coinage_from_float(gp_decimal):
 #    bucket = int(gp_decimal * 100)
 #    coin_denominations = sorted(economy, key=lambda x: economy[x], reverse=True)
@@ -420,53 +456,58 @@ def get_coinage_from_float(gp_decimal):
 
     return return_dict
 
-def get_float_from_coinage( character_or_money_dict ):
+
+def get_float_from_coinage(character_or_money_dict):
     total = 0
-    coin_denominations = list( economy.keys() )
+    coin_denominations = list(economy.keys())
     for cd in coin_denominations:
-        total += float( economy[cd] * character_or_money_dict[cd] )
+        total += float(economy[cd] * character_or_money_dict[cd])
     return total
 
-def race_is_restrictive( race ):
-    if is_instance( race, dict ):
-        race = race['race_id']
+
+# TODO: Properly implement restrictive races vs permissive races
+def race_is_restrictive(race):
+    if isinstance(race, dict):
+        race = race['unique_id']
 
     if race in restrictive_races:
         return True
 
     return False
 
-def race_wp( self, wp_list, race_id, item_dict_list ):
-    blunt_list = [ blunt['Name'].lower() for blunt in item_dict_list if 'blunt' in blunt['Damage_Type'].split( ',' ) ]
-    race_wp = []
+
+def race_wp(wp_list, race_id, item_dict_list):
+    blunt_list = [blunt['Name'].lower() for blunt in item_dict_list if 'blunt' in blunt['Damage_Type'].split(',')]
+    # race_wp = []
     wp_expand = []
     for wp in wp_list:
-        wp_expand.append( [ w.strip().lower() for w in wp.split( ',' ) ] )
-    if race_is_restrictive( race_id ):
+        wp_expand.append([w.strip().lower() for w in wp.split(',')])
+    if race_is_restrictive(race_id):
         bucket = wp_expand[0]
         if 'blunt' in bucket:
-            bucket.remove( 'blunt' )
-            bucket.extend( blunt_list )
-        for i in range( 1, len( wp_expand ) ):
+            bucket.remove('blunt')
+            bucket.extend(blunt_list)
+        for i in range(1, len(wp_expand)):
             if 'blunt' in wp_expand[i]:
-                wp_expand[i].remove( 'blunt' )
-                wp_expand[i].extend( blunt_list )
+                wp_expand[i].remove('blunt')
+                wp_expand[i].extend(blunt_list)
             if 'any' in bucket:
                 bucket = wp_expand[i]
             elif 'any' in wp_expand[i]:
                 bucket = bucket
             else:
-                bucket = [ w for w in bucket if w in wp_expand[i] ]
+                bucket = [w for w in bucket if w in wp_expand[i]]
 
     else:
-        wp_flat = sum( wp_expand, [] )
+        wp_flat = sum(wp_expand, [])
         bucket = []
         for wp in wp_flat:
             if wp not in bucket:
-                bucket.append( wp )
+                bucket.append(wp)
     if 'any' in bucket:
-        bucket = [ 'any', ]
+        bucket = ['any', ]
     return bucket
+
 
 def calculate_movement(race_dict, class_dict, attr_dict, equipment_list):
     base_movement = race_dict['Movement_Rate']
@@ -569,7 +610,7 @@ def get_class_abilities( level, attr_dict, single_class_dict ):
         primary_spells = single_class_dict['Primary_Spell_List'].replace('_', ' ').title()
         cl_ab.append(('{} Spells by Level'.format(primary_spells), spells_by_level[0]))
         if spells_by_level[1]:
-            secondary_spells = class_dict['Secondary_Spell_List'].replace('_', ' ').title()
+            secondary_spells = single_class_dict['Secondary_Spell_List'].replace('_', ' ').title()
             cl_ab.append(('{} Spells by Level'.format(secondary_spells), spells_by_level[1]))
     tu_list = get_turn_undead_row( level, single_class_dict )
     ta_list = get_thief_abilities_row( level, single_class_dict )
@@ -1033,4 +1074,4 @@ page-break-after:always;
     t = Template(markup)
     final_markup = t.safe_substitute( markup_template_dict )
 
-    return ( '{}.pdf'.format( character_dict['Name'] ), final_markup )
+    return '{}.pdf'.format(character_dict['Name']), final_markup

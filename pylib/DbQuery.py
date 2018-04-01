@@ -82,6 +82,11 @@ def getDisplayCol( table_name ):
         if inspect.isclass( v ) and issubclass( v, DbDefs.Table ) and v.table_name == table_name:
             return v.cols[ v.display_col ]
 
+
+def get_display(record):
+    return record[getDisplayCol(record['TableName'])]
+
+
 def getBase64Col( table_name ):
     db_dict = Db.__dict__
     for k,v in db_dict.items():

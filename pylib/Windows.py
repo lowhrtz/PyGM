@@ -6,30 +6,34 @@ from PyQt5.QtWidgets import (QMainWindow, QAction, QWidget, QTabWidget,
                              QDesktopWidget, QHBoxLayout, QVBoxLayout, QGridLayout,
                              QScrollArea, QWizard, QWizardPage, QPushButton, QCheckBox,
                              QLabel, QListWidget, QListWidgetItem, QLineEdit, QTextEdit,
-                             QFrame, QComboBox, QSpinBox,
+                             QFrame, QComboBox, QSpinBox, QRadioButton, QButtonGroup,
                              QFileDialog,
                              )
-from PyQt5.QtGui import QIcon, QPixmap, QFont, QTextDocument
+from PyQt5.QtGui import QIcon, QPixmap, QFont, QTextDocument, QDrag
 from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog
 import SystemSettings
 import DbLayout
 import DbQuery
 import Manage
 import ManageDefs
+import resources
 from Common import find_image, get_pixmap_from_base64, callback_factory, fill_listbox, add_item_to_listbox
 from Dialogs import YesNoDialog, EntryDialog, DualListDialog
 
 
-class CenterableWindow( QMainWindow ):
+SYSTEM_PATH = None
 
-    def __init__( self, parent=None ):
-        super().__init__( parent )
 
-    def center( self ):
-        qtRectangle = self.frameGeometry()
-        centerPoint = QDesktopWidget().availableGeometry().center()
-        qtRectangle.moveCenter( centerPoint )
-        self.move( qtRectangle.topLeft() )
+class CenterableWindow(QMainWindow):
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def center(self):
+        qt_rectangle = self.frameGeometry()
+        center_point = QDesktopWidget().availableGeometry().center()
+        qt_rectangle.moveCenter(center_point)
+        self.move(qt_rectangle.topLeft())
 
 
 class MainWindow( CenterableWindow ):
@@ -38,8 +42,11 @@ class MainWindow( CenterableWindow ):
         super().__init__()
 
         self.system_path = system_path
+        global SYSTEM_PATH
+        SYSTEM_PATH = system_path
+        SystemSettings.init_system_path(system_path)
 
-        #exitAct = QAction( QIcon( 'exit.png' ), 'Exit', self )
+        # exitAct = QAction( QIcon( 'exit.png' ), 'Exit', self )
         exit_action = QAction( 'Exit', self )
         exit_action.setShortcut( 'Ctrl+Q' )
         exit_action.setStatusTip( 'Exit application' )
@@ -71,11 +78,12 @@ class MainWindow( CenterableWindow ):
 
         self.statusBar()
 
-        system_parent = os.path.abspath( os.path.join( system_path, os.pardir ) )
-        base_bath = os.path.abspath( os.path.join( system_parent, os.pardir ) )
-        icon_path = os.path.join( base_bath, 'images/icon.png' )
-        #print( icon_path )
-        self.setWindowIcon( QIcon( icon_path ) )
+        # system_parent = os.path.abspath( os.path.join( system_path, os.pardir ) )
+        # base_bath = os.path.abspath( os.path.join( system_parent, os.pardir ) )
+        # icon_path = os.path.join( base_bath, 'images/icon.png' )
+        # print( icon_path )
+        # self.setWindowIcon( QIcon( icon_path ) )
+        self.setWindowIcon(QIcon(get_pixmap_from_base64(resources.icon_png)))
         self.setWindowTitle( SystemSettings.systemName )
         self.show()
         self.center()
@@ -114,34 +122,35 @@ class DbWindow( CenterableWindow ):
         self.table_name = table_name
         self.parent = parent
 
-        self.setWindowModality( QtCore.Qt.ApplicationModal )
-        self.table = DbQuery.getTable( table_name )
-        cols = DbQuery.getCols( table_name )
+        self.setWindowModality(QtCore.Qt.ApplicationModal)
+        self.table = DbQuery.getTable(table_name)
+        cols = DbQuery.getCols(table_name)
 
         layout = QHBoxLayout()
 
         left_layout = QVBoxLayout()
-        self.portrait = portrait = QLabel( self )
-        pixmap = QPixmap( find_image( parent.system_path, table_name, '$dummy$' ) )
-        portrait.setPixmap( pixmap )
-        left_layout.addWidget( portrait, alignment=QtCore.Qt.AlignCenter )
+        self.portrait = portrait = QLabel(self)
+        # pixmap = QPixmap( find_image( parent.system_path, table_name, '$dummy$' ) )
+        pixmap = get_pixmap_from_base64(resources.noImage_jpg)
+        portrait.setPixmap(pixmap)
+        left_layout.addWidget(portrait, alignment=QtCore.Qt.AlignCenter)
 
-        self.listbox = listbox = QListWidget( self )
-        listbox.currentRowChanged.connect( self.fill_fields )
-        display_col = DbQuery.getDisplayCol( table_name )
+        self.listbox = listbox = QListWidget(self)
+        listbox.currentRowChanged.connect(self.fill_fields)
+        display_col = DbQuery.getDisplayCol(table_name)
         for row in self.table:
             item = QListWidgetItem()
-            item.setText( row[ display_col ] )
-            item.setData( QtCore.Qt.UserRole, row )
-            listbox.addItem( item )
-        left_layout.addWidget( listbox )
-        layout.addLayout( left_layout )
+            item.setText(row[display_col])
+            item.setData(QtCore.Qt.UserRole, row)
+            listbox.addItem(item)
+        left_layout.addWidget(listbox)
+        layout.addLayout(left_layout)
 
         right_layout = QVBoxLayout()
-        scrollable = QScrollArea( self )
-        scroll_widget = QWidget( scrollable )
-        scroll_layout = QVBoxLayout( scrollable )
-        scroll_widget.setLayout( scroll_layout )
+        scrollable = QScrollArea(self)
+        scroll_widget = QWidget(scrollable)
+        scroll_layout = QVBoxLayout(scrollable)
+        scroll_widget.setLayout(scroll_layout)
         for col in cols:
             widget = None
             widget_layout = QHBoxLayout()
@@ -185,21 +194,23 @@ class DbWindow( CenterableWindow ):
         self.portrait.setPixmap( pixmap )
 
 
-class WidgetRegistry( dict ):
-    text_widgets = [ 'lineedit', 'textedit', 'textlabel' ]
+class WidgetRegistry(dict):
+    text_widgets = ['lineedit', 'textedit', 'textlabel']
 
-    def __init__( self, parent=None ):
+    def __init__(self, parent=None):
         super().__init__()
         self.parent = parent
 
-    def register_widget( self, widget, gui_wizard_page=None ):
+    def register_widget(self, widget, gui_wizard_page=None):
         field_name = widget.get_field_name()
         hide_field = False
-        if field_name.endswith( '_' ):
+        if field_name.endswith('_'):
             hide_field = True
             field_name = field_name[:-1]
         widget_type = widget.get_widget_type()
+        widget_width = widget.get_width()
         is_enabled = widget.is_edit_enabled()
+        stretch = widget.get_stretch()
         widget_data = widget.get_data()
 
         widget_layout = None
@@ -214,50 +225,58 @@ class WidgetRegistry( dict ):
                 text = ''
             else:
                 text = field_name
-            qt_widget = QCheckBox( text )
-            qt_widget.setEnabled( is_enabled )
-            qt_widget.setStyleSheet( disabled_stylesheet )
-            widget_layout.addWidget( qt_widget )
+            qt_widget = QCheckBox(text)
+            qt_widget.setEnabled(is_enabled)
+            qt_widget.setStyleSheet(disabled_stylesheet)
+            widget_layout.addWidget(qt_widget)
             if gui_wizard_page:
-                qt_widget.clicked.connect( lambda: gui_wizard_page.completeChanged.emit() )
+                qt_widget.clicked.connect(lambda: gui_wizard_page.completeChanged.emit())
 
         elif widget_type.lower() == 'textedit':
             widget_layout = QVBoxLayout()
             qt_widget = QTextEdit()
-            qt_widget.setEnabled( is_enabled )
-            qt_widget.setStyleSheet( disabled_stylesheet )
+            qt_widget.setEnabled(is_enabled)
+            qt_widget.setStyleSheet(disabled_stylesheet)
             if not hide_field:
-                widget_layout.addWidget( QLabel( field_name ) )
-            widget_layout.addWidget( qt_widget )
+                widget_layout.addWidget(QLabel(field_name))
+            widget_layout.addWidget(qt_widget)
             if gui_wizard_page:
-                qt_widget.textChanged.connect( lambda: gui_wizard_page.completeChanged.emit() )
+                qt_widget.textChanged.connect(lambda: gui_wizard_page.completeChanged.emit())
 
         elif widget_type.lower() == 'lineedit':
             widget_layout = QHBoxLayout()
             if widget_data:
                 prefill = widget_data
             else:
-               prefill = ''
-            qt_widget = QLineEdit( prefill )
-            qt_widget.setEnabled( is_enabled )
-            qt_widget.setStyleSheet( disabled_stylesheet )
+                prefill = ''
+            qt_widget = QLineEdit(prefill)
+            if widget_width:
+                qt_widget.setFixedWidth(widget_width)
+            qt_widget.setEnabled(is_enabled)
+            qt_widget.setStyleSheet(disabled_stylesheet)
             if not hide_field:
-                widget_layout.addWidget( QLabel( field_name ) )
-            widget_layout.addWidget( qt_widget )
+                if not stretch:
+                    widget_layout.addWidget(QLabel(field_name), 1, QtCore.Qt.AlignRight)
+                else:
+                    widget_layout.addWidget(QLabel(field_name))
+            if not stretch:
+                widget_layout.addWidget(qt_widget, 1, QtCore.Qt.AlignLeft)
+            else:
+                widget_layout.addWidget(qt_widget)
             if gui_wizard_page:
-                qt_widget.textChanged.connect( lambda: gui_wizard_page.completeChanged.emit() )
+                qt_widget.textChanged.connect(lambda: gui_wizard_page.completeChanged.emit())
 
         elif widget_type.lower() == 'spinbox':
             widget_layout = QHBoxLayout()
             qt_widget = QSpinBox()
-            qt_widget.setEnabled( is_enabled )
-            qt_widget.setStyleSheet( disabled_stylesheet )
-            qt_widget.setRange( -1000000000, 1000000000 )
+            qt_widget.setEnabled(is_enabled)
+            qt_widget.setStyleSheet(disabled_stylesheet)
+            qt_widget.setRange(-1000000000, 1000000000)
             if not hide_field:
-                widget_layout.addWidget( QLabel( field_name ) )
-            widget_layout.addWidget( qt_widget )
+                widget_layout.addWidget(QLabel(field_name))
+            widget_layout.addWidget(qt_widget)
             if gui_wizard_page:
-                qt_widget.valueChanged.connect( lambda: gui_wizard_page.completeChanged.emit() )
+                qt_widget.valueChanged.connect(lambda: gui_wizard_page.completeChanged.emit())
 
         elif widget_type.lower() == 'pushbutton':
             widget_layout = QHBoxLayout()
@@ -265,23 +284,46 @@ class WidgetRegistry( dict ):
                 button_text = field_name
             else:
                 button_text = ''
-            qt_widget = QPushButton( button_text )
-            qt_widget.setEnabled( is_enabled )
-            qt_widget.setStyleSheet( disabled_stylesheet )
-            widget_layout.addWidget( qt_widget )
+            qt_widget = QPushButton(button_text)
+            qt_widget.setEnabled(is_enabled)
+            qt_widget.setStyleSheet(disabled_stylesheet)
+            widget_layout.addWidget(qt_widget)
+
+        elif widget_type.lower() == 'radiobutton':
+            direction = widget.get_direction()
+            if direction.lower() == 'vertical':
+                widget_layout = QVBoxLayout()
+            else:
+                widget_layout = QHBoxLayout()
+            qt_widget = QButtonGroup()
+            for i, radio in enumerate(widget_data):
+                if hide_field:
+                    radio_button = QRadioButton('')
+                else:
+                    radio_button = QRadioButton(radio)
+                radio_button.setEnabled(is_enabled)
+                radio_button.setStyleSheet(disabled_stylesheet)
+                qt_widget.addButton(radio_button)
+                qt_widget.setId(radio_button, i)
+                if i == 0:
+                    radio_button.setChecked(True)
+                widget_layout.addWidget(radio_button)
+            if gui_wizard_page:
+                    qt_widget.buttonToggled.connect(lambda: gui_wizard_page.completeChanged.emit())
 
         elif widget_type.lower() == 'combobox':
             widget_layout = QHBoxLayout()
             qt_widget = QComboBox()
-            qt_widget.setEnabled( is_enabled )
-            qt_widget.setStyleSheet( disabled_stylesheet )
-            for item in widget_data:
-                qt_widget.addItem( item )
+            qt_widget.setEnabled(is_enabled)
+            qt_widget.setStyleSheet(disabled_stylesheet)
+            if widget_data:
+                for item in widget_data:
+                    qt_widget.addItem(item)
             if not hide_field:
-                widget_layout.addWidget( QLabel( field_name ) )
-            widget_layout.addWidget( qt_widget )
+                widget_layout.addWidget(QLabel(field_name))
+            widget_layout.addWidget(qt_widget)
             if gui_wizard_page:
-                qt_widget.currentIndexChanged.connect( lambda: gui_wizard_page.completeChanged.emit() )
+                qt_widget.currentIndexChanged.connect(lambda: gui_wizard_page.completeChanged.emit())
 
         elif widget_type.lower() == 'listbox':
             widget_layout = QVBoxLayout()
@@ -350,7 +392,7 @@ class WidgetRegistry( dict ):
             #    if avail_list.count() > 0:
             #        avail_list.setCurrentRow( 0 )
 
-            #fill_listbox( chosen_list, owned_items, tool_tip, fields )
+            # fill_listbox( chosen_list, owned_items, tool_tip, fields )
             qt_widget.tabbed_avail_lists = tabbed_avail_lists
             qt_widget.chosen_list = chosen_list
             qt_widget.fill_avail = fill_avail
@@ -363,25 +405,25 @@ class WidgetRegistry( dict ):
             qt_widget.category_hash = category_hash = {}
 
             if chosen_list.count() > 0:
-                chosen_list.setCurrentRow( 0 )
+                chosen_list.setCurrentRow(0)
 
-            add_button = QPushButton( 'Add', self.parent )
-            remove_button = QPushButton( 'Remove', self.parent )
+            add_button = QPushButton('Add', self.parent)
+            remove_button = QPushButton('Remove', self.parent)
 
-            #slots_label = QLabel( '<b>{}:</b>{}'.format( slots_name, slots_return ), self.parent )
-            slots_label = QLabel( '', self.parent )
+            # slots_label = QLabel( '<b>{}:</b>{}'.format( slots_name, slots_return ), self.parent )
+            slots_label = QLabel('', self.parent)
             qt_widget.slots_label = slots_label
-            widget_layout.addWidget( slots_label, 1, QtCore.Qt.AlignCenter )
+            widget_layout.addWidget(slots_label, 1, QtCore.Qt.AlignCenter)
 
             list_layout = QHBoxLayout()
             button_layout = QVBoxLayout()
-            button_layout.addWidget( add_button )
-            button_layout.addWidget( remove_button )
+            button_layout.addWidget(add_button)
+            button_layout.addWidget(remove_button)
 
-            list_layout.addWidget( tabbed_avail_lists )
-            list_layout.addLayout( button_layout )
-            list_layout.addWidget( tabbed_chosen_list )
-            widget_layout.addLayout( list_layout )
+            list_layout.addWidget(tabbed_avail_lists)
+            list_layout.addLayout(button_layout)
+            list_layout.addWidget(tabbed_chosen_list)
+            widget_layout.addLayout(list_layout)
 
             def add_pressed():
                 current_list = tabbed_avail_lists.currentWidget()
@@ -390,7 +432,8 @@ class WidgetRegistry( dict ):
                 current_item = current_list.currentItem()
                 current_data = current_item.data(QtCore.Qt.UserRole)
                 if gui_wizard_page:
-                    add_return = add(current_data, self.get_fields(), gui_wizard_page.wizard_pages, gui_wizard_page.external_data)
+                    add_return = add(current_data, self.get_fields(),
+                                     gui_wizard_page.wizard_pages, gui_wizard_page.external_data)
                 else:
                     add_return = add(current_data, self.get_fields())
                 valid = add_return.get('valid')
@@ -444,7 +487,7 @@ class WidgetRegistry( dict ):
                         original_list = current_item.original_list
                     except AttributeError:
                         if category_field:
-                            #print( category_hash )
+                            # print( category_hash )
                             category = str(current_data[category_field])
                             if qt_widget.category_callback:
                                 if gui_wizard_page:
@@ -466,38 +509,51 @@ class WidgetRegistry( dict ):
 
         elif widget_type.lower() == 'textlabel':
             widget_layout = QHBoxLayout()
-            qt_widget = QLabel( widget_data )
-            qt_widget.setEnabled( is_enabled )
-            qt_widget.setStyleSheet( disabled_stylesheet )
-            widget_layout.addWidget( qt_widget )
+            qt_widget = QLabel(widget_data)
+            qt_widget.setEnabled(is_enabled)
+            qt_widget.setStyleSheet(disabled_stylesheet)
+            widget_layout.addWidget(qt_widget)
 
         elif widget_type.lower() == 'image':
             widget_layout = QVBoxLayout()
-            pixmap = get_pixmap_from_base64( widget_data or '' )
+            pixmap = get_pixmap_from_base64(widget_data or '')
             qt_widget = QLabel()
-            qt_widget.setPixmap( pixmap )
+            qt_widget.setPixmap(pixmap)
             qt_widget.base64 = widget_data or ''
-            qt_widget.setEnabled( is_enabled )
-            #qt_widget.setStyleSheet( disabled_stylesheet )
-            widget_layout.addWidget( qt_widget )
+            qt_widget.setEnabled(is_enabled)
+            widget_layout.addWidget(qt_widget)
+
+        elif widget_type.lower() == 'dragimage':
+            image_data = widget_data[0]
+            fieldname = widget_data[1]
+            initial_state = widget_data[2]
+            widget_layout = QVBoxLayout()
+            qt_widget = DragImage(image_data, fieldname, self.get_fields, self.fill_fields)
+            qt_widget.setEnabled(is_enabled)
+            qt_widget.setAcceptDrops(initial_state)
+            widget_layout.addWidget(qt_widget)
 
         elif widget_type.lower() == 'hr':
             widget_layout = QHBoxLayout()
-            hr = QFrame( self.parent )
-            #hr.setGeometry( QtCore.QRect( 0, 0, 20, 1 ) )
-            hr.setFrameShape( QFrame.HLine )
-            hr.setFrameShadow( QFrame.Sunken )
-            hr.setLineWidth( 2 )
-            hr.setMidLineWidth( 1 )
-            widget_layout.addWidget( hr )
+            hr = QFrame(self.parent)
+            # hr.setGeometry( QtCore.QRect( 0, 0, 20, 1 ) )
+            hr.setFrameShape(QFrame.HLine)
+            hr.setFrameShadow(QFrame.Sunken)
+            hr.setLineWidth(2)
+            hr.setMidLineWidth(1)
+            widget_layout.addWidget(hr)
+
+        elif widget_type.lower() == 'empty':
+            widget_layout = QHBoxLayout()
+            empty = QLabel('')
+            widget_layout.addWidget(empty)
 
         else:
-            if widget_type.lower() != 'empty':
-                print( 'This widget contains an unknown type: {}'.format( widget_type ) )
+            print('This widget contains an unknown type: {}'.format(widget_type))
 
         if qt_widget is not None:
             widget.qt_widget = qt_widget
-            self[ field_name ] = widget
+            self[field_name] = widget
         return widget_layout
 
     def fill_listbox( self, listbox, fill ):
@@ -521,32 +577,37 @@ class WidgetRegistry( dict ):
                 list_item.setData( QtCore.Qt.UserRole, item_dict )
                 listbox.addItem( list_item )
 
-    def get_fields( self ):
+    def get_fields(self):
         fields = {}
-        for k,v in list( self.items() ):
+        for k, v in list(self.items()):
             widget_type = v.get_widget_type()
             widget = v.qt_widget
             if widget_type.lower() in self.text_widgets:
-                fields[k] = widget.text()
+                if widget_type.lower() == 'textedit':
+                    fields[k] = widget.toPlainText()
+                else:
+                    fields[k] = widget.text()
             elif widget_type.lower() == 'checkbox':
                 fields[k] = widget.isChecked()
             elif widget_type.lower() == 'spinbox':
                 fields[k] = widget.value()
+            elif widget_type.lower() == 'radiobutton':
+                fields[k] = widget.checkedId()
             elif widget_type.lower() == 'combobox':
                 fields[k] = widget.currentText()
             elif widget_type.lower() == 'listbox' or widget_type.lower() == 'duallist':
                 item_list = []
-                for i in range( widget.count() ):
-                    item = widget.item( i )
-                    item_list.append( item.data( QtCore.Qt.UserRole ) )
+                for i in range(widget.count()):
+                    item = widget.item(i)
+                    item_list.append(item.data(QtCore.Qt.UserRole))
                 fields[k] = item_list
                 current_item = widget.currentItem()
                 data = None
                 if current_item:
-                    data = current_item.data( QtCore.Qt.UserRole )
+                    data = current_item.data(QtCore.Qt.UserRole)
                     if data is None:
                         data = current_item.text()
-                fields[ '{} Current'.format( k ) ] = data
+                fields['{} Current'.format(k)] = data
             elif widget_type.lower() == 'image':
                 fields[k] = widget.base64
         return fields
@@ -556,14 +617,21 @@ class WidgetRegistry( dict ):
             widget_type = self[k].get_widget_type()
             widget = self[k].qt_widget
             if widget_type.lower() in self.text_widgets:
-                widget.setText(v)
+                widget.setText(str(v))
             elif widget_type.lower() == 'checkbox':
                 widget.setChecked(v)
             elif widget_type.lower() == 'spinbox':
                 widget.setValue(v)
+            elif widget_type.lower() == 'radiobutton':
+                for i, radio_button in enumerate(widget.button()):
+                    radio_button.setText(v[i])
             elif widget_type.lower() == 'combobox':
-                new_index = widget.findText(v)
-                widget.setCurrentIndex(new_index)
+                if type(v).__name__ == 'str':
+                    new_index = widget.findText(v)
+                    widget.setCurrentIndex(new_index)
+                else:
+                    widget.clear()
+                    widget.addItems(v)
             elif widget_type.lower() == 'listbox':
                 fill_listbox(widget, v)
             elif widget_type.lower() == 'image':
@@ -581,7 +649,7 @@ class WidgetRegistry( dict ):
                 fill_avail = widget.fill_avail
                 category_field = widget.category_field
                 category_callback = widget.category_callback
-                category_hash = widget.category_hash
+                category_hash = widget.category_hash = {}
                 owned_items = v
 
                 if gui_wizard_page:
@@ -596,10 +664,10 @@ class WidgetRegistry( dict ):
                 else:
                     avail_items = []
                 slots_label.setText( '<b>{}: </b>{}'.format( slots_name, slots_return ) )
- 
+
+                tabbed_avail_lists.clear()
                 if category_field:
-                    tabbed_avail_lists.clear()
-                    #category_hash = {}
+                    # category_hash = {}
                     for avail_item in avail_items:
                         if type(avail_item).__name__ == 'dict':
                             avail_item_dict = avail_item
@@ -621,13 +689,13 @@ class WidgetRegistry( dict ):
                     avail_list = QListWidget(self.parent)
                     tabbed_avail_lists.addTab(avail_list, 'Avail')
                     tabbed_avail_lists.tabBar().hide()
-                    fill_listbox(avail_list, avail_items, tool_tip, fields, wizard=gui_wizard_page)
+                    fill_listbox(avail_list, avail_items, tool_tip, self.get_fields(), wizard=gui_wizard_page)
                     if avail_list.count() > 0:
                         avail_list.setCurrentRow(0)
 
                 fill_listbox(chosen_list, owned_items, tool_tip, fields, wizard=gui_wizard_page)
 
-    def process_action( self, action ):
+    def process_action(self, action, gui_wizard_page=None):
         fields = self.get_fields()
         action_type = action.get_action_type()
         callback = action.get_callback()
@@ -637,136 +705,161 @@ class WidgetRegistry( dict ):
         widget2 = action.get_widget2()
         if widget2 is not None:
             widget2_field_name = widget2.get_field_name()
-            if widget2_field_name.endswith( '_' ):
+            if widget2_field_name.endswith('_'):
                 widget2_field_name = widget2_field_name[:-1]
             widget2_widget_type = widget2.get_widget_type()
 
         if action_type.lower() == 'fillfields':
             if callback is not None:
-                callback_return = callback( fields )
-                self.fill_fields( callback_return )
+                if gui_wizard_page:
+                    callback_return = callback(fields, gui_wizard_page.wizard_pages, gui_wizard_page.external_data)
+                else:
+                    callback_return = callback(fields)
+                self.fill_fields(callback_return)
 
         elif action_type.lower() == 'savepdf' or action_type.lower() == 'printpreview':
             if callback is not None:
-                callback_return = callback( fields )
-                if type( callback_return ).__name__ != 'tuple' or len( callback_return ) == 0:
-                   return
+                if gui_wizard_page:
+                    callback_return = callback(fields, gui_wizard_page.wizard_pages, gui_wizard_page.external_data)
+                else:
+                    callback_return = callback(fields)
+                if type(callback_return).__name__ != 'tuple' or len(callback_return) == 0:
+                    return
                 default_filename = callback_return[0]
                 pdf_markup = callback_return[1]
-                #print( pdf_markup )
-                font = QFont( 'Times', 10, QFont.Normal )
+                # print( pdf_markup )
+                font = QFont('Times', 10, QFont.Normal)
                 document = QTextDocument()
-                document.setDefaultFont( font )
-                document.setHtml( pdf_markup )
-                printer = QPrinter( QPrinter.PrinterResolution )
-                printer.setOutputFormat( QPrinter.PdfFormat )
-                printer.setPaperSize( QPrinter.A4 )
-                printer.setOutputFileName( default_filename )
-                printer.setPageMargins( 15, 15, 15, 15, QPrinter.Point )
-                printer.setColorMode( QPrinter.Color )
-                document.setPageSize( QtCore.QSizeF( printer.pageRect().size() ) ) # This disables printing the page number
+                document.setDefaultFont(font)
+                document.setHtml(pdf_markup)
+                printer = QPrinter(QPrinter.PrinterResolution)
+                printer.setOutputFormat(QPrinter.PdfFormat)
+                printer.setPaperSize(QPrinter.A4)
+                printer.setOutputFileName(default_filename)
+                printer.setPageMargins(15, 15, 15, 15, QPrinter.Point)
+                printer.setColorMode(QPrinter.Color)
+                document.setPageSize(QtCore.QSizeF(printer.pageRect().size()))  # This disables printing the page number
                 if action_type.lower() == 'savepdf':
-                    #print( 'savepdf' )
-                    filename, _ = QFileDialog.getSaveFileName( None, 'Save', default_filename, 'PDF Files (*.pdf)' )
-                    if filename == None:
+                    # print( 'savepdf' )
+                    filename, _ = QFileDialog.getSaveFileName(self.parent, 'Save', default_filename,
+                                                              'PDF Files (*.pdf)')
+                    if filename is None:
                         return
-                    printer.setOutputFileName( filename )
-                    document.print( printer )
+                    printer.setOutputFileName(filename)
+                    document.print(printer)
                 else:
-                    preview_dialog = QPrintPreviewDialog( printer )
-                    preview_dialog.paintRequested.connect( lambda prntr: document.print( prntr ) )
+                    preview_dialog = QPrintPreviewDialog(printer)
+                    preview_dialog.paintRequested.connect(lambda prntr: document.print(prntr))
                     preview_dialog.exec_()
 
         elif action_type.lower() == 'entrydialog':
-            #print( 'entrydialog' )
+            # print( 'entrydialog' )
             value = [None]
             title = widget1_field_name
-            if title.startswith( '&' ):
+            if title.startswith('&'):
                 title = title[1:]
-            parent = self[ widget2_field_name ].qt_widget.parent()
+            parent = self[widget2_field_name].qt_widget.parent()
             if widget2_widget_type.lower() == 'lineedit':
-                dialog = EntryDialog( title, EntryDialog.LINE_EDIT, value, parent )
+                dialog = EntryDialog(title, EntryDialog.LINE_EDIT, value, parent)
             elif widget2_widget_type.lower() == 'textedit':
-                dialog = EntryDialog( title, EntryDialog.TEXT_EDIT, value, parent )
+                dialog = EntryDialog(title, EntryDialog.TEXT_EDIT, value, parent)
             elif widget2_widget_type.lower() == 'spinbox':
-                dialog = EntryDialog( title, EntryDialog.SPIN_BOX, value, parent )
+                dialog = EntryDialog(title, EntryDialog.SPIN_BOX, value, parent)
             elif widget2_widget_type.lower() == 'image':
-                image_widget = self[ widget2_field_name ].qt_widget
+                image_widget = self[widget2_field_name].qt_widget
                 image_data = image_widget.base64
-                dialog = EntryDialog( title, EntryDialog.IMAGE, value, parent, image_data )
+                dialog = EntryDialog(title, EntryDialog.IMAGE, value, parent, image_data)
             accepted = dialog.exec_()
             if accepted and callback:
-                callback_return = callback( value[0], fields )
-                self.fill_fields( callback_return )
+                callback_return = callback(value[0], fields)
+                self.fill_fields(callback_return)
 
         elif action_type.lower() == 'listdialog':
             title = widget1_field_name
-            if title.startswith( '&' ):
+            if title.startswith('&'):
                 title = title[1:]
-            parent = self[ widget2_field_name ].qt_widget.parent()
-            listbox = self[ widget2_field_name ].qt_widget
+            parent = self[widget2_field_name].qt_widget.parent()
+            listbox = self[widget2_field_name].qt_widget
             owned_items = []
-            for i in range( listbox.count() ):
-                item_data = listbox.item( i ).data( QtCore.Qt.UserRole )
-                owned_items.append( item_data )
-            dialog = DualListDialog( title, owned_items, action.get_data(), fields, parent )
+            for i in range(listbox.count()):
+                item_data = listbox.item(i).data(QtCore.Qt.UserRole)
+                owned_items.append(item_data)
+            dialog = DualListDialog(title, owned_items, action.get_data(), fields, parent)
             accepted = dialog.exec_()
             if accepted and callback:
-                callback_return = callback( dialog.get_item_list(), fields )
-                self.fill_fields( callback_return )
+                callback_return = callback(dialog.get_item_list(), fields)
+                self.fill_fields(callback_return)
+
+        elif action_type.lower() == 'filedialog':
+            filename, _ = QFileDialog.getOpenFileName(self.parent, 'Open', os.path.expanduser('~'),
+                                                      'Image Files (*.jpg *.jpeg *.gif *.png)')
+            if filename and callback:
+                if gui_wizard_page:
+                    callback_return = callback(filename, self.get_fields(), gui_wizard_page.wizard_pages,
+                                               gui_wizard_page.external_data)
+                else:
+                    callback_return = callback(filename, self.get_fields())
+                self.fill_fields(callback_return)
 
         elif action_type.lower() == 'wizard':
             wizard = data()
-            #parent = self[ widget2_field_name ].qt_widget.parent()
-            gui_wizard = GuiWizard( wizard, self.get_fields(), self.parent )
+            # parent = self[ widget2_field_name ].qt_widget.parent()
+            gui_wizard = GuiWizard(wizard, self.get_fields(), self.parent)
             if gui_wizard.exec_():
                 accept_return = gui_wizard.get_accept_return()
                 if callback:
-                    callback_return = callback( accept_return, self.get_fields() )
+                    callback_return = callback(accept_return, self.get_fields())
                     if callback_return:
-                        self.fill_fields( callback_return )
+                        self.fill_fields(callback_return)
+
+        elif action_type.lower() == 'dragenable':
+            if gui_wizard_page:
+                drag_callback_return = callback(self.get_fields(), gui_wizard_page.wizard_pages, gui_wizard_page.external_data)
+            else:
+                drag_callback_return = callback(self.get_fields())
+            for k, v in drag_callback_return.items():
+                drag_image = self[k].qt_widget
+                drag_image.setAcceptDrops(v)
 
         elif action_type.lower() == 'callbackonly':
             if callback:
-                callback( self.get_fields() )
+                callback(self.get_fields())
 
-    def fill_menu_bar( self, menu_bar, menu_list, parent ):
+    def fill_menu_bar(self, menu_bar, menu_list, parent):
         for menu in menu_list:
             menu_name = menu.get_menu_name()
-            qt_menu = menu_bar.addMenu( menu_name )
+            qt_menu = menu_bar.addMenu(menu_name)
             menu_action_list = menu.get_action_list()
             for menu_action in menu_action_list:
                 menu_widget1 = menu_action.get_widget1()
                 menu_widget1_field_name = menu_widget1.get_field_name()
-                qt_menu_action = QAction( menu_widget1_field_name, parent )
-                qt_menu.addAction( qt_menu_action )
-                qt_menu_action.triggered.connect( callback_factory( self.process_action, menu_action ) )
+                qt_menu_action = QAction(menu_widget1_field_name, parent)
+                qt_menu.addAction(qt_menu_action)
+                qt_menu_action.triggered.connect(callback_factory(self.process_action, menu_action))
 
 
-class ManageWindow( CenterableWindow ):
+class ManageWindow(CenterableWindow):
 
     onshow = pyqtSignal()
 
-    def __init__( self, manage, parent ):
-        super().__init__( parent )
+    def __init__(self, manage, parent):
+        super().__init__(parent)
 
         self.manage = manage
         self.parent = parent
-        #self.widget_registry = {}
-        self.widget_registry = WidgetRegistry( self )
+        self.widget_registry = WidgetRegistry(self)
 
-        class_name = type( manage ).__name__
+        class_name = type(manage).__name__
 
         layout = QGridLayout()
         central_widget = QWidget()
-        central_widget.setLayout( layout )
-        self.setCentralWidget( central_widget )
+        central_widget.setLayout(layout)
+        self.setCentralWidget(central_widget)
 
         widget_matrix = manage.get_widget_matrix()
-        for i, row in enumerate( widget_matrix ):
-            for j, widget in enumerate( row ):
-                #widget_layout = self.register_widget( widget )
-                widget_layout = self.widget_registry.register_widget( widget )
+        for i, row in enumerate(widget_matrix):
+            for j, widget in enumerate(row):
+                widget_layout = self.widget_registry.register_widget(widget)
                 if widget.get_align() is None:
                     align = QtCore.Qt.AlignLeft
                 elif widget.get_align().lower() == 'center':
@@ -775,9 +868,15 @@ class ManageWindow( CenterableWindow ):
                     align = QtCore.Qt.AlignLeft
                 elif widget.get_align().lower() == 'right':
                     align = QtCore.Qt.AlignRight
+                elif widget.get_align().lower() == 'top':
+                    align = QtCore.Qt.AlignTop
+                elif widget.get_align().lower() == 'bottom':
+                    align = QtCore.Qt.AlignBottom
+                else:
+                    align = QtCore.Qt.AlignLeft
 
                 if widget_layout is not None:
-                    layout.addLayout( widget_layout, i, j, widget.get_row_span(), widget.get_col_span(), align )
+                    layout.addLayout(widget_layout, i, j, widget.get_row_span(), widget.get_col_span(), align)
 
         actions = manage.get_action_list()
         for action in actions:
@@ -785,69 +884,72 @@ class ManageWindow( CenterableWindow ):
             widget1 = action.get_widget1()
             widget1_type = widget1.get_widget_type()
             widget1_field_name = widget1.get_field_name()
-            if widget1_field_name.endswith( '_' ):
+            if widget1_field_name.endswith('_'):
                 widget1_field_name = widget1_field_name[:-1]
             callback = action.get_callback()
             data = action.get_data()
             if action_type.lower() == 'onshow':
-                self.onshow.connect( callback_factory( self.on_show, callback ) )
+                self.onshow.connect(callback_factory(self.on_show, callback))
             elif widget1_type.lower() == 'pushbutton':
-                qt_widget = self.widget_registry[ widget1_field_name ].qt_widget
-                qt_widget.pushed.connect( callback_factory( self.widget_registry.process_action, action ) )
+                qt_widget = self.widget_registry[widget1_field_name].qt_widget
+                qt_widget.pushed.connect(callback_factory(self.widget_registry.process_action, action))
             elif widget1_type.lower() == 'listbox':
-                qt_widget = self.widget_registry[ widget1_field_name ].qt_widget
-                qt_widget.currentRowChanged.connect( callback_factory( self.widget_registry.process_action, action ) )
+                qt_widget = self.widget_registry[widget1_field_name].qt_widget
+                qt_widget.currentRowChanged.connect(callback_factory(self.widget_registry.process_action, action))
 
         menu_list = manage.get_menu_list()
-        self.widget_registry.fill_menu_bar( self.menuBar(), menu_list, self )
+        self.widget_registry.fill_menu_bar(self.menuBar(), menu_list, self)
 
-        self.setWindowModality( QtCore.Qt.ApplicationModal )
-        self.setWindowTitle( class_name )
+        self.setWindowModality(QtCore.Qt.ApplicationModal)
+        self.setWindowTitle(class_name)
         self.onshow.emit()
         self.show()
         self.center()
 
-    def on_show( self, callback ):
-        #print( 'on_show' )
+    def on_show(self, callback):
+        # print( 'on_show' )
         fields = self.widget_registry.get_fields()
-        #print( fields )
-        callback_return = callback( fields )
-        self.widget_registry.fill_fields( callback_return )
+        # print( fields )
+        callback_return = callback(fields)
+        self.widget_registry.fill_fields(callback_return)
 
-class GuiWizard( QWizard ):
 
-    def __init__( self, wizard, external_data, parent ):
-        super().__init__( parent )
-        self.widget_registry = widget_registry = WidgetRegistry( self )
+class GuiWizard(QWizard):
+
+    def __init__(self, wizard, external_data, parent):
+        super().__init__(parent)
+        self.widget_registry = widget_registry = WidgetRegistry(self)
         wizard_pages = wizard.get_wizard_pages()
         title = wizard.get_title()
         self.external_data = external_data
         self.accept_method = wizard.accept
-        self.setWizardStyle( QWizard.ClassicStyle )
-        self.setWindowTitle( title )
+        self.accept_return = None
+        self.setWizardStyle(QWizard.ClassicStyle)
+        self.setWindowTitle(title)
         self.pages = pages = {}
         for page in wizard_pages:
             page_title = page.get_title()
             pages[page_title] = page
-            gui_wizard_page = GuiWizardPage( page, pages, external_data, widget_registry, self )
-            self.setPage( gui_wizard_page.get_page_id(), gui_wizard_page )
+            gui_wizard_page = GuiWizardPage(page, pages, external_data, widget_registry, self)
+            self.setPage(gui_wizard_page.get_page_id(), gui_wizard_page)
 
-    def get_widget_registry( self ):
+    def get_widget_registry(self):
         return self.widget_registry        
 
-    def get_accept_return( self ):
+    def get_accept_return(self):
         return self.accept_return
 
-    def accept( self ):
-        self.accept_return = self.accept_method( self.widget_registry.get_fields(), self.pages, self.external_data )
-        #QDialog.accept()
+    def accept(self):
+        self.accept_return = self.accept_method(self.widget_registry.get_fields(), self.pages, self.external_data)
+        # QDialog.accept()
         super().accept()
 
-class GuiWizardPage( QWizardPage ):
 
-    def __init__( self, wizard_page, wizard_pages, external_data, widget_registry, parent ):
-        super().__init__( parent )
-        #print( widget_registry )
+class GuiWizardPage(QWizardPage):
+
+    def __init__(self, wizard_page, wizard_pages, external_data, widget_registry, parent):
+        super().__init__(parent)
+        # print( widget_registry )
         self.wizard_page = wizard_page
         self.wizard_pages = wizard_pages
         self.external_data = external_data
@@ -856,12 +958,12 @@ class GuiWizardPage( QWizardPage ):
         title = wizard_page.get_title()
         subtitle = wizard_page.get_subtitle()
         widget_matrix = wizard_page.get_widget_matrix()
-        self.setTitle( title )
-        self.setSubTitle( subtitle )
+        self.setTitle(title)
+        self.setSubTitle(subtitle)
         grid_layout = QGridLayout()
-        for i, row in enumerate( widget_matrix ):
-            for j, widget in enumerate( row ):
-                widget_layout = widget_registry.register_widget( widget, gui_wizard_page=self )
+        for i, row in enumerate(widget_matrix):
+            for j, widget in enumerate(row):
+                widget_layout = widget_registry.register_widget(widget, gui_wizard_page=self)
                 if widget.get_align() is None:
                     align = QtCore.Qt.AlignLeft
                 elif widget.get_align().lower() == 'center':
@@ -870,25 +972,57 @@ class GuiWizardPage( QWizardPage ):
                     align = QtCore.Qt.AlignLeft
                 elif widget.get_align().lower() == 'right':
                     align = QtCore.Qt.AlignRight
-                if widget_layout != None:
-                    grid_layout.addLayout( widget_layout, i, j, widget.get_row_span(), widget.get_col_span(), align )
-        self.setLayout( grid_layout )
+                elif widget.get_align().lower() == 'top':
+                    align = QtCore.Qt.AlignTop
+                elif widget.get_align().lower() == 'bottom':
+                    align = QtCore.Qt.AlignBottom
+                else:
+                    align = QtCore.Qt.AlignLeft
+                if widget_layout is not None:
+                    grid_layout.addLayout(widget_layout, i, j, widget.get_row_span(), widget.get_col_span(), align)
+        self.setLayout(grid_layout)
 
-    def get_page_id( self ):
+        actions = wizard_page.get_action_list()
+        for action in actions:
+            action_type = action.get_action_type()
+            widget1 = action.get_widget1()
+            widget1_type = widget1.get_widget_type()
+            widget1_field_name = widget1.get_field_name()
+            if widget1_field_name.endswith('_'):
+                widget1_field_name = widget1_field_name[:-1]
+            callback = action.get_callback()
+            # data = action.get_data()
+            if action_type.lower() == 'onshow':
+                self.onshow.connect(callback_factory(self.on_show, callback))
+            elif widget1_type.lower() == 'pushbutton':
+                qt_widget = self.widget_registry[widget1_field_name].qt_widget
+                qt_widget.clicked.connect(callback_factory(self.widget_registry.process_action, action, self))
+            elif widget1_type.lower() == 'listbox':
+                qt_widget = self.widget_registry[widget1_field_name].qt_widget
+                qt_widget.currentRowChanged.connect(callback_factory(self.widget_registry.process_action, action, self))
+            elif widget1_type.lower() == 'combobox':
+                qt_widget = self.widget_registry[widget1_field_name].qt_widget
+                qt_widget.currentIndexChanged.connect(callback_factory(self.widget_registry.process_action, action, self))
+
+    def get_page_id(self):
         return self.page_id
 
-    def initializePage( self ):
-        #print( self.widget_registry )
-        initialize_page_return = self.wizard_page.initialize_page( self.widget_registry.get_fields(), self.wizard_pages, self.external_data )
+    def initializePage(self):
+        # print( self.widget_registry )
+        initialize_page_return = self.wizard_page.initialize_page(self.widget_registry.get_fields(),
+                                                                  self.wizard_pages, self.external_data)
+        self.setSubTitle(self.wizard_page.get_subtitle())
         if initialize_page_return:
-            self.widget_registry.fill_fields( initialize_page_return )
+            self.widget_registry.fill_fields(initialize_page_return)
 
-    def isComplete( self ):
-        is_complete_return = self.wizard_page.is_complete( self.widget_registry.get_fields(), self.wizard_pages, self.external_data )
+    def isComplete(self):
+        is_complete_return = self.wizard_page.is_complete(self.widget_registry.get_fields(),
+                                                          self.wizard_pages, self.external_data)
         return is_complete_return
 
-    def nextId( self ):
-        next_page_id = self.wizard_page.get_next_page_id( self.widget_registry.get_fields(), self.wizard_pages, self.external_data )
+    def nextId(self):
+        next_page_id = self.wizard_page.get_next_page_id(self.widget_registry.get_fields(),
+                                                         self.wizard_pages, self.external_data)
         if next_page_id == -2:
             found_current_page = False
             for page_id in self.wizard().pageIds():
@@ -898,3 +1032,48 @@ class GuiWizardPage( QWizardPage ):
                     return page_id
             return -1
         return next_page_id
+
+
+class DragImage(QLabel):
+
+    def __init__(self, image_data, fieldname, get_fields_callback, set_fields_callback):
+        super().__init__()
+        self.fieldname = fieldname
+        self.get_fields_callback = get_fields_callback
+        self.set_fields_callback = set_fields_callback
+        self.image_data = image_data
+        self.setPixmap(get_pixmap_from_base64(image_data))
+
+    def get_fieldname(self):
+        return self.fieldname
+
+    def dropEvent(self, drop_event):
+        # print('drop_event')
+        source_fieldname = drop_event.mimeData().property('fieldname')
+        source_value = drop_event.mimeData().property('value')
+        dest_fieldname = self.fieldname
+        dest_value = self.get_fields_callback()[self.fieldname]
+        self.set_fields_callback({dest_fieldname: source_value, source_fieldname: dest_value})
+
+    def dragMoveEvent(self, drag_event):
+        # print('move_event')
+        drag_event.accept()
+
+    def dragEnterEvent(self, drag_event):
+        # print('drag_event')
+        drag_event.acceptProposedAction()
+
+    def mousePressEvent(self, mouse_event):
+        # print('mouse_event')
+        if mouse_event.button() != QtCore.Qt.LeftButton:
+            return
+        drag = QDrag(self)
+        mime_data = QtCore.QMimeData()
+        field_value = self.get_fields_callback()[self.fieldname]
+        if len(field_value) == 0 or field_value.isspace():
+            return
+        mime_data.setProperty('fieldname', self.fieldname)
+        mime_data.setProperty('value', field_value)
+        drag.setMimeData(mime_data)
+        drag.setPixmap(get_pixmap_from_base64(self.image_data))
+        drag.exec_()

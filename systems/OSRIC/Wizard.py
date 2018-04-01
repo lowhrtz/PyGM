@@ -875,7 +875,7 @@ MD{roll_attributes(WP{attributes}, F{Race}, F{Class})}''', True),
                 attr_dict[attr_to_modify] = str( new_score )
         return attr_dict
 
-    def roll_attributes( self, wiz_attr_dict, race_dict, class_dict ):
+    def uroll_attributes( self, wiz_attr_dict, race_dict, class_dict ):
         is_warrior = False
         if 'classes' in class_dict:
             for cl in class_dict['classes']:
