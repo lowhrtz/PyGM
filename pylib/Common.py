@@ -2,7 +2,10 @@ import os
 import PyQt5.QtCore as QtCore
 from PyQt5.QtWidgets import QListWidgetItem
 from PyQt5.QtGui import QImage, QPixmap
-import DbQuery
+try:
+    import DbQuery
+except ImportError:
+    pass
 
 
 def find_image(system_path, table_name, unique_id):
