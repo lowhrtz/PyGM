@@ -1098,8 +1098,16 @@ class ReviewPage(WizardPage):
         self.hp = self.roll_hp(1, full_class)
         self.age = self.roll_age(fields, pages)
         self.height, self.weight = self.roll_height_weight(fields)
+        prof_names = []
+        for prof in fields['Proficiencies']:
+            if prof in pages['Proficiencies'].double_specialised_list:
+                prof_names.append('{} (2X)'.format(prof['Name']))
+            elif prof in pages['Proficiencies'].specialised_list:
+                prof_names.append('{} (S)'.format(prof['Name']))
+            else:
+                prof_names.append(prof['Name'])
         prof_label = '<b>Proficiencies</b><br />'
-        prof_label += '<br />'.join([prof['Name'] for prof in fields['Proficiencies']])
+        prof_label += '<br />'.join(prof_names)
         equip_label = '<b>Equipment</b><br />'
         equip_label += '<br />'.join([equip['Name'] for equip in fields['Equipment']])
         return {
