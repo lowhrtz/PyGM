@@ -125,6 +125,8 @@ class Characters(Manage):
                                          data=equipment_data))
         self.add_menu(character_menu)
 
+        self.class_table = DbQuery.getTable('Classes')
+
     def get_character_table(self, fields):
         return {'Character List': DbQuery.getTable('Characters')}
 
@@ -300,7 +302,8 @@ class Characters(Manage):
                 'cp': fields['CP']
             }
             for denomination in list(money_dict.keys()):
-                DbQuery.insertRow('Characters_meta', [unique_id, 'Treasure', denomination, money_dict[denomination], ''])
+                DbQuery.insertRow('Characters_meta', [unique_id, 'Treasure',
+                                                      denomination, money_dict[denomination], ''])
 
             for prof in fields['Proficiencies']:
                 data_list = [unique_id, 'Proficiency', prof['unique_id'], prof['level'], prof['Notes']]
@@ -373,12 +376,41 @@ class Characters(Manage):
         return SystemSettings.get_character_pdf_markup(character_dict)
 
     def add_xp(self, dialog_return, fields):
+
         xp_list = fields['XP'].split('/')
-        add_xp = int(dialog_return) / len(xp_list)
+        add_xp = int(dialog_return) // len(xp_list)
+        pc_class_split = fields['Character List Current']['Classes'].split('/')
+        if len(pc_class_split) == 1:
+            for cl in self.class_table:
+                if cl['unique_id'] == pc_class_split[0]:
+                    xp_bonus_string = cl['Experience_Bonus']
+                    xp_bonus = self.parse_xp_bonus(xp_bonus_string, fields)
+                    if xp_bonus:
+                        add_xp = add_xp * (1 + Decimal(xp_bonus) / Decimal(100))
         for index, xp in enumerate(xp_list):
             xp_list[index] = int(xp) + int(add_xp)
 
         return {'XP': '/'.join(str(xp) for xp in xp_list)}
+
+    def parse_xp_bonus(self, bonus, attr_dict):
+        if bonus.lower() == 'None':
+            return 0
+        bonus_split = bonus.split()
+        if len(bonus_split) == 2:
+            attr = bonus_split[0]
+            score = bonus_split[1].replace('+', '')
+            if int(attr_dict[attr.upper()]) >= int(score):
+                return 10
+        else:
+            score = bonus_split.pop().replace('+', '')
+            attrs = [attr.strip().replace(',', '') for attr in bonus_split if attr.lower().find('and') != -1]
+            bonus_in_effect = True
+            for attr in attrs:
+                if attr_dict[attr.upper()] < score:
+                    bonus_in_effect = False
+            if bonus_in_effect:
+                return 10
+        return 0
 
     def convert_image(self, filename, fields):
         with open(filename, 'rb') as image_file:
