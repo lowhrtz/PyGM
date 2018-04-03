@@ -386,7 +386,7 @@ class Characters(Manage):
                     xp_bonus_string = cl['Experience_Bonus']
                     xp_bonus = self.parse_xp_bonus(xp_bonus_string, fields)
                     if xp_bonus:
-                        add_xp = add_xp * (1 + Decimal(xp_bonus) / Decimal(100))
+                        add_xp = int(add_xp * (1 + Decimal(xp_bonus) / Decimal(100)))
         for index, xp in enumerate(xp_list):
             xp_list[index] = int(xp) + int(add_xp)
 
