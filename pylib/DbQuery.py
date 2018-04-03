@@ -24,7 +24,7 @@ def initDB(path):
                 table_count += 1
         value_range = 0, table_count
         progress = ProgressDialog('Database Creation',
-                                  'Pelase wait while the database is being prepared for first use.',
+                                  'Please wait while the database is being prepared for first use.',
                                   value_range, resetDB, None)
         progress.forceShow()
         from PyQt5 import QtCore
