@@ -154,44 +154,44 @@ class DbWindow( CenterableWindow ):
         for col in cols:
             widget = None
             widget_layout = QHBoxLayout()
-            widget_layout.addWidget( QLabel( col[0] ) )
+            widget_layout.addWidget(QLabel(col[0]))
             if 'TEXT' in col[1]:
-                widget = QTextEdit( self )
+                widget = QTextEdit(self)
             else:
-                widget = QLineEdit( self )
-            self.widget_registry[ col[0] ] = widget
-            widget_layout.addWidget( widget )
-            scroll_layout.addLayout( widget_layout )
-        scrollable.setWidget( scroll_widget )
-        right_layout.addWidget( scrollable )
-        layout.addLayout( right_layout )
+                widget = QLineEdit(self)
+            self.widget_registry[col[0]] = widget
+            widget_layout.addWidget(widget)
+            scroll_layout.addLayout(widget_layout)
+        scrollable.setWidget(scroll_widget)
+        right_layout.addWidget(scrollable)
+        layout.addLayout(right_layout)
         
         wid = QWidget()
-        self.setCentralWidget( wid )
-        wid.setLayout( layout )
+        self.setCentralWidget(wid)
+        wid.setLayout(layout)
 
-        self.setWindowTitle( table_name )
+        self.setWindowTitle(table_name)
         self.show()
         self.center()
 
-    def fill_fields( self, row_index ):
-        item = self.listbox.item( row_index )
-        row = item.data( QtCore.Qt.UserRole )
+    def fill_fields(self, row_index):
+        item = self.listbox.item(row_index)
+        row = item.data(QtCore.Qt.UserRole)
         for field_name, widget in self.widget_registry.items():
-            widget.setText( str( row[ field_name ] ) )
+            widget.setText(str(row[field_name]))
 
-        unique_col = DbQuery.parse_schema( DbQuery.getSchema( self.table_name ), 'UNIQUE' )
-        base64_image_col = DbQuery.getBase64Col( self.table_name )
+        unique_col = DbQuery.parse_schema(DbQuery.getSchema(self.table_name), 'UNIQUE')
+        base64_image_col = DbQuery.getBase64Col(self.table_name)
         if base64_image_col is None:
-            image_path = find_image( self.parent.system_path, self.table_name, row[unique_col] )
-            pixmap = QPixmap( image_path )
+            image_path = find_image(self.parent.system_path, self.table_name, row[unique_col])
+            pixmap = QPixmap(image_path)
             if pixmap.height() > 200 or pixmap.width() > 200:
-                pixmap = pixmap.scaled( 200, 200, QtCore.Qt.KeepAspectRatio )
+                pixmap = pixmap.scaled(200, 200, QtCore.Qt.KeepAspectRatio)
         else:
-            base64 = row[ base64_image_col ]
-            pixmap = get_pixmap_from_base64( base64 )
+            base64 = row[base64_image_col]
+            pixmap = get_pixmap_from_base64(base64)
 
-        self.portrait.setPixmap( pixmap )
+        self.portrait.setPixmap(pixmap)
 
 
 class WidgetRegistry(dict):
@@ -494,11 +494,11 @@ class WidgetRegistry(dict):
                                     category = category_callback(category, self.get_fields(), gui_wizard_page.wizard_pages, gui_wizard_page.external_data)
                                 else:
                                     category = category_callback(category, self.get_fields())
-                            if category in category_hash.keys():
-                                original_list = category_hash[category]
+                            if category in qt_widget.category_hash.keys():
+                                original_list = qt_widget.category_hash[category]
                             else:
-                                category_hash[category] = original_list = QListWidget(self.parent)
-                                tabbed_avail_lists.addTab(category_hash[category], category)
+                                qt_widget.category_hash[category] = original_list = QListWidget(self.parent)
+                                tabbed_avail_lists.addTab(qt_widget.category_hash[category], category)
                         else:
                             original_list = tabbed_avail_lists.getCurrentWidget()
                     add_item_to_listbox(original_list, current_data, tool_tip, self.get_fields(), original_list, wizard=gui_wizard_page)
@@ -556,26 +556,26 @@ class WidgetRegistry(dict):
             self[field_name] = widget
         return widget_layout
 
-    def fill_listbox( self, listbox, fill ):
+    def fill_listbox(self, listbox, fill):
         listbox.clear()
         for item in fill:
-            if type( item ).__name__ == 'str':
-                listbox.addItem( item )
-            elif type( item ).__name__ == 'dict':
+            if type(item).__name__ == 'str':
+                listbox.addItem(item)
+            elif type(item).__name__ == 'dict':
                 table_name = item['TableName']
-                display_col = DbQuery.getDisplayCol( table_name )
-                display = item[ display_col ]
+                display_col = DbQuery.getDisplayCol(table_name)
+                display = item[display_col]
                 list_item = QListWidgetItem()
-                list_item.setText( display )
-                list_item.setData( QtCore.Qt.UserRole, item )
-                listbox.addItem( list_item )
-            elif type( item ).__name__ == 'tuple':
+                list_item.setText(display)
+                list_item.setData(QtCore.Qt.UserRole, item)
+                listbox.addItem(list_item)
+            elif type(item).__name__ == 'tuple':
                 display = item[0]
                 item_dict = item[1]
                 list_item = QListWidgetItem()
-                list_item.setText( display )
-                list_item.setData( QtCore.Qt.UserRole, item_dict )
-                listbox.addItem( list_item )
+                list_item.setText(display)
+                list_item.setData(QtCore.Qt.UserRole, item_dict)
+                listbox.addItem(list_item)
 
     def get_fields(self):
         fields = {}
@@ -653,17 +653,17 @@ class WidgetRegistry(dict):
                 owned_items = v
 
                 if gui_wizard_page:
-                    slots_return = slots( self.get_fields(), gui_wizard_page.wizard_pages, gui_wizard_page.external_data  )
+                    slots_return = slots(self.get_fields(), gui_wizard_page.wizard_pages, gui_wizard_page.external_data)
                 else:
-                    slots_return = slots( self.get_fields()  )
+                    slots_return = slots(self.get_fields())
                 if fill_avail:
                     if gui_wizard_page:
-                        avail_items = fill_avail( owned_items, self.get_fields(), gui_wizard_page.wizard_pages, gui_wizard_page.external_data )
+                        avail_items = fill_avail(owned_items, self.get_fields(), gui_wizard_page.wizard_pages, gui_wizard_page.external_data)
                     else:
-                        avail_items = fill_avail( owned_items, self.get_fields() )
+                        avail_items = fill_avail(owned_items, self.get_fields())
                 else:
                     avail_items = []
-                slots_label.setText( '<b>{}: </b>{}'.format( slots_name, slots_return ) )
+                slots_label.setText('<b>{}: </b>{}'.format(slots_name, slots_return))
 
                 tabbed_avail_lists.clear()
                 if category_field:
@@ -678,13 +678,15 @@ class WidgetRegistry(dict):
                         category = str(avail_item_dict[category_field])
                         if category_callback:
                             if gui_wizard_page:
-                                category = category_callback(category, self.get_fields(), gui_wizard_page.wizard_pages, gui_wizard_page.external_data)
+                                category = category_callback(category, self.get_fields(), gui_wizard_page.wizard_pages,
+                                                             gui_wizard_page.external_data)
                             else:
                                 category = category_callback(category, self.get_fields())
                         if category not in list(category_hash.keys()):
                             category_hash[category] = QListWidget(self.parent)
                             tabbed_avail_lists.addTab(category_hash[category], category)
-                        add_item_to_listbox(category_hash[category], avail_item, tool_tip, fields, wizard=gui_wizard_page)
+                        add_item_to_listbox(category_hash[category], avail_item, tool_tip, fields,
+                                            wizard=gui_wizard_page)
                 else:
                     avail_list = QListWidget(self.parent)
                     tabbed_avail_lists.addTab(avail_list, 'Avail')
@@ -703,6 +705,8 @@ class WidgetRegistry(dict):
         widget1 = action.get_widget1()
         widget1_field_name = widget1.get_field_name()
         widget2 = action.get_widget2()
+        widget2_field_name = ''
+        widget2_widget_type = ''
         if widget2 is not None:
             widget2_field_name = widget2.get_field_name()
             if widget2_field_name.endswith('_'):

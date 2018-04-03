@@ -7,94 +7,96 @@ from Common import get_pixmap_from_base64, add_item_to_listbox, fill_listbox
 import resources
 
 
-class YesNoDialog( QDialog ):
+class YesNoDialog(QDialog):
 
-    def __init__( self, title, message, parent ):
-        super().__init__( parent )
-        self.setWindowTitle( title )
+    def __init__(self, title, message, parent):
+        super().__init__(parent)
+        self.setWindowTitle(title)
         layout = QVBoxLayout()
-        message_label = QLabel( message, self )
-        yes_button = QPushButton( 'Yes', self )
-        no_button = QPushButton( 'No', self )
-        button_frame = QDialogButtonBox( self )
-        layout.addWidget( message_label )
-        yes_button.setDefault( True )
-        button_frame.addButton( yes_button, QDialogButtonBox.AcceptRole )
-        button_frame.addButton( no_button, QDialogButtonBox.RejectRole )
-        button_frame.accepted.connect( self.accept )
-        button_frame.rejected.connect( self.reject )
-        layout.addWidget( button_frame )
-        layout.setSizeConstraint( QLayout.SetFixedSize )
-        self.setLayout( layout )
+        message_label = QLabel(message, self)
+        yes_button = QPushButton('Yes', self)
+        no_button = QPushButton('No', self)
+        button_frame = QDialogButtonBox(self)
+        layout.addWidget(message_label)
+        yes_button.setDefault(True)
+        button_frame.addButton(yes_button, QDialogButtonBox.AcceptRole)
+        button_frame.addButton(no_button, QDialogButtonBox.RejectRole)
+        button_frame.accepted.connect(self.accept)
+        button_frame.rejected.connect(self.reject)
+        layout.addWidget(button_frame)
+        layout.setSizeConstraint(QLayout.SetFixedSize)
+        self.setLayout(layout)
 
-class PopupDialog( QDialog ):
 
-    def __init__( self, title, message, parent ):
-        super().__init__( parent )
-        self.setWindowTitle( title )
+class PopupDialog(QDialog):
+
+    def __init__(self, title, message, parent):
+        super().__init__(parent)
+        self.setWindowTitle(title)
         layout = QVBoxLayout()
-        message_label = QLabel( message, self )
-        ok_button = QPushButton( 'OK', self )
-        button_frame = QDialogButtonBox( self )
-        layout.addWidget( message_label )
-        ok_button.setDefault( True )
-        button_frame.addButton( ok_button, QDialogButtonBox.AcceptRole )
-        button_frame.accepted.connect( self.accept )
-        layout.addWidget( button_frame )
-        layout.setSizeConstraint( QLayout.SetFixedSize )
-        self.setLayout( layout )
+        message_label = QLabel(message, self)
+        ok_button = QPushButton('OK', self)
+        button_frame = QDialogButtonBox(self)
+        layout.addWidget(message_label)
+        ok_button.setDefault(True)
+        button_frame.addButton(ok_button, QDialogButtonBox.AcceptRole)
+        button_frame.accepted.connect(self.accept)
+        layout.addWidget(button_frame)
+        layout.setSizeConstraint(QLayout.SetFixedSize)
+        self.setLayout(layout)
 
 
-class EntryDialog( QDialog ):
+class EntryDialog(QDialog):
 
-    LINE_EDIT, TEXT_EDIT, SPIN_BOX, IMAGE = range( 4 )
+    LINE_EDIT, TEXT_EDIT, SPIN_BOX, IMAGE = range(4)
 
-    def __init__( self, title, entry_type, value, parent, image_data=None ):
-        super().__init__( parent )
+    def __init__(self, title, entry_type, value, parent, image_data=None):
+        super().__init__(parent)
 
         self.value = value
         self.entry_type = entry_type
 
-        self.setWindowTitle( title )
+        self.setWindowTitle(title)
 
         layout = QVBoxLayout()
 
         if entry_type == self.LINE_EDIT:
-            self.entry_widget = QLineEdit( self )
+            self.entry_widget = QLineEdit(self)
         elif entry_type == self.TEXT_EDIT:
-            self.entry_widget = QTextEdit( self )
+            self.entry_widget = QTextEdit(self)
         elif entry_type == self.SPIN_BOX:
-            self.entry_widget = QSpinBox( self )
-            self.entry_widget.setRange( -1000000000, 1000000000 )
+            self.entry_widget = QSpinBox(self)
+            self.entry_widget.setRange(-1000000000, 1000000000)
         elif entry_type == self.IMAGE:
-            image_button = QPushButton( 'Choose Image', self )
-            image_button.clicked.connect( self.open_image_file )
-            self.entry_widget = QLabel( self )
-            pixmap = get_pixmap_from_base64( image_data )
-            self.entry_widget.setPixmap( pixmap )
-            layout.addWidget( image_button )
+            self.filename = None
+            image_button = QPushButton('Choose Image', self)
+            image_button.clicked.connect(self.open_image_file)
+            self.entry_widget = QLabel(self)
+            pixmap = get_pixmap_from_base64(image_data)
+            self.entry_widget.setPixmap(pixmap)
+            layout.addWidget(image_button)
 
-        layout.addWidget( self.entry_widget, 0, QtCore.Qt.AlignCenter )
+        layout.addWidget(self.entry_widget, 0, QtCore.Qt.AlignCenter)
 
-        button_frame = QDialogButtonBox( self )
-        ok_button = QPushButton( 'OK', self )
-        cancel_button = QPushButton( 'Cancel', self )
-        ok_button.setDefault( True )
-        button_frame.addButton( ok_button, QDialogButtonBox.AcceptRole )
-        button_frame.addButton( cancel_button, QDialogButtonBox.RejectRole )
-        button_frame.accepted.connect( self.ok_pressed )
-        button_frame.rejected.connect( self.cancel_pressed )
+        button_frame = QDialogButtonBox(self)
+        ok_button = QPushButton('OK', self)
+        cancel_button = QPushButton('Cancel', self)
+        ok_button.setDefault(True)
+        button_frame.addButton(ok_button, QDialogButtonBox.AcceptRole)
+        button_frame.addButton(cancel_button, QDialogButtonBox.RejectRole)
+        button_frame.accepted.connect(self.ok_pressed)
+        button_frame.rejected.connect(self.cancel_pressed)
 
-        layout.addWidget( button_frame )
-        layout.setSizeConstraint( QLayout.SetFixedSize )
-        self.setLayout( layout )
+        layout.addWidget(button_frame)
+        layout.setSizeConstraint(QLayout.SetFixedSize)
+        self.setLayout(layout)
 
-    def open_image_file( self ):
-        self.filename, _ = QFileDialog.getOpenFileName( self, 'Open Image', QtCore.QDir.homePath() )
+    def open_image_file(self):
+        self.filename, _ = QFileDialog.getOpenFileName(self, 'Open Image', QtCore.QDir.homePath())
         if self.filename is not None:
-            self.entry_widget.setPixmap( QPixmap( self.filename ).scaledToHeight( 200 ) )
+            self.entry_widget.setPixmap(QPixmap(self.filename).scaledToHeight(200))
 
-    def ok_pressed( self ):
+    def ok_pressed(self):
         if self.entry_type == self.LINE_EDIT:
             self.value[0] = self.entry_widget.text()
         elif self.entry_type == self.TEXT_EDIT:
@@ -106,7 +108,7 @@ class EntryDialog( QDialog ):
 
         self.accept()
 
-    def cancel_pressed( self ):
+    def cancel_pressed(self):
         self.value[0] = None
         self.reject()
 
