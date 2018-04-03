@@ -38,7 +38,7 @@ class CenterableWindow(QMainWindow):
 
 class MainWindow( CenterableWindow ):
 
-    def __init__( self, system_path ):
+    def __init__(self, system_path):
         super().__init__()
 
         self.system_path = system_path
@@ -47,34 +47,34 @@ class MainWindow( CenterableWindow ):
         SystemSettings.init_system_path(system_path)
 
         # exitAct = QAction( QIcon( 'exit.png' ), 'Exit', self )
-        exit_action = QAction( 'Exit', self )
-        exit_action.setShortcut( 'Ctrl+Q' )
-        exit_action.setStatusTip( 'Exit application' )
-        exit_action.triggered.connect( self.close )
+        exit_action = QAction('Exit', self)
+        exit_action.setShortcut('Ctrl+Q')
+        exit_action.setStatusTip('Exit application')
+        exit_action.triggered.connect(self.close)
 
         menubar = self.menuBar()
-        file_menu = menubar.addMenu( '&File' )
-        file_menu.addAction( exit_action )
+        file_menu = menubar.addMenu('&File')
+        file_menu.addAction(exit_action)
 
-        DbQuery.initDB( os.path.join( system_path, 'db' ) )
-        database_menu = menubar.addMenu( '&Database' )
+        DbQuery.initDB(os.path.join(system_path, 'db'))
+        database_menu = menubar.addMenu('&Database')
         for db in DbLayout.db_order:
-            db_action = QAction( db, self )
-            db_action.setStatusTip( 'Open the {} Database'.format( db ) )
-            db_action.triggered.connect( callback_factory( self.open_db_window, db ) )
-            database_menu.addAction( db_action )
+            db_action = QAction(db, self)
+            db_action.setStatusTip('Open the {} Database'.format(db))
+            db_action.triggered.connect(callback_factory(self.open_db_window, db))
+            database_menu.addAction(db_action)
         database_menu.addSeparator()
-        reset_db_action = QAction( 'Reset Database', self )
-        reset_db_action.setStatusTip( 'Reset the database to the default' )
-        reset_db_action.triggered.connect( self.reset_db )
-        database_menu.addAction( reset_db_action )
+        reset_db_action = QAction('Reset Database', self)
+        reset_db_action.setStatusTip('Reset the database to the default')
+        reset_db_action.triggered.connect(self.reset_db)
+        database_menu.addAction(reset_db_action)
 
-        manage_menu = menubar.addMenu( '&Manage' )
+        manage_menu = menubar.addMenu('&Manage')
         for manage in self.get_manages():
-            manage_action = QAction( manage.__class__.__name__, self )
-            manage_action.setStatusTip( 'Open the {} Manage Window'.format( manage.__class__.__name__ ) )
-            manage_action.triggered.connect( callback_factory( self.open_manage_window, manage ) )
-            manage_menu.addAction( manage_action )
+            manage_action = QAction(manage.__class__.__name__, self)
+            manage_action.setStatusTip('Open the {} Manage Window'.format( manage.__class__.__name__))
+            manage_action.triggered.connect(callback_factory(self.open_manage_window, manage))
+            manage_menu.addAction(manage_action)
 
         self.statusBar()
 
@@ -84,33 +84,33 @@ class MainWindow( CenterableWindow ):
         # print( icon_path )
         # self.setWindowIcon( QIcon( icon_path ) )
         self.setWindowIcon(QIcon(get_pixmap_from_base64(resources.icon_png)))
-        self.setWindowTitle( SystemSettings.systemName )
+        self.setWindowTitle(SystemSettings.systemName)
         self.show()
         self.center()
 
-    def open_db_window( self, table_name ):
-        DbWindow( table_name, self )
+    def open_db_window(self, table_name):
+        DbWindow(table_name, self)
 
-    def reset_db( self ):
-        dialog = YesNoDialog( 'Reset Database', 'Are you sure you want to reset the database?', self )
+    def reset_db(self):
+        dialog = YesNoDialog('Reset Database', 'Are you sure you want to reset the database?', self)
         accepted = dialog.exec_()
-        #print( accepted )
+        # print( accepted )
         if accepted:
             DbQuery.resetDB()
 
-    def get_manages( self ):
+    def get_manages(self):
         manages = []
 
         manage_dict = Manage.__dict__
         for k,v in manage_dict.items():
-            if inspect.isclass( v ) and issubclass( v, ManageDefs.Manage ) and v is not ManageDefs.Manage:
-                #print( v )
+            if inspect.isclass(v) and issubclass(v, ManageDefs.Manage) and v is not ManageDefs.Manage:
+                # print( v )
                 manage = v()
-                manages.append( manage )
+                manages.append(manage)
         return manages
 
-    def open_manage_window( self, manage ):
-        ManageWindow( manage, self )
+    def open_manage_window(self, manage):
+        ManageWindow(manage, self)
 
 
 class DbWindow( CenterableWindow ):

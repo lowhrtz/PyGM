@@ -1,9 +1,10 @@
 import PyQt5.QtCore as QtCore
 from PyQt5.QtWidgets import (QDialog, QFileDialog, QDialogButtonBox, QLayout, QVBoxLayout, QHBoxLayout,
                              QLabel, QLineEdit, QTextEdit, QSpinBox, QPushButton, QListWidget,
-                             QFrame, QTabWidget)
-from PyQt5.QtGui import QPixmap
+                             QFrame, QTabWidget, QProgressDialog)
+from PyQt5.QtGui import QPixmap, QIcon
 from Common import get_pixmap_from_base64, add_item_to_listbox, fill_listbox
+import resources
 
 
 class YesNoDialog( QDialog ):
@@ -280,3 +281,22 @@ class DualListDialog(QDialog):
             item_data = item.data(QtCore.Qt.UserRole)
             item_list.append(item_data)
         return item_list
+
+
+class ProgressDialog(QProgressDialog):
+
+    def __init__(self, title, message, value_range, generator, parent):
+        super().__init__(title, None, *value_range, parent)
+
+        self.setWindowTitle(title)
+        self.setWindowIcon(QIcon(get_pixmap_from_base64(resources.icon_png)))
+
+        self.message = message
+        self.generator = generator
+
+    def start_generator(self):
+        i = 0
+        for yield_return in self.generator():
+            i += 1
+            self.setValue(i)
+            self.setLabelText('{}\n{}'.format(self.message, yield_return))
