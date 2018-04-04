@@ -732,7 +732,7 @@ class WidgetRegistry(dict):
                 default_filename = callback_return[0]
                 pdf_markup = callback_return[1]
                 # print( pdf_markup )
-                font = QFont('Times', 10, QFont.Normal)
+                font = QFont('Times New Roman', 10, QFont.Normal)
                 document = QTextDocument()
                 document.setDefaultFont(font)
                 document.setHtml(pdf_markup)
