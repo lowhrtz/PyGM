@@ -628,7 +628,7 @@ class DailySpellsPage(WizardPage):
             return {
                 'valid': True,
                 'slots_new_value': self.spell_slots,
-                'remove': True,
+                # 'remove': True,
                 'new_display': spell['Name'],
             }
         return {}
@@ -638,7 +638,7 @@ class DailySpellsPage(WizardPage):
         return {
             'valid': True,
             'slots_new_value': self.spell_slots,
-            'replace': True,
+            # 'replace': True,
             'new_display': spell['Name'],
         }
 

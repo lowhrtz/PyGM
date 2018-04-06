@@ -219,9 +219,11 @@ class Characters(Manage):
             if spell['spell_id'] in spellbook_id_list:
                 spellbook_list.append(spell)
             if spell['spell_id'] in daily_spells_id_list:
-                daily_spells_list.append(spell)
+                for _ in range(daily_spells_id_list.count(spell['spell_id'])):
+                    daily_spells_list.append(spell)
             if spell['spell_id'] in daily_spells2_id_list:
-                daily_spells2_list.append(spell)
+                for _ in range(daily_spells2_id_list.count(spell['spell_id'])):
+                    daily_spells2_list.append(spell)
 
         fill_dict = {
             'Name': character_dict['Name'],

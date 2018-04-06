@@ -271,7 +271,8 @@ class DailySpellsPage(WizardPage):
         spells = []
         for spell in spells_table:
             if spell['spell_id'] in spell_ids:
-                spells.append(spell)
+                for _ in range(spell_ids.count(spell['spell_id'])):
+                    spells.append(spell)
         self.set_subtitle('Choose Daily {} Spells'.format(class_name))
         return {self.field_name: spells}
 
@@ -311,9 +312,11 @@ class DailySpellsPage(WizardPage):
             spells_table = [spell for spell in pages['Spellbook'].spells_table
                             if spell['Type'] == pages['Level Up'].other_spellcaster_category['Primary_Spell_List']
                             and spell['Level'] <= len(self.spell_slots.split('/'))]
-        avail_spells = [spell for spell in spells_table if spell not in owned_items]
-        avail_spells.sort(key=lambda x: x['Level'])
-        return avail_spells
+        # avail_spells = [spell for spell in spells_table if spell not in owned_items]
+        # avail_spells.sort(key=lambda x: x['Level'])
+        spells_table.sort(key=lambda x: x['Level'])
+        # return avail_spells
+        return spells_table
 
     def get_spell_slots(self, fields, pages, external_data):
         pc = external_data['Character List Current']
@@ -357,7 +360,7 @@ class DailySpellsPage(WizardPage):
             return {
                 'valid': True,
                 'slots_new_value': self.spell_slots,
-                'remove': True,
+                # 'remove': True,
                 'new_display': spell['Name'],
             }
         return {}
@@ -372,7 +375,7 @@ class DailySpellsPage(WizardPage):
         return {
             'valid': True,
             'slots_new_value': self.spell_slots,
-            'replace': True,
+            # 'replace': True,
             'new_display': spell['Name'],
         }
 
@@ -417,9 +420,11 @@ class DailySpellsPage2(DailySpellsPage):
             spells_table = [spell for spell in pages['Spellbook'].spells_table
                             if spell['Type'] == pages['Level Up'].other_spellcaster_category['Primary_Spell_List']
                             and spell['Level'] <= len(self.spell_slots)]
-        avail_spells = [spell for spell in spells_table if spell not in owned_items]
-        avail_spells.sort(key=lambda x: x['Level'])
-        return avail_spells
+        # avail_spells = [spell for spell in spells_table if spell not in owned_items]
+        # avail_spells.sort(key=lambda x: x['Level'])
+        # return avail_spells
+        spells_table.sort(key=lambda x: x['Level'])
+        return spells_table
 
 
 class ProficiencyPage(WizardPage):
