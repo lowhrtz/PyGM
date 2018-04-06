@@ -104,7 +104,8 @@ class Characters(Manage):
 
         character_menu = Menu('&Character')
         character_menu.add_action(Action('EntryDialog', Widget('&Add XP', 'MenuAction'), hp, callback=self.add_xp))
-        character_menu.add_action(Action('Wizard', Widget('&Level Up', 'MenuAction'), data=LevelUpWizard))
+        character_menu.add_action(Action('Wizard', Widget('&Level Up', 'MenuAction'), data=LevelUpWizard,
+                                         callback=self.level_up_fill))
         character_menu.add_action(Action('EntryDialog', Widget('&Change Portrait', 'MenuAction'), portrait,
                                          callback=self.convert_image))
         equipment_data = {
@@ -368,6 +369,9 @@ class Characters(Manage):
         character_table = DbQuery.getTable('Characters')
         return {'Character List': character_table}
 
+    def level_up_fill(self, level_up_return, fields):
+        return level_up_return
+
     def get_pdf_markup(self, fields):
         character_dict = fields['Character List Current']
         if character_dict is None:
@@ -403,7 +407,7 @@ class Characters(Manage):
                 return 10
         else:
             score = bonus_split.pop().replace('+', '')
-            attrs = [attr.strip().replace(',', '') for attr in bonus_split if attr.lower().find('and') != -1]
+            attrs = [attr.strip().replace(',', '') for attr in bonus_split if attr.lower().find('and') == -1]
             bonus_in_effect = True
             for attr in attrs:
                 if attr_dict[attr.upper()] < score:
@@ -503,7 +507,7 @@ class Characters(Manage):
             self.current_money += cost
             return {
                 'valid': True,
-                'slots_new_value': '{0:.2f}'.format( self.current_money ),
+                'slots_new_value': '{0:.2f}'.format(self.current_money),
                 # 'replace': True,
                 'new_display': item['Name'],
             }

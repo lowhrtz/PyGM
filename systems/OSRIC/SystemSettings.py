@@ -139,9 +139,18 @@ def init_system_path(system_path):
 
 def has_spells_at_level(level, single_class_dict):
     level = int(level)
-    level_dict_list = [ row for row in single_class_dict['Classes_meta'] if row['Type'] == 'xp table' ]
+    level_dict_list = [row for row in single_class_dict['Classes_meta'] if row['Type'] == 'xp table']
     level_dict = level_dict_list[level-1]
     if level_dict['Casting_Level'] != 0 and level_dict['Casting_Level'] != '':
+        return True
+    return False
+
+
+def has_secondary_spells_at_level(level, single_class):
+    level = int(level)
+    xp_table = [row for row in single_class['Classes_meta'] if row['Type'] == 'xp table']
+    xp_row = xp_table[level - 1]
+    if xp_row['Level_1_Spells_Secondary'] > 0:
         return True
     return False
 

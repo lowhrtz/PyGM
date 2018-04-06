@@ -13,14 +13,49 @@ class LevelUpWizard(Wizard):
 
         self.add_wizard_page(IntroPage())
         self.add_wizard_page(SpellbookPage())
-        self.add_wizard_page(SpellsPage())
-        self.add_wizard_page(SpellsPage2())
+        self.add_wizard_page(DailySpellsPage())
+        self.add_wizard_page(DailySpellsPage2())
         self.add_wizard_page(ProficiencyPage())
         self.add_wizard_page(ReviewPage())
 
     def accept(self, fields, pages, external_data):
-        # print fields['Name']
-        return
+        if pages['Review'].new_hp is None:
+            return
+        pc = external_data['Character List Current']
+        classes = pc['Classes'].split('/')
+        level = str(pc['Level']).split('/')
+        for cl in pages['Level Up'].ready_list:
+            level[classes.index(cl)] = str(int(level[classes.index(cl)]) + 1)
+        accept_return = {
+            'HP': int(pages['Review'].new_hp),
+            'Level': '/'.join(level),
+        }
+        if fields['Proficiencies']:
+            specialised_list = pages['Proficiencies'].specialised_list
+            double_specialised_list = pages['Proficiencies'].double_specialised_list
+            accept_return['Proficiencies'] = []
+            for prof in fields['Proficiencies']:
+                if prof in double_specialised_list:
+                    prof['level'] = '2XS'
+                    prof_item = ('{} ({})'.format(prof['Name'], 'Double Specialised'), prof)
+                elif prof in specialised_list:
+                    prof['level'] = 'S'
+                    prof_item = ('{} ({})'.format(prof['Name'], 'Specialised'), prof)
+                else:
+                    prof['level'] = 'P'
+                    prof_item = prof
+                accept_return['Proficiencies'].append(prof_item)
+        if fields['Spellbook']:
+            accept_return['Spellbook'] = fields['Spellbook']
+        if fields['Daily Spells']:
+            if pages['Daily Spells'].meta_row_type == 'DailySpells':
+                fieldname = 'Daily Spells'
+            else:
+                fieldname = 'Daily Spells 2'
+            accept_return[fieldname] = fields['Daily Spells']
+        if fields['Daily Spells2']:
+            accept_return['Daily Spells 2'] = fields['Daily Spells2']
+        return accept_return
 
 
 class IntroPage(WizardPage):
@@ -37,8 +72,9 @@ class IntroPage(WizardPage):
 
         self.ready_list = None
         self.ready_dict_list = None
+        self.spell_classes = 0
         self.wizard_category = False
-        self.priest_category = False
+        self.other_spellcaster_category = False
         self.proficiency_slots_available = 0
         self.next_page_id = -1
 
@@ -49,13 +85,10 @@ class IntroPage(WizardPage):
         self.ready_list = ready_to_level_up(pc)
         self.ready_dict_list = [cl for cl in DbQuery.getTable('Classes') if cl['unique_id'] in self.ready_list]
         self.wizard_category = False
-        self.priest_category = False
+        self.other_spellcaster_category = False
         self.proficiency_slots_available = 0
+        self.spell_classes = 0
         for cl in self.ready_dict_list:
-            if cl['Category'] == 'wizard':
-                self.wizard_category = cl
-            if cl['Category'] == 'priest':
-                self.priest_category = cl
             wpa = cl['Weapon_Proficiency_Advancement'].split('/')
             slots = int(wpa[0])
             per_level = int(wpa[1])
@@ -63,12 +96,19 @@ class IntroPage(WizardPage):
             # self.proficiency_slots_available = 2
             if pc_level % per_level == 0:
                 self.proficiency_slots_available = slots
+            has_spells = SystemSettings.has_spells_at_level(pc_level + 1, cl)
+            if cl['Category'] == 'wizard' and has_spells:
+                self.wizard_category = cl
+                self.spell_classes += 1
+            elif cl['Primary_Spell_List'] != 'None' and has_spells:
+                self.other_spellcaster_category = cl
+                self.spell_classes += 1
 
         if self.wizard_category:
             self.next_page_id = pages['Spellbook'].get_page_id()
 
-        elif self.priest_category:
-            self.next_page_id = pages['Daily Priest Spells'].get_page_id()
+        elif self.other_spellcaster_category:
+            self.next_page_id = pages['Daily Spells'].get_page_id()
 
         elif self.proficiency_slots_available:
             self.next_page_id = pages['Proficiencies'].get_page_id()
@@ -179,15 +219,13 @@ class SpellbookPage(WizardPage):
         return False
 
     def get_next_page_id(self, fields, pages, external_data):
-        return pages['Daily Wizard Spells'].get_page_id()
+        return pages['Daily Spells'].get_page_id()
 
 
-class SpellsPage(WizardPage):
-    def __init__(self):
-        super().__init__(2, 'Daily Wizard Spells')
-        self.set_subtitle('Choose Daily Spells')
+class DailySpellsPage(WizardPage):
 
-        self.spell_slots = None
+    def __init__(self, page_id=2, title='Daily Spells'):
+        super().__init__(page_id, title)
 
         ds_data = {
             'fill_avail': self.fill_spells,
@@ -198,223 +236,190 @@ class SpellsPage(WizardPage):
             'add': self.add_spell,
             'remove': self.remove_spell,
         }
-        daily_spells = Widget('Daily Spells', 'DualList', data=ds_data)
+        if page_id == 2:
+            self.field_name = field_name = 'Daily Spells'
+        else:
+            self.field_name = field_name = 'Daily Spells2'
+        ds_list = Widget(field_name, 'DualList', data=ds_data)
+        self.add_row([ds_list, ])
 
-        self.add_row([daily_spells, ])
-
-    def fill_spells(self, owned_items, fields, pages, external_data):
-        spells_table = fields['Spellbook']
-        pc = external_data['Character List Current']
-        classes = pc['Classes'].split('/')
-        levels = str( pc['Level'] ).split('/')
-        cl = pages['Level Up'].wizard_category
-        level = int(levels[classes.index(cl['unique_id'])])
-        meta_row = [row for row in cl['Classes_meta'] if row['Level'].isdigit() and int(row['Level']) == level][0]
-        highest_spell_level = 0
-        for spell_level in range(1, 10):
-            sl_column_name = 'Level_{}_Spells'.format(spell_level)
-            if meta_row[sl_column_name] > 0:
-                highest_spell_level = spell_level
-
-        return [spell for spell in spells_table if spell['Level'] <= highest_spell_level and spell not in owned_items]
-
-    def get_spell_slots(self, fields, pages, external_data):
-        pc = external_data['Character List Current']
-        classes = pc['Classes'].split('/')
-        levels = str(pc['Level']).split('/')
-        cl = pages['Level Up'].wizard_category
-        level = int(levels[classes.index(cl['unique_id'])])
-        meta_row = [row for row in cl['Classes_meta'] if row['Level'].isdigit() and int(row['Level']) == level][0]
-        slot_list = []
-        for spell_level in range(1, 10):
-            sl_column_name = 'Level_{}_Spells'.format(spell_level)
-            if meta_row[sl_column_name] > 0:
-                slot_list.append( str(meta_row[sl_column_name]))
-        self.spell_slots = '/'.join(slot_list)
-        return self.spell_slots
-
-    def get_tool_tip(self, item, fields, pages, external_data):
-        return '<b>{}</b><br />{}'.format(item['Name'], item['Description'])
-
-    def add_spell(self, spell, fields, pages, external_data):
-        spell_level = spell['Level']
-        slot_list = self.spell_slots.split('/')
-        level_slots = int(slot_list[spell_level - 1])
-
-        if level_slots > 0:
-            new_level_slots = level_slots - 1
-            slot_list[ spell_level - 1 ] = str(new_level_slots)
-            self.spell_slots = '/'.join(slot_list)
-            return {
-                 'valid': True,
-                 'slots_new_value': self.spell_slots,
-                 'remove': True,
-                 'new_display': spell['Name'],
-            }
-        return {'valid': False}
-
-    def remove_spell(self, spell, fields, pages, external_data):
-        spell_level = spell['Level']
-        slot_list = self.spell_slots.split('/')
-        level_slots = int(slot_list[spell_level - 1])
-        new_level_slots = level_slots + 1
-        slot_list[spell_level - 1] = str(new_level_slots)
-        self.spell_slots = '/'.join(slot_list)
-        return {
-            'valid': True,
-            'slots_new_value': self.spell_slots,
-            'replace': True,
-            'new_display': spell['Name'],
-        }
+        # self.attr_dict = None
+        self.spell_slots = None
+        self.meta_row_type = None
 
     def initialize_page(self, fields, pages, external_data):
         spells_table = DbQuery.getTable('Spells')
         pc = external_data['Character List Current']
+        wizard_category = pages['Level Up'].wizard_category
+        other_spellcaster_category = pages['Level Up'].other_spellcaster_category
+        if wizard_category:
+            class_name = wizard_category['Name']
+            spell_type = wizard_category['Primary_Spell_List'].replace('_', ' ').title()
+        else:
+            class_name = other_spellcaster_category['Name']
+            spell_type = other_spellcaster_category['Primary_Spell_List'].replace('_', ' ').title()
+        if spell_type != class_name:
+            class_name = spell_type
+        self.meta_row_type = 'DailySpells'
+        if external_data['Daily Spells 2'] and\
+                external_data['Daily Spells 2'][0]['Type'].replace('_', ' ').title() == class_name:
+            self.meta_row_type = 'DailySpells2'
         spell_ids = []
         for meta_row in pc['Characters_meta']:
-            if meta_row['Type'] == 'DailySpells':
+            if meta_row['Type'] == self.meta_row_type:
                 spell_ids.append(meta_row['Entry_ID'])
         spells = []
         for spell in spells_table:
             if spell['spell_id'] in spell_ids:
                 spells.append(spell)
-        return {'Daily Spells': spells}
+        self.set_subtitle('Choose Daily {} Spells'.format(class_name))
+        return {self.field_name: spells}
 
     def is_complete(self, fields, pages, external_data):
         if self.spell_slots is None:
             return False
-
-        slot_list = self.spell_slots.split('/')
-        for slot in slot_list:
-            if slot != '0':
+        spell_slots_split = self.spell_slots.split('/')
+        for slots in spell_slots_split:
+            if slots != '0':
                 return False
-
         return True
 
     def get_next_page_id(self, fields, pages, external_data):
-        if pages['Level Up'].priest_category:
-            return pages['Daily Priest Spells'].get_page_id()
-        elif pages['Level Up'].proficiency_slots_available:
-            return pages['Proficiencies'].get_page_id()
-        else:
-            return pages['Review'].get_page_id()
-
-
-class SpellsPage2(WizardPage):
-    def __init__(self):
-        super().__init__(3, 'Daily Priest Spells')
-        self.set_subtitle('Choose Daily Spells')
-
-        self.spell_slots = None
-
-        ds_data = {
-            'fill_avail': self.fill_spells,
-            'slots': self.get_spell_slots,
-            'slots_name': 'Spells',
-            'category_field': 'Level',
-            'tool_tip': self.get_tool_tip,
-            'add': self.add_spell,
-            'remove': self.remove_spell,
-        }
-        daily_spells = Widget('Daily Spells2', 'DualList', data=ds_data)
-
-        self.add_row([daily_spells, ])
-
-    def fill_spells(self, owned_items, fields, pages, external_data):
-        spells_table = pages['Spellbook'].spells_table
-        spells_table = [spell for spell in spells_table if spell['Type'] == pages['Level Up'].priest_category['unique_id']]
         pc = external_data['Character List Current']
         classes = pc['Classes'].split('/')
-        levels = str(pc['Level']).split('/')
-        cl = pages['Level Up'].priest_category
-        level = int(levels[classes.index(cl['unique_id'])])
-        meta_row = [row for row in cl['Classes_meta'] if row['Level'].isdigit() and int(row['Level'] ) == level][0]
-        highest_spell_level = 0
-        for spell_level in range(1, 10):
-            sl_column_name = 'Level_{}_Spells'.format(spell_level)
-            if meta_row[sl_column_name] > 0:
-                highest_spell_level = spell_level
-        spells = [spell for spell in spells_table if spell['Level'] <= highest_spell_level and spell not in owned_items]
-        return spells
+        level = [int(l) for l in str(pc['Level']).split('/')]
+        wizard_category = pages['Level Up'].wizard_category
+        other_spellcaster_category = pages['Level Up'].other_spellcaster_category
+        if pages['Level Up'].spell_classes > 1:
+            return pages['More Daily Spells'].get_page_id()
+        elif wizard_category and wizard_category['Secondary_Spell_List'] != 'None'\
+                and SystemSettings.has_secondary_spells_at_level(
+                level[classes.classes.index(wizard_category['unique_id'])] + 1, wizard_category):
+            return pages['More Daily Spells'].get_page_id()
+        elif other_spellcaster_category and other_spellcaster_category['Secondary_Spell_List'] != 'None'\
+                and SystemSettings.has_secondary_spells_at_level(
+                level[classes.index(other_spellcaster_category['unique_id'])] + 1, other_spellcaster_category):
+            return pages['More Daily Spells'].get_page_id()
+        elif pages['Level Up'].proficiency_slots_available > 0:
+            return pages['Proficiencies'].get_page_id()
+        return pages['Review'].get_page_id()
+
+    def fill_spells(self, owned_items, fields, pages, external_data):
+        if pages['Level Up'].wizard_category:
+            spells_table = [spell for spell in fields['Spellbook']]
+        else:
+            spells_table = [spell for spell in pages['Spellbook'].spells_table
+                            if spell['Type'] == pages['Level Up'].other_spellcaster_category['Primary_Spell_List']
+                            and spell['Level'] <= len(self.spell_slots.split('/'))]
+        avail_spells = [spell for spell in spells_table if spell not in owned_items]
+        avail_spells.sort(key=lambda x: x['Level'])
+        return avail_spells
 
     def get_spell_slots(self, fields, pages, external_data):
         pc = external_data['Character List Current']
         classes = pc['Classes'].split('/')
         levels = str(pc['Level']).split('/')
-        cl = pages['Level Up'].priest_category
+        cl = pages['Level Up'].wizard_category or pages['Level Up'].other_spellcaster_category
         level = int(levels[classes.index(cl['unique_id'])])
-        meta_row = [row for row in cl['Classes_meta'] if row['Level'].isdigit() and int(row['Level']) == level][0]
+        meta_row = [row for row in cl['Classes_meta'] if row['Level'].isdigit() and int(row['Level']) == level + 1][0]
         slot_list = []
         for spell_level in range(1, 10):
             sl_column_name = 'Level_{}_Spells'.format(spell_level)
             if meta_row[sl_column_name] > 0:
-                slot_list.append(str(meta_row[sl_column_name]))
+                slot_list.append(meta_row[sl_column_name])
+        if cl['unique_id'] == 'cleric':
+            _, spell_bonus, _ = SystemSettings.get_attribute_bonuses('WIS', external_data['WIS'])
+            spell_bonuses = [int(bonus) for bonus in spell_bonus.split('/')]
+            for i in range(min(len(slot_list), len(spell_bonuses))):
+                slot_list[i] += spell_bonuses[i]
+        if self.meta_row_type == 'DailySpells':
+            fieldname = 'Daily Spells'
+        else:
+            fieldname = 'Daily Spells 2'
+        for owned_spell in external_data[fieldname]:
+            spell_level = owned_spell['Level']
+            slot_list[spell_level - 1] -= 1
+        slot_list = [str(slot) for slot in slot_list]
         self.spell_slots = '/'.join(slot_list)
         return self.spell_slots
 
     def get_tool_tip(self, item, fields, pages, external_data):
-        return '<b>{}</b><br />{}'.format(item['Name'], item['Description'])
+        return pages['Spellbook'].get_tool_tip(item, fields, pages, external_data)
 
     def add_spell(self, spell, fields, pages, external_data):
         spell_level = spell['Level']
-        slot_list = self.spell_slots.split('/')
-        level_slots = int(slot_list[spell_level - 1])
-
-        if level_slots > 0:
-            new_level_slots = level_slots - 1
-            slot_list[spell_level - 1] = str(new_level_slots)
-            self.spell_slots = '/'.join(slot_list)
+        slots_split = self.spell_slots.split('/')
+        slots = int(slots_split[spell_level - 1])
+        if slots > 0:
+            slots -= 1
+            slots_split[spell_level - 1] = str(slots)
+            self.spell_slots = '/'.join(slots_split)
             return {
                 'valid': True,
                 'slots_new_value': self.spell_slots,
                 'remove': True,
                 'new_display': spell['Name'],
-             }
-        return {'valid': False}
+            }
+        return {}
 
     def remove_spell(self, spell, fields, pages, external_data):
         spell_level = spell['Level']
-        slot_list = self.spell_slots.split('/')
-        level_slots = int(slot_list[spell_level - 1])
-        new_level_slots = level_slots + 1
-        slot_list[spell_level - 1] = str(new_level_slots)
-        self.spell_slots = '/'.join(slot_list)
+        slots_split = self.spell_slots.split('/')
+        slots = int(slots_split[spell_level - 1])
+        slots += 1
+        slots_split[spell_level - 1] = str(slots)
+        self.spell_slots = '/'.join(slots_split)
         return {
             'valid': True,
             'slots_new_value': self.spell_slots,
             'replace': True,
             'new_display': spell['Name'],
-         }
+        }
+
+
+class DailySpellsPage2(DailySpellsPage):
+
+    def __init__(self):
+        super().__init__(3, 'More Daily Spells')
 
     def initialize_page(self, fields, pages, external_data):
-        spells_table = pages['Spellbook'].spells_table
-        pc = external_data['Character List Current']
-        spell_ids = []
-        for meta_row in pc['Characters_meta']:
-            if meta_row['Type'] == 'DailySpells':
-                spell_ids.append(meta_row['Entry_ID'])
-        spells = []
-        for spell in spells_table:
-            if spell['spell_id'] in spell_ids:
-                spells.append(spell)
-        return {'Daily Spells2': spells}
-
-    def is_complete(self, fields, pages, external_data):
-        if self.spell_slots is None:
-            return False
-
-        slot_list = self.spell_slots.split('/')
-        for slot in slot_list:
-            if slot != '0':
-                return False
-
-        return True
+        wizard_category = pages['Level Up'].wizard_category
+        other_spellcaster_category = pages['Level Up'].other_spellcaster_category
+        if pages['Level Up'].spell_classes == 1:
+            if wizard_category and wizard_category['Secondary_Spell_List'] != 'None':
+                class_name = wizard_category['Secondary_Spell_List'].replace('_', ' ').title()
+            else:
+                class_name = other_spellcaster_category['Secondary_Spell_List'].replace('_', ' ').title()
+        else:
+            class_name = other_spellcaster_category['Name']
+        self.set_subtitle('Choose Daily {} Spells'.format(class_name))
+        return {self.field_name: external_data['Daily Spells 2']}
 
     def get_next_page_id(self, fields, pages, external_data):
-        if pages['Level Up'].proficiency_slots_available:
+        if pages['Level Up'].proficiency_slots_available > 0:
             return pages['Proficiencies'].get_page_id()
         else:
             return pages['Review'].get_page_id()
+
+    def fill_spells(self, owned_items, fields, pages, external_data):
+        wizard_category = pages['Level Up'].wizard_category
+        other_spellcaster_category = pages['Level Up'].other_spellcaster_category
+        if pages['Level Up'].spell_classes == 1:
+            if wizard_category and wizard_category['Secondary_Spell_List'] != 'None':
+                spells_table = [spell for spell in pages['Spellbook'].spells_table
+                                if spell['Type'] == wizard_category['Secondary_Spell_List'] and
+                                spell['Level'] <= len(self.spell_slots)]
+            else:
+                spells_table = [spell for spell in pages['Spellbook'].spells_table
+                                if spell['Type'] == other_spellcaster_category['Secondary_Spell_List'] and
+                                spell['Level'] <= len(self.spell_slots)]
+        else:
+            spells_table = [spell for spell in pages['Spellbook'].spells_table
+                            if spell['Type'] == pages['Level Up'].other_spellcaster_category['Primary_Spell_List']
+                            and spell['Level'] <= len(self.spell_slots)]
+        avail_spells = [spell for spell in spells_table if spell not in owned_items]
+        avail_spells.sort(key=lambda x: x['Level'])
+        return avail_spells
 
 
 class ProficiencyPage(WizardPage):
@@ -577,7 +582,7 @@ class ProficiencyPage(WizardPage):
             specialisation_level = row['Data']
             if specialisation_level == 'S':
                 specialised_ids.append(row['Entry_ID'])
-            elif specialisation_level == '2X':
+            elif specialisation_level == '2XS':
                 double_specialised_ids.append(row['Entry_ID'])
             pc_proficiency_ids.append(row['Entry_ID'])
         self.specialised_list = [row for row in self.proficiency_table if row['unique_id'] in specialised_ids]
@@ -609,9 +614,20 @@ class ReviewPage(WizardPage):
         super().__init__(5, 'Review')
         self.set_subtitle('Make sure you like what you see')
 
-        review_text = Widget('Review Text', 'TextLabel', align='Center')
+        hp_review = Widget('HP Review', 'TextLabel', align='Center')
 
-        self.add_row([review_text, ])
+        self.add_row([hp_review, ])
+
+        proficiency_review = Widget('Proficiency Review', 'TextLabel', align='Center')
+
+        self.add_row([proficiency_review, ])
+
+        daily_spells_review = Widget('Daily Spells Review', 'TextLabel', align='Center')
+        # daily_spells2_review = Widget('Daily Spells2 Review', 'TextLabel', align='Center')
+
+        self.add_row([daily_spells_review, ])
+
+        self.new_hp = None
 
     def initialize_page(self, fields, pages, external_data):
         pc = external_data['Character List Current']
@@ -635,13 +651,46 @@ class ReviewPage(WizardPage):
         con_score = external_data['CON']
         con_bonus = SystemSettings.get_attribute_bonuses('CON', con_score)[0]
         con_bonus_list = con_bonus.replace(' for Warriors)', '').split(' (')
+        if len(con_bonus_list) == 1:
+            con_bonus_list.append(con_bonus_list[0])
         if warrior_level_up:
             con_bonus = con_bonus_list[1]
         else:
             con_bonus = con_bonus_list[0]
         hp_add += int(con_bonus)
+        self.new_hp = str(hp_add + external_data['HP'])
 
-        return {'Review Text': '<b>Hit Points Added: </b>{}'.format(str(hp_add))}
+        fill = {}
+        hp_review = '<b>Hit Points to be added:</b> {}<br />' \
+                    '<b>For a total of:</b> {}'.format(str(hp_add), self.new_hp)
+        fill['HP Review'] = hp_review
+
+        if pages['Level Up'].proficiency_slots_available > 0:
+            proficiency_review = '<b>Proficiencies</b><br />'
+            for prof in fields['Proficiencies']:
+                if prof in pages['Proficiencies'].double_specialised_list:
+                    proficiency_review += '{} (2X)<br />'.format(prof['Name'])
+                elif prof in pages['Proficiencies'].specialised_list:
+                    proficiency_review += '{} (S)<br />'.format(prof['Name'])
+                else:
+                    proficiency_review += '{}<br />'.format(prof['Name'])
+            fill['Proficiency Review'] = proficiency_review
+        if fields['Daily Spells']:
+            spell_type = fields['Daily Spells'][0]['Type'].replace('_', ' ').title()
+            daily_spells_review = '<table cellspacing=20><tr><td><b>Daily {} Spells</b><br />'.format(spell_type)
+            for ds in fields['Daily Spells']:
+                daily_spells_review += '{}<br />'.format(ds['Name'])
+            daily_spells_review += '</td>'
+            if fields['Daily Spells2']:
+                spell_type = fields['Daily Spells2'][0]['Type'].replace('_', ' ').title()
+                daily_spells_review += '<td><b>Daily {} Spells</b><br />'.format(spell_type)
+                for ds2 in fields['Daily Spells2']:
+                    daily_spells_review += '{}<br />'.format(ds2['Name'])
+                daily_spells_review += '</td>'
+            daily_spells_review += '</tr></table>'
+            fill['Daily Spells Review'] = daily_spells_review
+
+        return fill
 
 
 def ready_to_level_up(pc):
