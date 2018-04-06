@@ -159,7 +159,7 @@ class SpellbookPage(WizardPage):
         levels = str(pc['Level']).split('/')
         cl = pages['Level Up'].wizard_category
         level = int(levels[classes.index(cl['unique_id'])])
-        meta_row = [row for row in cl['Classes_meta'] if row['Level'].isdigit() and int(row['Level']) == level][0]
+        meta_row = [row for row in cl['Classes_meta'] if row['Level'].isdigit() and int(row['Level']) == level + 1][0]
         highest_spell_level = 0
         for spell_level in range(1, 10):
             sl_column_name = 'Level_{}_Spells'.format(spell_level)
