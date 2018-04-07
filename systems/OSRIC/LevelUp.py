@@ -322,7 +322,11 @@ class DailySpellsPage(WizardPage):
         pc = external_data['Character List Current']
         classes = pc['Classes'].split('/')
         levels = str(pc['Level']).split('/')
-        cl = pages['Level Up'].wizard_category or pages['Level Up'].other_spellcaster_category
+        class_name = type(self).__name__
+        if class_name == 'DailySpellsPage':
+            cl = pages['Level Up'].wizard_category or pages['Level Up'].other_spellcaster_category
+        else:
+            cl = pages['Level Up'].other_spellcaster_category
         level = int(levels[classes.index(cl['unique_id'])])
         meta_row = [row for row in cl['Classes_meta'] if row['Level'].isdigit() and int(row['Level']) == level + 1][0]
         slot_list = []
@@ -411,15 +415,15 @@ class DailySpellsPage2(DailySpellsPage):
             if wizard_category and wizard_category['Secondary_Spell_List'] != 'None':
                 spells_table = [spell for spell in pages['Spellbook'].spells_table
                                 if spell['Type'] == wizard_category['Secondary_Spell_List'] and
-                                spell['Level'] <= len(self.spell_slots)]
+                                spell['Level'] <= len(self.spell_slots.split('/'))]
             else:
                 spells_table = [spell for spell in pages['Spellbook'].spells_table
                                 if spell['Type'] == other_spellcaster_category['Secondary_Spell_List'] and
-                                spell['Level'] <= len(self.spell_slots)]
+                                spell['Level'] <= len(self.spell_slots.split('/'))]
         else:
             spells_table = [spell for spell in pages['Spellbook'].spells_table
                             if spell['Type'] == pages['Level Up'].other_spellcaster_category['Primary_Spell_List']
-                            and spell['Level'] <= len(self.spell_slots)]
+                            and spell['Level'] <= len(self.spell_slots.split('/'))]
         # avail_spells = [spell for spell in spells_table if spell not in owned_items]
         # avail_spells.sort(key=lambda x: x['Level'])
         # return avail_spells
