@@ -323,7 +323,7 @@ class DailySpellsPage(WizardPage):
         classes = pc['Classes'].split('/')
         levels = str(pc['Level']).split('/')
         class_name = type(self).__name__
-        if class_name == 'DailySpellsPage':
+        if class_name == 'DailySpellsPage' or pages['Level Up'].spell_classes == 1:
             cl = pages['Level Up'].wizard_category or pages['Level Up'].other_spellcaster_category
         else:
             cl = pages['Level Up'].other_spellcaster_category
