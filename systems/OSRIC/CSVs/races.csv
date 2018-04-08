@@ -1,0 +1,11 @@
+'Races',,,,,,,,,,,,,,
+'unique_id','Name','Movement_Rate','Minimum_Str','Maximum_Str','Minimum_Dex','Maximum_Dex','Minimum_Con','Maximum_Con','Minimum_Int','Maximum_Int','Minimum_Wis','Maximum_Wis','Minimum_Cha','Maximum_Cha'
+'VARCHAR(20) UNIQUE','VARCHAR(50)','INTEGER','INTEGER','INTEGER','INTEGER','INTEGER','INTEGER','INTEGER','INTEGER','INTEGER','INTEGER','INTEGER','INTEGER','INTEGER'
+,'display_col',,,,,,,,,,,,,
+'dwarf','Dwarf','90','8','18','3','17','12','19','3','18','3','18','3','16'
+'elf','Elf','120','3','18','7','19','8','17','8','18','3','18','8','18'
+'gnome','Gnome','90','6','18','3','18','8','18','7','18','3','18','3','18'
+'half_elf','Half Elf','120','3','18','6','18','6','18','4','18','3','18','3','18'
+'halfling','Halfling','90','6','17','8','19','10','18','6','18','3','17','3','18'
+'half_orc','Half Orc','120','6','18','3','17','13','19','3','17','3','14','3','12'
+'human','Human','120','3','18','3','18','3','18','3','18','3','18','3','18'

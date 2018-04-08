@@ -1,0 +1,4 @@
+'Characters_meta',,,,
+'character_id','Type','Entry_ID','Data','Notes'
+'VARCHAR(20) REFERENCES Characters(unique_id) ON UPDATE CASCADE ON DELETE CASCADE','VARCHAR(20)','VARCHAR(20)','VARCHAR(20)','TEXT'
+'display_col',,,,

@@ -1,0 +1,297 @@
+'Races_meta',,,,,
+'race_id','Type','Subtype','Modifier','Modified','Notes'
+'VARCHAR(20) REFERENCES Races(unique_id) ON UPDATE CASCADE ON DELETE CASCADE','VARCHAR(20)','VARCHAR(50)','VARCHAR(20)','VARCHAR(20)','VARCHAR(50)'
+'display_col',,,,,
+'dwarf','ability','attribute','+1','Constitution',
+'dwarf','ability','attribute','-1','Charisma','Doesn''t apply to other Dwarves.'
+'dwarf','ability','combat','+1','To Hit','Vs Goblins, half-Orcs, Hobgoblins, and Orcs'
+'dwarf','ability','combat','-4','To Hit','By Giants, Ogres, Ogre Mages, Titans and Trolls.'
+'dwarf','ability','save','-Con*2/7','Aimed Magic Items/Spells/Poison',
+'dwarf','ability','starting languages',,'Dwarfish, Gnomish, Goblin, Kobold, Orcish, Common and the alignment tongue.','Dwarves can only learn up to two additional languages.'
+'dwarf','ability','infravision','60''',,
+'dwarf','ability','misc','75%','Detect the existence of slopes or grades',
+'dwarf','ability','misc','75%','Detect the existence of new construction',
+'dwarf','ability','misc','66%','Detect sliding or shifting rooms or walls',
+'dwarf','ability','misc','50%','Detect traps involving stonework',
+'dwarf','ability','misc','50%','Determine depth underground',
+'dwarf','ability','misc','+1','Charisma','Vs Dwarves'
+'dwarf','class','multi-class restrictions',,,'The more restrictive of any two class requirements apply to multi-classed Dwarfish characters for the use of class abilities.'
+'dwarf','class','permitted class options',,'assassin, cleric, fighter, thief, fighter/thief',
+'dwarf','class','starting age','250+2d20','Cleric',
+'dwarf','class','starting age','40+5d4','Fighter',
+'dwarf','class','starting age','75+3d6','Thief',
+'dwarf','class','level limit','9','Assassin',
+'dwarf','class','level limit','8','Cleric',
+'dwarf','class','level limit','9 (Str 18), 8 (Str 17), 7 (Str 16 or less)','Fighter',
+'dwarf','class','level limit','U','Thief',
+'dwarf','height table','male','01-10','3 ft 9 in + 1d4 in','Small'
+'dwarf','height table','male','11-25','4 ft 1 in + 1d4 in','Slim'
+'dwarf','height table','male','26-55','4 ft 2 in + 1d4 in','Normal'
+'dwarf','height table','male','56-85','4 ft 2 in + 1d4 in','Stout'
+'dwarf','height table','male','86-95','4 ft 6 in + 1d4 in','Tall'
+'dwarf','height table','male','96-100','4 ft 9 in + 1d4 in','Outsize'
+'dwarf','height table','female','01-15','3 ft 7 in + 1d4 in','Petite'
+'dwarf','height table','female','16-30','3 ft 11 in + 1d4 in','Svelte'
+'dwarf','height table','female','31-65','4 ft 0 in + 1d4 in','Normal'
+'dwarf','height table','female','66-85','4 ft 0 in + 1d4 in','Curvy'
+'dwarf','height table','female','86-95','4 ft 4 in + 1d4 in','Tall'
+'dwarf','height table','female','96-100','4 ft 7 in + 1d4 in','Outsize'
+'dwarf','weight table','male','01-10','130 lbs + 1d20 lbs','Small'
+'dwarf','weight table','male','11-25','140 lbs + 1d20 lbs','Slim'
+'dwarf','weight table','male','26-55','150 lbs + 1d20 lbs','Normal'
+'dwarf','weight table','male','56-85','160 lbs + 1d20 lbs','Stout'
+'dwarf','weight table','male','86-95','160 lbs + 1d20 lbs','Tall'
+'dwarf','weight table','male','96-100','170 lbs + 1d20 lbs','Outsize'
+'dwarf','weight table','female','01-15','100 lbs + 1d20 lbs','Petite'
+'dwarf','weight table','female','16-30','110 lbs + 1d20 lbs','Svelte'
+'dwarf','weight table','female','31-65','120 lbs + 1d20 lbs','Normal'
+'dwarf','weight table','female','66-85','130 lbs + 1d20 lbs','Curvy'
+'dwarf','weight table','female','86-95','130 lbs + 1d20 lbs','Tall'
+'dwarf','weight table','female','96-100','140 lbs + 1d20 lbs','Outsize'
+'elf','ability','attribute','+1','Dexterity',
+'elf','ability','attribute','-1','Constitution',
+'elf','ability','combat','+1','To Hit','With Bow'
+'elf','ability','combat','+1','To Hit','With Longsword'
+'elf','ability','combat','+1','To Hit','With Short sword'
+'elf','ability','starting languages',,'Common, Elven, Gnoll, Gnomish, Goblin,Halfling, Hobgoblin, Orcish.','One additional language per point of Intelligence over 15.'
+'elf','ability','infravision','60''',,
+'elf','ability','misc',,,'90% resistance to sleep and charm spells'
+'elf','ability','misc','1 in 6','Notice Secret Door within 10''',
+'elf','ability','misc','2 in 6','Discover Secret Door by searching',
+'elf','ability','misc','3 in 6','Discover Concealed Door by searching',
+'elf','ability','combat','4 in 6','Surprise','Non-metal Armour, Alone or All Elf/Halfing Party, Door (or similar contraption) drops chance to 2 in 6'
+'elf','class','multi-class restrictions',,,'The less restrictive of any two class requirements apply to multi-classed elven characters, except thief abilities still have armour restrictions.'
+'elf','class','permitted class options',,'assassin, cleric, fighter, magic_user, thief, fighter/magic_user, fighter/thief, magic_user/thief, fighter/magic_user/thief',
+'elf','class','starting age','500+10d10','Cleric',
+'elf','class','starting age','130+5d6','Fighter',
+'elf','class','starting age','150+5d6','Magic User',
+'elf','class','starting age','100+5d6','Thief',
+'elf','class','level limit','10','Assassin',
+'elf','class','level limit','7','Cleric',
+'elf','class','level limit','7 (Str 18), 6 (Str 17), 5 (Str 16 and below)','Fighter',
+'elf','class','level limit','11 (Int 18+), 10 (Int 17), 9 (Int 16 and below)','Magic User',
+'elf','class','level limit','U','Thief',
+'elf','height table','male','01-15','4 ft 7 in + 1d4 in','Small'
+'elf','height table','male','16-45','4 ft 11 in + 1d4 in','Slim'
+'elf','height table','male','46-75','5 ft 0 in + 1d4 in','Normal'
+'elf','height table','male','76-80','5 ft 0 in + 1d4 in','Stout'
+'elf','height table','male','81-95','5 ft 4 in + 1d4 in','Tall'
+'elf','height table','male','96-100','5 ft 7 in + 1d4 in','Outsize'
+'elf','height table','female','01-15','4 ft 3 in + 1d4 in','Petite'
+'elf','height table','female','16-45','4 ft 7 in + 1d4 in','Svelte'
+'elf','height table','female','46-75','4 ft 8 in + 1d4 in','Normal'
+'elf','height table','female','76-80','4 ft 8 in + 1d4 in','Curvy'
+'elf','height table','female','81-95','5 ft 0 in + 1d4 in','Tall'
+'elf','height table','female','96-100','5 ft 3 in + 1d4 in','Outsize'
+'elf','weight table','male','01-15','70 lbs + 1d20 lbs','Small'
+'elf','weight table','male','16-45','80 lbs + 1d20 lbs','Slim'
+'elf','weight table','male','46-75','90 lbs + 1d20 lbs','Normal'
+'elf','weight table','male','76-80','95 lbs + 1d20 lbs','Stout'
+'elf','weight table','male','81-95','95 lbs + 1d20 lbs','Tall'
+'elf','weight table','male','96-100','100 lbs + 1d20 lbs','Outsize'
+'elf','weight table','female','01-15','64 lbs + 1d20 lbs','Petite'
+'elf','weight table','female','16-45','72 lbs + 1d20 lbs','Svelte'
+'elf','weight table','female','46-75','80 lbs + 1d20 lbs','Normal'
+'elf','weight table','female','76-80','85 lbs + 1d20 lbs','Curvy'
+'elf','weight table','female','81-95','85 lbs + 1d20 lbs','Tall'
+'elf','weight table','female','96-100','90 lbs + 1d20 lbs','Outsize'
+'gnome','ability','save','-Con*2/7','Spells/Poison',
+'gnome','ability','combat','+1','To Hit','Vs Kobolds, Goblins'
+'gnome','ability','combat','-4','To Hit','By Bugbears, Giants, Gnolls, Ogres, Ogre Mages, Titans, and Trolls'
+'gnome','ability','starting languages',,'Common, dwarfish, gnomish, goblin, halfling, kobold','Gnomes may communicate with any normal burrowing animal. They may not learn more than two additional languages to those listed, regardless of intelligence.'
+'gnome','ability','infravision','60''',,
+'gnome','ability','misc','80%','Detect the existence of slopes or grades',
+'gnome','ability','misc','30% resistance to sleep and charm spells','Detect the existence of unsafe wall, ceiling, floor',
+'gnome','ability','misc','60%','Determine depth underground',
+'gnome','ability','misc','50%','Determine direction of north underground',
+'gnome','class','multi-class restrictions',,,'Multi-classed gnomish characters may wear only leather armour, no better.'
+'gnome','class','permitted class options',,'assassin, cleric, fighter, illusionist, thief, fighter/illusionist, fighter/thief, illusionist/thief',
+'gnome','class','starting age','300+3d12','Cleric',
+'gnome','class','starting age','60+5d4','Fighter',
+'gnome','class','starting age','100+2d12','Magic User',
+'gnome','class','starting age','80+5d4','Thief',
+'gnome','class','level limit','8','Assassin',
+'gnome','class','level limit','7','Cleric',
+'gnome','class','level limit','6 (Str 18), 5 (Str 17 and below)','Fighter',
+'gnome','class','level limit','7 (One of Dex or Int 18+ and the other 17+), 6 (Dex and Int 17), 5 (Dex or Int under 17)','Illusionist',
+'gnome','class','level limit','U','Thief',
+'gnome','height table','male','01-10','2 ft 10 in + 1d3 in','Small'
+'gnome','height table','male','11-25','3 ft 1 in + 1d3 in','Slim'
+'gnome','height table','male','26-55','3 ft 2 in + 1d3 in','Normal'
+'gnome','height table','male','56-85','3 ft 2 in + 1d3 in','Stout'
+'gnome','height table','male','86-95','3 ft 5 in + 1d3 in','Tall'
+'gnome','height table','male','96-100','3 ft 7 in + 1d3 in','Outsize'
+'gnome','height table','female','01-15','2 ft 8 in + 1d3 in','Petite'
+'gnome','height table','female','16-30','2 ft 11 in + 1d3 in','Svelte'
+'gnome','height table','female','31-65','3 ft 0 in + 1d3 in','Normal'
+'gnome','height table','female','66-85','3 ft 0 in + 1d3 in','Curvy'
+'gnome','height table','female','86-95','3 ft 3 in + 1d3 in','Tall'
+'gnome','height table','female','96-100','3 ft 5 in + 1d3 in','Outsize'
+'gnome','weight table','male','01-10','50 lbs + 1d20 lbs','Small'
+'gnome','weight table','male','11-25','55 lbs + 1d20 lbs','Slim'
+'gnome','weight table','male','26-55','60 lbs + 1d20 lbs','Normal'
+'gnome','weight table','male','56-85','65 lbs + 1d20 lbs','Stout'
+'gnome','weight table','male','86-95','65 lbs + 1d20 lbs','Tall'
+'gnome','weight table','male','96-100','70 lbs + 1d20 lbs','Outsize'
+'gnome','weight table','female','01-15','42 lbs + 1d20 lbs','Petite'
+'gnome','weight table','female','16-30','45 lbs + 1d20 lbs','Svelte'
+'gnome','weight table','female','31-65','50 lbs + 1d20 lbs','Normal'
+'gnome','weight table','female','66-85','55 lbs + 1d20 lbs','Curvy'
+'gnome','weight table','female','86-95','55 lbs + 1d20 lbs','Tall'
+'gnome','weight table','female','96-100','60 lbs + 1d20 lbs','Outsize'
+'half_elf','ability','misc',,,'30% resistance to sleep and charm spells'
+'half_elf','ability','misc','1 in 6','Notice Secret Door within 10''',
+'half_elf','ability','misc','2 in 6','Discover Secret Door by searching',
+'half_elf','ability','misc','3 in 6','Discover Concealed Door by searching',
+'half_elf','ability','starting languages',,'Common, elven, gnoll, gnome, goblin, halfling, hobgoblin, orcish.',
+'half_elf','ability','infravision','60''',,
+'half_elf','class','multi-class restrictions',,,'The less restrictive of any two class requirements apply to multi-classed half-elven characters, except thief abilities still have armour restrictions.'
+'half_elf','class','permitted class options',,'assassin, cleric, fighter, magic_user, ranger, thief, cleric/fighter, cleric/ranger, cleric/magic_user, fighter/magic_user, fighter/thief, magic_user/thief, cleric/fighter/magic_user, fighter/magic_user/thief',
+'half_elf','class','starting age','40 + 2d4','Cleric',
+'half_elf','class','starting age','22+3d4','Fighter',
+'half_elf','class','starting age','30+2d8','Magic User',
+'half_elf','class','starting age','22+3d8','Thief',
+'half_elf','class','level limit','11','Assassin',
+'half_elf','class','level limit','5','Cleric',
+'half_elf','class','level limit','8 (Str 18), 7 (Str 17 and below), 6 (Str 16 and below)','Fighter',
+'half_elf','class','level limit','8 (Int 18+), 7 (Int 17), 6 (Int 16 and below)','Magic User',
+'half_elf','class','level limit','8 (Str 18), 7 (Str 17 and below), 6 (Str 16 and below)','Ranger',
+'half_elf','class','level limit','U','Thief',
+'half_elf','height table','male','01-10','5 ft 1 in + 1d4 in','Small'
+'half_elf','height table','male','11-30','5 ft 5 in + 1d4 in','Slim'
+'half_elf','height table','male','31-70','5 ft 6 in + 1d4 in','Normal'
+'half_elf','height table','male','71-80','5 ft 6 in + 1d4 in','Stout'
+'half_elf','height table','male','81-95','5 ft 10 in + 1d4 in','Tall'
+'half_elf','height table','male','96-100','6 ft 1 in + 1d4 in','Outsize'
+'half_elf','height table','female','01-15','4 ft 9 in + 1d4 in','Petite'
+'half_elf','height table','female','16-30','5 ft 1 in + 1d4 in','Svelte'
+'half_elf','height table','female','31-65','5 ft 2 in + 1d4 in','Normal'
+'half_elf','height table','female','66-85','5 ft 2 in + 1d4 in','Curvy'
+'half_elf','height table','female','86-95','5 ft 6 in + 1d4 in','Tall'
+'half_elf','height table','female','96-100','5 ft 9 in + 1d4 in','Outsize'
+'half_elf','weight table','male','01-10','105 lbs + 1d20 lbs','Small'
+'half_elf','weight table','male','11-30','115 lbs + 1d20 lbs','Slim'
+'half_elf','weight table','male','31-70','125 lbs + 1d20 lbs','Normal'
+'half_elf','weight table','male','71-80','135 lbs + 1d20 lbs','Stout'
+'half_elf','weight table','male','81-95','135 lbs + 1d20 lbs','Tall'
+'half_elf','weight table','male','96-100','145 lbs + 1d20 lbs','Outsize'
+'half_elf','weight table','female','01-15','80 lbs + 1d20 lbs','Petite'
+'half_elf','weight table','female','16-30','90 lbs + 1d20 lbs','Svelte'
+'half_elf','weight table','female','31-65','100 lbs + 1d20 lbs','Normal'
+'half_elf','weight table','female','66-85','110 lbs + 1d20 lbs','Curvy'
+'half_elf','weight table','female','86-95','110 lbs + 1d20 lbs','Tall'
+'half_elf','weight table','female','96-100','120 lbs + 1d20 lbs','Outsize'
+'halfling','ability','attribute','-1','Strength',
+'halfling','ability','attribute','+1','Dexterity',
+'halfling','ability','save','-Con*2/7','Aimed Magic Items/Spells/Poison',
+'halfling','ability','combat','+3','To Hit','With Bow'
+'halfling','ability','combat','4 in 6','Surprise','Non-metal Armour, Alone or All Elf/Halfing Party, Door (or similar contraption) drops chance to 2 in 6'
+'halfling','ability','starting languages',,'Common, Dwarfish, Gnome, Goblin, Halfling, Orcish',
+'halfling','class','multi-class restrictions',,,'Use of thieving abilities is only possible when wearing armour permitted to thieves.'
+'halfling','class','permitted class options',,'fighter, druid, thief, fighter/thief',
+'halfling','ability','infravision','60''',,
+'halfling','class','starting age','20+3d4','Fighter',
+'halfling','class','starting age','40+3d4','Druid',
+'halfling','class','starting age','40+2d4','Thief',
+'halfling','class','level limit','6','Druid',
+'halfling','class','level limit','4','Fighter',
+'halfling','class','level limit','U','Thief',
+'halfling','height table','male','01-10','2 ft 10 in + 1d3 in','Small'
+'halfling','height table','male','11-25','3 ft 1 in + 1d3 in','Slim'
+'halfling','height table','male','26-55','3 ft 2 in + 1d3 in','Normal'
+'halfling','height table','male','56-85','3 ft 2 in + 1d3 in','Stout'
+'halfling','height table','male','86-95','3 ft 5 in + 1d3 in','Tall'
+'halfling','height table','male','96-100','3 ft 7 in + 1d3 in','Outsize'
+'halfling','height table','female','01-15','2 ft 8 in + 1d3 in','Petite'
+'halfling','height table','female','16-30','2 ft 11 in + 1d3 in','Svelte'
+'halfling','height table','female','31-65','3 ft 0 in + 1d3 in','Normal'
+'halfling','height table','female','66-85','3 ft 0 in + 1d3 in','Curvy'
+'halfling','height table','female','86-95','3 ft 3 in + 1d3 in','Tall'
+'halfling','height table','female','96-100','3 ft 5 in + 1d3 in','Outsize'
+'halfling','weight table','male','01-10','50 lbs + 1d20 lbs','Small'
+'halfling','weight table','male','11-25','55 lbs + 1d20 lbs','Slim'
+'halfling','weight table','male','26-55','60 lbs + 1d20 lbs','Normal'
+'halfling','weight table','male','56-85','65 lbs + 1d20 lbs','Stout'
+'halfling','weight table','male','86-95','65 lbs + 1d20 lbs','Tall'
+'halfling','weight table','male','96-100','70 lbs + 1d20 lbs','Outsize'
+'halfling','weight table','female','01-15','42 lbs + 1d20 lbs','Petite'
+'halfling','weight table','female','16-30','45 lbs + 1d20 lbs','Svelte'
+'halfling','weight table','female','31-65','50 lbs + 1d20 lbs','Normal'
+'halfling','weight table','female','66-85','55 lbs + 1d20 lbs','Curvy'
+'halfling','weight table','female','86-95','55 lbs + 1d20 lbs','Tall'
+'halfling','weight table','female','96-100','60 lbs + 1d20 lbs','Outsize'
+'half_orc','ability','attribute','+1','Strength',
+'half_orc','ability','attribute','+1','Constitution',
+'half_orc','ability','attribute','-2','Charisma',
+'half_orc','ability','starting languages',,'Common, Orcish','A half-orc may learn a maximum of two additional languages, regardless of intelligence.'
+'half_orc','class','multi-class restrictions',,,'For armour, the more restrictive of any two class requirements apply to multi-classed half-orc characters for the use of class abilities. For weapons, the less restrictive requirements apply.'
+'half_orc','class','permitted class options',,'assassin, cleric, fighter, thief, cleric/fighter, cleric/thief, cleric/assassin, fighter/thief, fighter/assassin',
+'half_orc','ability','infravision','60''',,
+'half_orc','class','starting age','20+1d4','Cleric',
+'half_orc','class','starting age','13+1d4','Fighter',
+'half_orc','class','starting age','20+2d4','Thief',
+'half_orc','class','level limit','15','Assassin',
+'half_orc','class','level limit','4','Cleric',
+'half_orc','class','level limit','10','Fighter',
+'half_orc','class','level limit','7 (Dex 17), 6 (Dex 16 and below)','Thief',
+'half_orc','height table','male','01-10','5 ft 3 in + 1d4 in','Small'
+'half_orc','height table','male','11-25','5 ft 7 in + 1d4 in','Slim'
+'half_orc','height table','male','26-55','5 ft 8 in + 1d4 in','Normal'
+'half_orc','height table','male','56-85','5 ft 8 in + 1d4 in','Stout'
+'half_orc','height table','male','86-95','6 ft 0 in + 1d4 in','Tall'
+'half_orc','height table','male','96-100','6 ft 3 in + 1d4 in','Outsize'
+'half_orc','height table','female','01-15','4 ft 10 in + 1d4 in','Petite'
+'half_orc','height table','female','16-30','5 ft 2 in + 1d4 in','Svelte'
+'half_orc','height table','female','31-65','5 ft 3 in + 1d4 in','Normal'
+'half_orc','height table','female','66-85','5 ft 3 in + 1d4 in','Curvy'
+'half_orc','height table','female','86-95','5 ft 7 in + 1d4 in','Tall'
+'half_orc','height table','female','96-100','5 ft 10 in + 1d4 in','Outsize'
+'half_orc','weight table','male','01-10','130 lbs + 1d20 lbs','Small'
+'half_orc','weight table','male','11-25','140 lbs + 1d20 lbs','Slim'
+'half_orc','weight table','male','26-55','150 lbs + 1d20 lbs','Normal'
+'half_orc','weight table','male','56-85','165 lbs + 1d20 lbs','Stout'
+'half_orc','weight table','male','86-95','160 lbs + 1d20 lbs','Tall'
+'half_orc','weight table','male','96-100','170 lbs + 1d20 lbs','Outsize'
+'half_orc','weight table','female','01-15','100 lbs + 1d20 lbs','Petite'
+'half_orc','weight table','female','16-30','110 lbs + 1d20 lbs','Svelte'
+'half_orc','weight table','female','31-65','120 lbs + 1d20 lbs','Normal'
+'half_orc','weight table','female','66-85','135 lbs + 1d20 lbs','Curvy'
+'half_orc','weight table','female','86-95','130 lbs + 1d20 lbs','Tall'
+'half_orc','weight table','female','96-100','140 lbs + 1d20 lbs','Outsize'
+'human','class','starting age','20+1d4','Cleric',
+'human','class','starting age','15+1d4','Fighter',
+'human','class','starting age','24+2d8','Magic User',
+'human','class','starting age','20+1d4','Thief',
+'human','class','level limit','15','Assassin',
+'human','class','level limit','U','Cleric',
+'human','class','level limit','14','Druid',
+'human','class','level limit','U','Fighter',
+'human','class','level limit','U','Illusionist',
+'human','class','level limit','U','Magic User',
+'human','class','level limit','U','Paladin',
+'human','class','level limit','U','Ranger',
+'human','class','level limit','U','Thief',
+'human','height table','male','01-10','5 ft 4 in + 1d4 in','Small'
+'human','height table','male','11-30','5 ft 8 in + 1d4 in','Slim'
+'human','height table','male','31-70','5 ft 9 in + 1d4 in','Normal'
+'human','height table','male','71-80','5 ft 9 in + 1d4 in','Stout'
+'human','height table','male','81-95','6 ft 1 in + 1d4 in','Tall'
+'human','height table','male','96-100','6 ft 4 in + 1d4 in','Outsize'
+'human','height table','female','01-15','4 ft 11 in + 1d4 in','Petite'
+'human','height table','female','16-30','5 ft 3 in + 1d4 in','Svelte'
+'human','height table','female','31-65','5 ft 4 in + 1d4 in','Normal'
+'human','height table','female','66-85','5 ft 4 in + 1d4 in','Curvy'
+'human','height table','female','86-95','5 ft 8 in + 1d4 in','Tall'
+'human','height table','female','96-100','5 ft 11 in + 1d4 in','Outsize'
+'human','weight table','male','01-10','140 lbs + 1d20 lbs','Small'
+'human','weight table','male','11-30','155 lbs + 1d20 lbs','Slim'
+'human','weight table','male','31-70','170 lbs + 1d20 lbs','Normal'
+'human','weight table','male','71-80','185 lbs + 1d20 lbs','Stout'
+'human','weight table','male','81-95','185 lbs + 1d20 lbs','Tall'
+'human','weight table','male','96-100','200 lbs + 1d20 lbs','Outsize'
+'human','weight table','female','01-15','105 lbs + 1d20 lbs','Petite'
+'human','weight table','female','16-30','115 lbs + 1d20 lbs','Svelte'
+'human','weight table','female','31-65','125 lbs + 1d20 lbs','Normal'
+'human','weight table','female','66-85','135 lbs + 1d20 lbs','Curvy'
+'human','weight table','female','86-95','135 lbs + 1d20 lbs','Tall'
+'human','weight table','female','96-100','145 lbs + 1d20 lbs','Outsize'
