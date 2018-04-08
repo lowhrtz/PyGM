@@ -353,6 +353,7 @@ class ChooseClassPage(WizardPage):
         self.spell_classes = 0
         self.wizard_category = None
         self.other_spellcaster_category = None
+        self.other_spellcaster_category2 = None
 
     def change_image(self, fields, pages, external_data):
         current_class = fields['Classes Current']
@@ -383,7 +384,10 @@ class ChooseClassPage(WizardPage):
                 self.wizard_category = cla
                 self.spell_classes += 1
             elif cla['Primary_Spell_List'] != 'None':
-                self.other_spellcaster_category = cla
+                if self.other_spellcaster_category is None:
+                    self.other_spellcaster_category = cla
+                else:
+                    self.other_spellcaster_category2 = cla
                 self.spell_classes += 1
         if self.wizard_category:
             return pages['Spellbook'].get_page_id()
@@ -602,7 +606,12 @@ class DailySpellsPage(WizardPage):
             return False
 
     def get_next_page_id(self, fields, pages, external_data):
-        if pages['Choose Class'].spell_classes > 1:
+        other_spellcaster_category2 = pages['Choose Class'].other_spellcaster_category2
+        other_spellcaster_category2_has_spells = False
+        if other_spellcaster_category2:
+            other_spellcaster_category2_has_spells = SystemSettings.has_spells_at_level(1, other_spellcaster_category2)
+        if pages['Choose Class'].spell_classes > 1 and\
+                (pages['Choose Class'].wizard_category or other_spellcaster_category2_has_spells):
             return pages['More Daily Spells'].get_page_id()
         return pages['Proficiencies'].get_page_id()
 
@@ -715,6 +724,9 @@ class DailySpellsPage2(DailySpellsPage):
 
     def initialize_page(self, fields, pages, external_data):
         other_spellcaster_category = pages['Choose Class'].other_spellcaster_category
+        other_spellcaster_category2 = pages['Choose Class'].other_spellcaster_category2
+        if other_spellcaster_category2:
+            other_spellcaster_category = other_spellcaster_category2
         class_name = other_spellcaster_category['Name']
         self.spell_slots = [meta_row['Level_1_Spells'] for meta_row in other_spellcaster_category['Classes_meta']
                             if meta_row['Type'] == 'xp table' and meta_row['Level'] == '1'][0]

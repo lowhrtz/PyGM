@@ -21,62 +21,63 @@ class Characters(Manage):
 #        self.add_row( [ test_field ] )
 
         # character_list = Widget( 'Character List_', 'ListBox', row_span=4, data=DbQuery.getTable( 'Characters' ) )
-        character_list = Widget('Character List_', 'ListBox', row_span=4)
+        character_list = Widget('Character List_', 'ListBox', col_span=2, row_span=4)
         # name = Widget( 'Name', 'LineEdit', data='Lance the Impressive' )
         name = Widget('Name', 'LineEdit')
 #        xp = Widget( 'XP', 'SpinBox', enable_edit=False )
         xp = Widget('XP', 'LineEdit', enable_edit=False)
         age = Widget('Age', 'SpinBox')
-        self.add_row([character_list, name, xp, age])
+        self.add_row([character_list, empty_widget, name, xp, age])
 
         cl = Widget('Class', 'LineEdit', enable_edit=False)
         hp = Widget('HP', 'SpinBox')
         height = Widget('Height', 'LineEdit')
-        self.add_row([empty_widget, cl, hp, height])
+        self.add_row([empty_widget, empty_widget, cl, hp, height])
 
         alignment = Widget('Alignment', 'ComboBox', data=SystemSettings.alignment)
         ac = Widget('AC', 'SpinBox', enable_edit=False)
         weight = Widget('Weight', 'LineEdit')
-        self.add_row([empty_widget, alignment, ac, weight])
+        self.add_row([empty_widget, empty_widget, alignment, ac, weight])
 
         race = Widget('Race', 'LineEdit', enable_edit=False)
         level = Widget('Level', 'LineEdit', enable_edit=False)
         gender = Widget('Gender', 'ComboBox', data=SystemSettings.gender)
-        self.add_row([empty_widget, race, level, gender])
+        self.add_row([empty_widget, empty_widget, race, level, gender])
         self.add_row([hr, ])
 
-        portrait = Widget('Portrait_', 'Image', row_span=6, align='Center', data=image_data)
-        str = Widget('STR', 'LineEdit', stretch=False)
+        portrait = Widget('Portrait_', 'Image', row_span=6, align='Right', data=image_data)
+        str = Widget('STR', 'LineEdit', width=50, stretch=False)
         gp = Widget('GP', 'SpinBox', align='Center')
         proficiencies = Widget('Proficiencies', 'ListBox', row_span=6)
-        self.add_row([portrait, str, gp, proficiencies])
+        equipment = Widget('Equipment', 'ListBox', row_span=6)
+        self.add_row([portrait, str, gp, proficiencies, equipment])
 
-        intel = Widget('INT', 'LineEdit', stretch=False)
+        intel = Widget('INT', 'LineEdit', width=50, stretch=False)
         pp = Widget('PP', 'SpinBox', align='Center')
         self.add_row([empty_widget, intel, pp])
 
-        wis = Widget('WIS', 'LineEdit', stretch=False)
+        wis = Widget('WIS', 'LineEdit', width=50, stretch=False)
         ep = Widget('EP', 'SpinBox', align='Center')
         self.add_row([empty_widget, wis, ep])
 
-        dex = Widget('DEX', 'LineEdit', stretch=False)
+        dex = Widget('DEX', 'LineEdit', width=50, stretch=False)
         sp = Widget('SP', 'SpinBox', align='Center')
         self.add_row([empty_widget, dex, sp])
 
-        con = Widget('CON', 'LineEdit', stretch=False)
+        con = Widget('CON', 'LineEdit', width=50, stretch=False)
         cp = Widget('CP', 'SpinBox', align='Center')
         self.add_row([empty_widget, con, cp])
 
-        cha = Widget('CHA', 'LineEdit', stretch=False)
+        cha = Widget('CHA', 'LineEdit', width=50, stretch=False)
         self.add_row([empty_widget, cha, ])
 
         self.add_row([hr, ])
 
-        equipment = Widget('Equipment', 'ListBox')
-        spellbook = Widget('Spellbook', 'ListBox')
+        spellbook = Widget('Spellbook', 'ListBox', col_span=2)
         daily_spells = Widget('Daily Spells', 'ListBox')
         daily_spells2 = Widget('Daily Spells 2_', 'ListBox')
-        self.add_row([equipment, spellbook, daily_spells, daily_spells2])
+        dail_spells3 = Widget('Daily Spells 3_', 'ListBox')
+        self.add_row([spellbook, empty_widget, daily_spells, daily_spells2, dail_spells3])
 
 #        pdf_button = Widget( 'Save PDF', 'PushButton' )
 #        self.add_row( [ pdf_button, ] )
@@ -163,6 +164,7 @@ class Characters(Manage):
         spellbook_id_list = []
         daily_spells_id_list = []
         daily_spells2_id_list = []
+        daily_spells3_id_list = []
         proficiency_id_dict = {}
         gp = pp = ep = sp = cp = 0
         for meta_row in character_dict['Characters_meta']:
@@ -189,6 +191,8 @@ class Characters(Manage):
                 daily_spells_id_list.append(meta_row['Entry_ID'])
             elif meta_row['Type'] == 'DailySpells2':
                 daily_spells2_id_list.append(meta_row['Entry_ID'])
+            elif meta_row['Type'] == 'DailySpells3':
+                daily_spells3_id_list.append(meta_row['Entry_ID'])
             elif meta_row['Type'] == 'Proficiency':
                 proficiency_id_dict[meta_row['Entry_ID']] = meta_row['Data']
 
@@ -215,6 +219,7 @@ class Characters(Manage):
         spellbook_list = []
         daily_spells_list = []
         daily_spells2_list = []
+        daily_spells3_list = []
         for spell in spells_table:
             if spell['spell_id'] in spellbook_id_list:
                 spellbook_list.append(spell)
@@ -224,6 +229,9 @@ class Characters(Manage):
             if spell['spell_id'] in daily_spells2_id_list:
                 for _ in range(daily_spells2_id_list.count(spell['spell_id'])):
                     daily_spells2_list.append(spell)
+            if spell['spell_id'] in daily_spells3_id_list:
+                for _ in range(daily_spells3_id_list.count(spell['spell_id'])):
+                    daily_spells3_list.append(spell)
 
         fill_dict = {
             'Name': character_dict['Name'],
@@ -256,6 +264,7 @@ class Characters(Manage):
             'Spellbook': spellbook_list,
             'Daily Spells': daily_spells_list,
             'Daily Spells 2': daily_spells2_list,
+            'Daily Spells 3': daily_spells3_list,
         }
 
         return fill_dict
@@ -322,6 +331,10 @@ class Characters(Manage):
 
             for s in fields['Daily Spells 2']:
                 data_list = [unique_id, 'DailySpells2', s['spell_id'], '', '']
+                DbQuery.insertRow('Characters_meta', data_list)
+
+            for s in fields['Daily Spells 3']:
+                data_list = [unique_id, 'DailySpells3', s['spell_id'], '', '']
                 DbQuery.insertRow('Characters_meta', data_list)
 
         DbQuery.commit()

@@ -715,6 +715,7 @@ def get_character_pdf_markup( character_dict ):
     spellbook_id_list = []
     daily_spells_id_list = []
     daily_spells2_id_list = []
+    daily_spells3_id_list = []
     proficiency_id_dict = {}
     for meta_row in character_dict['Characters_meta']:
         if meta_row['Type'] == 'Equipment':
@@ -735,13 +736,15 @@ def get_character_pdf_markup( character_dict ):
             elif meta_row['Entry_ID'] == 'cp':
                 cp = meta_row['Data']
         elif meta_row['Type'] == 'Spellbook':
-            spellbook_id_list.append( meta_row['Entry_ID'] )
+            spellbook_id_list.append(meta_row['Entry_ID'])
         elif meta_row['Type'] == 'DailySpells':
-            daily_spells_id_list.append( meta_row['Entry_ID'] )
+            daily_spells_id_list.append(meta_row['Entry_ID'])
         elif meta_row['Type'] == 'DailySpells2':
-            daily_spells2_id_list.append( meta_row['Entry_ID'] )
+            daily_spells2_id_list.append(meta_row['Entry_ID'])
+        elif meta_row['Type'] == 'DailySpells3':
+            daily_spells3_id_list.append(meta_row['Entry_ID'])
         elif meta_row['Type'] == 'Proficiency':
-            proficiency_id_dict[ meta_row['Entry_ID'] ] = meta_row['Data']
+            proficiency_id_dict[meta_row['Entry_ID']] = meta_row['Data']
 
     proficiency_list = []
     specialised_list = []
@@ -774,13 +777,16 @@ def get_character_pdf_markup( character_dict ):
     spellbook = []
     daily_spells = []
     daily_spells2 = []
+    daily_spells3 = []
     for spell in spells_table:
         if spell['spell_id'] in spellbook_id_list:
-            spellbook.append( spell )
+            spellbook.append(spell)
         if spell['spell_id'] in daily_spells_id_list:
-            daily_spells.append( spell )
+            daily_spells.append(spell)
         if spell['spell_id'] in daily_spells2_id_list:
-            daily_spells2.append( spell )
+            daily_spells2.append(spell)
+        if spell['spell_id'] in daily_spells3_id_list:
+            daily_spells3.append(spell)
 
     #print equipment_list
     saves_dict = get_saves( level, attr_dict, class_dict, race_dict )
@@ -1078,6 +1084,11 @@ page-break-after:always;
             markup += '<h5>{} Daily Spells</h5>\n<hr />'.format( daily_spells2[0]['Type'].title().replace( '_', ' ' ) )
             for spell in daily_spells2:
                 markup += spell_item_string.format( **spell )
+            markup += '<hr />\n'
+        if daily_spells3:
+            markup += '<h5>{} Daily Spells</h5>\n<hr />'.format(daily_spells3[0]['Type'].title().replace('_', ' '))
+            for spell in daily_spells2:
+                markup += spell_item_string.format(**spell)
             markup += '<hr />\n'
 
     t = Template(markup)
