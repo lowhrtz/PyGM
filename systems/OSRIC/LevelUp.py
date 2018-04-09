@@ -360,7 +360,7 @@ class DailySpellsPage(WizardPage):
             sl_column_name = 'Level_{}_Spells{}'.format(spell_level, ary)
             if meta_row[sl_column_name] > 0:
                 slot_list.append(meta_row[sl_column_name])
-        if cl['unique_id'] == 'cleric':
+        if cl['Wis_Spell_Bonus'].lower() == 'yes':
             _, spell_bonus, _ = SystemSettings.get_attribute_bonuses('WIS', external_data['WIS'])
             spell_bonuses = [int(bonus) for bonus in spell_bonus.split('/')]
             for i in range(min(len(slot_list), len(spell_bonuses))):

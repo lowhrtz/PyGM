@@ -591,7 +591,7 @@ class DailySpellsPage(WizardPage):
             class_name = other_spellcaster_category['Name']
             self.spell_slots = [meta_row['Level_1_Spells'] for meta_row in other_spellcaster_category['Classes_meta']
                                 if meta_row['Type'] == 'xp table' and meta_row['Level'] == '1'][0]
-            if other_spellcaster_category['unique_id'] == 'cleric':
+            if other_spellcaster_category['Wis_Spell_Bonus'].lower() == 'yes':
                 _, spell_bonus, _ = SystemSettings.get_attribute_bonuses('WIS', self.attr_dict['WIS'])
                 spell_bonuses = spell_bonus.split('/')
                 self.spell_slots += int(spell_bonuses[0])
@@ -730,7 +730,7 @@ class DailySpellsPage2(DailySpellsPage):
         class_name = other_spellcaster_category['Name']
         self.spell_slots = [meta_row['Level_1_Spells'] for meta_row in other_spellcaster_category['Classes_meta']
                             if meta_row['Type'] == 'xp table' and meta_row['Level'] == '1'][0]
-        if other_spellcaster_category['unique_id'] == 'cleric':
+        if other_spellcaster_category['Wis_Spell_Bonus'].lower() == 'yes':
             _, spell_bonus, _ = SystemSettings.get_attribute_bonuses('WIS', pages['Daily Spells'].attr_dict['WIS'])
             spell_bonuses = spell_bonus.split('/')
             self.spell_slots += int(spell_bonuses[0])
