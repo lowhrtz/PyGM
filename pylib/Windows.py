@@ -11,14 +11,16 @@ from PyQt5.QtWidgets import (QMainWindow, QAction, QWidget, QTabWidget,
                              )
 from PyQt5.QtGui import QIcon, QPixmap, QFont, QTextDocument, QDrag
 from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog
+import DbDefs
 import SystemSettings
+import Db
 import DbLayout
 import DbQuery
 import Manage
 import ManageDefs
 import resources
 from Common import find_image, get_pixmap_from_base64, callback_factory, fill_listbox, add_item_to_listbox
-from Dialogs import YesNoDialog, EntryDialog, DualListDialog
+from Dialogs import YesNoDialog, EntryDialog, DualListDialog, ProgressDialog
 
 
 SYSTEM_PATH = None
@@ -96,7 +98,21 @@ class MainWindow( CenterableWindow ):
         accepted = dialog.exec_()
         # print( accepted )
         if accepted:
-            DbQuery.resetDB()
+            table_count = 0
+            for k, v in Db.__dict__.items():
+                if inspect.isclass(v) and issubclass(v, DbDefs.Table) and v.table_name != DbDefs.Table.table_name:
+                    table_count += 1
+            value_range = 0, table_count
+            progress = ProgressDialog('Resetting Database',
+                                      'Please wait while the database is being reset.',
+                                      value_range, DbQuery.resetDB, self)
+            progress.forceShow()
+            progress.setWindowModality(QtCore.Qt.WindowModal)
+            progress.setValue(0)
+            progress.start_generator()
+            # reset_db is a generator so it must be iterated over
+            # for _ in DbQuery.resetDB():
+            #     pass
 
     def get_manages(self):
         manages = []
