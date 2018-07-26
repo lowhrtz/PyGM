@@ -912,7 +912,7 @@ class ManageWindow(CenterableWindow):
                 self.onshow.connect(callback_factory(self.on_show, callback))
             elif widget1_type.lower() == 'pushbutton':
                 qt_widget = self.widget_registry[widget1_field_name].qt_widget
-                qt_widget.pushed.connect(callback_factory(self.widget_registry.process_action, action))
+                qt_widget.clicked.connect(callback_factory(self.widget_registry.process_action, action))
             elif widget1_type.lower() == 'listbox':
                 qt_widget = self.widget_registry[widget1_field_name].qt_widget
                 qt_widget.currentRowChanged.connect(callback_factory(self.widget_registry.process_action, action))
