@@ -11,6 +11,7 @@ from GuiDefs import *
 class Characters(Manage):
     def __init__(self):
 
+        super().__init__()
         empty_widget = Widget('', 'Empty')
         hr = Widget('hr', 'hr', col_span=4)
 
@@ -529,6 +530,19 @@ class Characters(Manage):
 
     def get_tool_tip(self, item, fields):
         return '{}<br /><b>{}</b>'.format(item['Name'], item['Cost'])
+
+
+class Adventures(Manage):
+    def __init__(self):
+
+        super().__init__()
+        empty_widget = Widget('', 'Empty')
+        hr = Widget('hr', 'hr', col_span=4)
+
+        test = Widget('Test', 'TextLabel', col_span=1, data='Placeholder Text.')
+        self.add_row([test, ])
+        # print(self.widget_matrix)
+
 
 
 image_data = '/9j/4AAQSkZJRgABAQEASABIAAD//gATQ3JlYXRlZCB3aXRoIEdJTVD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/\
