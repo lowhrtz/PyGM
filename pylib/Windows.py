@@ -811,8 +811,10 @@ class WidgetRegistry(dict):
                 self.fill_fields(callback_return)
 
         elif action_type.lower() == 'filedialog':
-            filename, _ = QFileDialog.getOpenFileName(self.parent, 'Open', os.path.expanduser('~'),
-                                                      'Image Files (*.jpg *.jpeg *.gif *.png)')
+            file_type = 'Image Files (*.jpg *.jpeg *.gif *.png)'
+            if data is not None:
+                file_type = data
+            filename, _ = QFileDialog.getOpenFileName(self.parent, 'Open', os.path.expanduser('~'), file_type)
             if filename and callback:
                 if gui_wizard_page:
                     callback_return = callback(filename, self.get_fields(), gui_wizard_page.wizard_pages,
