@@ -19,7 +19,8 @@ import DbQuery
 import Manage
 import ManageDefs
 import resources
-from Common import find_image, get_pixmap_from_base64, callback_factory, fill_listbox, add_item_to_listbox
+from Common import find_image, get_pixmap_from_base64, callback_factory,\
+    fill_listbox, add_item_to_listbox, remove_item_from_listbox
 from Dialogs import YesNoDialog, EntryDialog, DualListDialog, ProgressDialog
 
 
@@ -347,7 +348,7 @@ class WidgetRegistry(dict):
             qt_widget.setEnabled(is_enabled)
             qt_widget.setStyleSheet(disabled_stylesheet)
             if widget_data:
-                self.fill_listbox(widget, widget_data)
+                fill_listbox(widget, widget_data)
             if not hide_field:
                 widget_layout.addWidget(QLabel(field_name))
             widget_layout.addWidget(qt_widget)
@@ -572,26 +573,32 @@ class WidgetRegistry(dict):
             self[field_name] = widget
         return widget_layout
 
-    def fill_listbox(self, listbox, fill):
-        listbox.clear()
-        for item in fill:
-            if type(item).__name__ == 'str':
-                listbox.addItem(item)
-            elif type(item).__name__ == 'dict':
-                table_name = item['TableName']
-                display_col = DbQuery.getDisplayCol(table_name)
-                display = item[display_col]
-                list_item = QListWidgetItem()
-                list_item.setText(display)
-                list_item.setData(QtCore.Qt.UserRole, item)
-                listbox.addItem(list_item)
-            elif type(item).__name__ == 'tuple':
-                display = item[0]
-                item_dict = item[1]
-                list_item = QListWidgetItem()
-                list_item.setText(display)
-                list_item.setData(QtCore.Qt.UserRole, item_dict)
-                listbox.addItem(list_item)
+    # def fill_listbox(self, listbox, fill):
+    #     listbox.clear()
+    #     for item in fill:
+    #         if type(item).__name__ == 'str':
+    #             listbox.addItem(item)
+    #         elif type(item).__name__ == 'dict':
+    #             table_name = item['TableName']
+    #             display_col = DbQuery.getDisplayCol(table_name)
+    #             display = item[display_col]
+    #             list_item = QListWidgetItem()
+    #             list_item.setText(display)
+    #             list_item.setData(QtCore.Qt.UserRole, item)
+    #             listbox.addItem(list_item)
+    #         elif type(item).__name__ == 'tuple':
+    #             display = item[0]
+    #             item_dict = item[1]
+    #             list_item = QListWidgetItem()
+    #             list_item.setText(display)
+    #             list_item.setData(QtCore.Qt.UserRole, item_dict)
+    #             listbox.addItem(list_item)
+
+    # def remove_item_from_listbox(self, listbox):
+    #     remove_index = listbox.currentRow()
+    #     if remove_index == -1:
+    #         return
+    #     listbox.takeItem(remove_index)
 
     def get_fields(self):
         fields = {}
@@ -649,7 +656,12 @@ class WidgetRegistry(dict):
                     widget.clear()
                     widget.addItems(v)
             elif widget_type.lower() == 'listbox':
-                fill_listbox(widget, v)
+                if isinstance(v, list):
+                    fill_listbox(widget, v)
+                elif isinstance(v, tuple) and len(v) == 0:
+                    remove_item_from_listbox(widget)
+                else:
+                    add_item_to_listbox(widget, v)
             elif widget_type.lower() == 'image':
                 widget.base64 = v or ''
                 pixmap = get_pixmap_from_base64(widget.base64)

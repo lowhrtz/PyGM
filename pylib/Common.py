@@ -41,6 +41,13 @@ def callback_factory(callback, *args, **kwargs):
     return lambda: callback(*args, **kwargs)
 
 
+def remove_item_from_listbox(listbox):
+    remove_index = listbox.currentRow()
+    if remove_index == -1:
+        return
+    listbox.takeItem(remove_index)
+
+
 def add_item_to_listbox(listbox, item, tool_tip=None, fields=None, original_list=None, wizard=None, index=None):
     if type(item).__name__ == 'str':
         list_item = QListWidgetItem()
