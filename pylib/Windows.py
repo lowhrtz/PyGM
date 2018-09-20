@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import (QMainWindow, QAction, QWidget, QTabWidget,
                              QFileDialog,
                              )
 from PyQt5.QtGui import QIcon, QPixmap, QFont, QTextDocument, QDrag
+from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer
 from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog
 import DbDefs
 import SystemSettings
@@ -19,7 +20,7 @@ import DbQuery
 import Manage
 import ManageDefs
 import resources
-from Common import find_image, get_pixmap_from_base64, callback_factory,\
+from Common import find_image, get_pixmap_from_base64, get_default_pixmap, callback_factory,\
     fill_listbox, add_item_to_listbox, remove_item_from_listbox
 from Dialogs import YesNoDialog, EntryDialog, DualListDialog, ProgressDialog
 
@@ -550,6 +551,37 @@ class WidgetRegistry(dict):
             qt_widget.setAcceptDrops(initial_state)
             widget_layout.addWidget(qt_widget)
 
+        elif widget_type.lower() == 'resourceselect':
+            widget_layout = QVBoxLayout()
+            if not hide_field:
+                widget_layout.addWidget(QLabel(field_name))
+            list_layout = QHBoxLayout()
+            qt_widget = QListWidget()
+            qt_widget.setEnabled(is_enabled)
+            list_layout.addWidget(qt_widget)
+            res_view = QLabel()
+            res_view.setObjectName('res_view')
+            res_view.setPixmap(get_default_pixmap(SYSTEM_PATH))
+            list_layout.addWidget(res_view)
+            widget_layout.addLayout(list_layout)
+
+            def select_resource():
+                current_item = qt_widget.currentItem()
+                resource = current_item.data(QtCore.Qt.UserRole)
+                res_type, res_data = widget.data(resource, self.get_fields())
+                if res_type.lower() == 'image':
+                    res_view.setPixmap(get_pixmap_from_base64(res_data))
+                elif res_type.lower() == 'audio':
+                    res_view.setPixmap(get_pixmap_from_base64(resources.volume_png))
+                    player = QMediaPlayer(qt_widget)
+                    self.byte_array = QtCore.QByteArray.fromBase64(res_data.encode())
+                    self.buffer = QtCore.QBuffer()
+                    self.buffer.setData(self.byte_array)
+                    self.buffer.open(QtCore.QIODevice.ReadOnly)
+                    player.setMedia(QMediaContent(), self.buffer)
+                    player.play()
+            qt_widget.clicked.connect(select_resource)
+
         elif widget_type.lower() == 'hr':
             widget_layout = QHBoxLayout()
             hr = QFrame(self.parent)
@@ -633,6 +665,12 @@ class WidgetRegistry(dict):
                 fields['{} Current'.format(k)] = data
             elif widget_type.lower() == 'image':
                 fields[k] = widget.base64
+            elif widget_type.lower() == 'resourceselect':
+                item_list = []
+                for i in range(widget.count()):
+                    item = widget.item(i)
+                    item_list.append(item.data(QtCore.Qt.UserRole))
+                fields[k] = item_list
         return fields
 
     def fill_fields(self, fields):
@@ -666,6 +704,15 @@ class WidgetRegistry(dict):
                 widget.base64 = v or ''
                 pixmap = get_pixmap_from_base64(widget.base64)
                 widget.setPixmap(pixmap)
+            elif widget_type.lower() == 'resourceselect':
+                if isinstance(v, list):
+                    fill_listbox(widget, v)
+                elif isinstance(v, tuple) and len(v) == 0:
+                    remove_item_from_listbox(widget)
+                else:
+                    add_item_to_listbox(widget, v)
+                res_view = widget.parent().findChild(QLabel, 'res_view')
+                res_view.setPixmap(get_default_pixmap(SYSTEM_PATH))
             elif widget_type.lower() == 'duallist':
                 gui_wizard_page = widget.gui_wizard_page
                 slots = widget.slots

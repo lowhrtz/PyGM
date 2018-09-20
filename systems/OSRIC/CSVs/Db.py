@@ -1,6 +1,22 @@
 # -*- coding: utf-8 -*-
 from DbDefs import Table
 
+class campaigns(Table):
+    table_name = 'Campaigns'
+    cols = ['unique_id','Name','Setting','In-Game_Date']
+    colDefs = ['VARCHAR(20) UNIQUE','VARCHAR(50)','VARCHAR(50)','VARCHAR(50)']
+    display_col = 1
+    data = [
+        ]
+
+class campaigns_meta(Table):
+    table_name = 'Campaigns_meta'
+    cols = ['campaign_id','Type','Entry_ID','Data','Notes']
+    colDefs = ['VARCHAR(20) REFERENCES Campaigns(unique_id) ON UPDATE CASCADE ON DELETE CASCADE','VARCHAR(20)','VARCHAR(50)','CLOB','TEXT']
+    display_col = 0
+    data = [
+        ]
+
 class characters(Table):
     table_name = 'Characters'
     cols = ['unique_id','Name','Level','XP','Gender','Alignment','Classes','Race','HP','Age','Height','Weight','Portrait','Portrait_Image_Type','STR','INT','WIS','DEX','CON','CHA']
@@ -833,6 +849,9 @@ class items(Table):
         ['sword_dancing_sword','Dancing Sword','Weapon','Sword','0','Not sold','22,000','1d8+1','1d12+1','slicing','sword_long','yes','','','','','','<b>(AFPRT)</b><br />An unusual weapon. During the first round the <i>dancing</i> sword is used in combat it performs as a +1 blade. Each subsequent round the sword adds an additional +1 bonus up to the maximum of +4 in the fourth round. In round 5 the process begins again, and at this point the blade can “dance”.<br /><br />A <i>dancing sword</i> can then be loosed from the wielder’s hand to fight on its own for 4 rounds, up to 30 ft away. The <i>dancing sword</i> will fight as if still being held by the owner and gains the successive bonuses to its attack and damage each round. When the <i>dancing sword</i> cycles from +4 back to +1 it will return to its owner’s hand, where it must be wielded for 4 rounds before being released to dance again.<br /><br />If the owner declines to grasp the sword when it returns to him or her, or if he or she moves more than 30 ft away from the <i>dancing sword</i>, the weapon will fall inanimate to the ground. The sword cannot be physically attacked by its opponent while dancing, though it is subject to magical attacks and effects (examples: <i>fireball</i>, <i>transmute metal to wood</i>). While the sword is dancing, the wielder can perform any other action he or she wishes, including fighting with another weapon.'],
         ['sword_defender','Defender','Weapon','Sword','0','Not sold','15,000','1d8+4','1d12+4','slicing','sword_long','yes','','','','','','<b>(AFPRT)</b><br />This sword is +4, but the wielder of this sword has the option each round of adding all or part of the bonus to his or her AC. Thus, a fighter could increase his or her current AC of 2 (plate mail with shield) to AC 0 by deducting 2 points from the sword’s +4 bonus and making the <i>defender></i> +2 to hit for that round. '],
         ['sword_dragonbane','Dragonbane','Weapon','Sword','0','Not sold','4,500','1d8+2','1d12+2','slicing','sword_long','yes','','','','','','<b>(AFPRT)</b><br />The <i>dragonbane</i> sword is +2 against most opponents, +4 vs all dragons and against one specific type of dragon (determined randomly) deals triple damage. If one of these swords should be determined to be intelligent (see below), it will in no way allow the player to slay a dragon of the same alignment. A chart is included to assist the GM with selecting a dragon type for triple damage. Since a campaign may include other types of dragons, the GM may wish to modify this list.<br /><br /><b>d10&#09;Result</b><br />01&#09;black<br />02&#09;blue<br />03&#09;brass<br />04&#09;bronze<br />05&#09;copper<br />06&#09;gold<br />07&#09;green<br />08&#09;red<br />09&#09;silver<br />10&#09;white'],
+        ['sword_flaming_blade','Flaming Blade','Weapon','Sword','0','Not sold','4,500','1d8+1','1d12+1','slicing','sword_long','yes','','','','','','<b>(AFPRT)</b><br />The blade of this weapon bursts into flame when its command word is spoken, giving illumination as a torch. The sword does not otherwise glow as most other magic swords do. The flame tongue’s fiery blade can easily ignite paper, oil, kindling, webs, or dry wood.<br />The sword is normally +1, but gives a +2 as a <i>trollbane</i> does, a +3 bonus against creatures that are inflammable, bird-like or have a special attack involving cold, and a +4 against undead. These bonuses do not stack; only the highest bonus should be counted. (Thus, if attacking a skeletal roc, the sword is +4 not +7.)'],
+        ['sword_frost_brand','Frost Brand','Weapon','Sword','0','Not sold','8,000','1d8+3','1d12+3','slicing','sword_long','yes','','','','','','<b>(AFPRT)</b><br />The <i>frost brand</i> is normally +3, granting a +6 bonus against any creature using fire as its attack (e.g. red dragons) or dwelling in fire such as fire elementals. This weapon grants special defence against fire; treat the wielder as if he or she were wearing a <i>ring of fire resistance</i>. The cold based magic of the blade also has a 50% chance of extinguishing fire for a 10 ft radius, including magical fires such as a <i>wall of fire</i> but not fire based attacks such as hell hound breath attacks or <i>fireballs</i>. Note: this blade does not shed light when drawn unless the ambient temperature is below freezing.'],
+        ['sword_giantbane','Giantbane','Weapon','Sword','0','Not sold','4,500','1d8+2','1d12+2','slicing','sword_long','yes','','','','','','<b>(AFPRT)</b><br />This sword will be +2 when fighting most foes. Against giant-like humanoids such as ettin or ogres, the giant slayer functions as a +3 blade. Against true giants such as hill giants or storm giants, the sword also does double damage.'],
         ['sword_short_+1','Sword, Short +1','Weapon','Sword','0','Not sold','2,000','1d6+1','1d8+1','piercing','sword_short','yes','','','','','',''],
         ['sword_short_+2','Sword, Short +2','Weapon','Sword','0','Not sold','4,000','1d6+2','1d8+2','piercing','sword_short','yes','','','','','',''],
         ['sword_short_+3','Sword, Short +3','Weapon','Sword','0','Not sold','7,000','1d6+3','1d8+3','piercing','sword_short','yes','','','','','',''],

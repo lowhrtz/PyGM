@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 db_order = [
+         'Campaigns',
          'Characters',
          'Races',
          'Classes',
@@ -10,7 +11,8 @@ db_order = [
          ]
 
 db_meta_map = [
-         ( 'Races', 'Races_meta' ),
-         ( 'Classes', 'Classes_meta' ),
-         ( 'Characters', 'Characters_meta' ),
+         ('Races', 'Races_meta'),
+         ('Classes', 'Classes_meta'),
+         ('Characters', 'Characters_meta'),
+         ('Campaigns', 'Campaigns_meta'),
          ]

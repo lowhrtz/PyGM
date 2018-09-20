@@ -1,0 +1,4 @@
+'Campaigns_meta',,,,
+'campaign_id','Type','Entry_ID','Data','Notes'
+'VARCHAR(20) REFERENCES Campaigns(unique_id) ON UPDATE CASCADE ON DELETE CASCADE','VARCHAR(20)','VARCHAR(50)','CLOB','TEXT'
+'display_col',,,,

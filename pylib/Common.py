@@ -1,4 +1,5 @@
 import os
+import resources
 import PyQt5.QtCore as QtCore
 from PyQt5.QtWidgets import QListWidgetItem
 from PyQt5.QtGui import QImage, QPixmap
@@ -26,6 +27,16 @@ def find_image(system_path, table_name, unique_id):
     system_parent = os.path.abspath(os.path.join(system_path, os.pardir))
     base_dir = os.path.abspath(os.path.join(system_parent, os.pardir))
     return os.path.join(base_dir, 'images/noImage.jpg')
+
+
+def get_default_pixmap(system_path):
+    extensions = ['jpg', 'jpeg', 'gif', 'png', ]
+    for ext in extensions:
+        default_image = os.path.join(system_path, 'portraits/default.{}'.format(ext))
+        if os.path.isfile(default_image):
+            return QPixmap(default_image)
+
+    return get_pixmap_from_base64(resources.noImage_jpg)
 
 
 def get_pixmap_from_base64(base64):

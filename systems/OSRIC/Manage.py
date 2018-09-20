@@ -1,6 +1,9 @@
 import base64
 import DbQuery
+import mimetypes
+import os
 import SystemSettings
+import time
 from decimal import Decimal
 from CharacterCreation import CharacterCreationWizard
 from LevelUp import LevelUpWizard
@@ -532,17 +535,196 @@ class Characters(Manage):
         return '{}<br /><b>{}</b>'.format(item['Name'], item['Cost'])
 
 
-class Adventures(Manage):
+class Campaigns(Manage):
     def __init__(self):
 
         super().__init__()
         empty_widget = Widget('', 'Empty')
         hr = Widget('hr', 'hr', col_span=4)
 
-        test = Widget('Test', 'TextLabel', col_span=1, data='Placeholder Text.')
-        self.add_row([test, ])
+        # test = Widget('Test', 'TextLabel', col_span=1, data='Placeholder Text.')
+        # self.add_row([test, ])
         # print(self.widget_matrix)
+        # button = Widget('Button', 'PushButton', )
+        # self.add_row([button, ])
+        # self.add_action(Action('CallbackOnly', button, callback=self.push_button))
 
+        campaign_list = Widget('Campaign List_', 'ListBox', col_span=2, row_span=3)
+        self.add_action(Action('OnShow', campaign_list, callback=self.get_campaign_table))
+        name = Widget('Name', 'LineEdit')
+        self.add_row([campaign_list, empty_widget, name])
+        setting = Widget('Setting', 'LineEdit')
+        self.add_row([empty_widget, empty_widget, setting])
+        ingame_date = Widget('In-Game Date', 'LineEdit')
+        self.add_row([empty_widget, empty_widget, ingame_date, ])
+        resource_select = Widget('Resources', 'ResourceSelect', col_span=3, data=self.resource_callback)
+        self.add_row(([resource_select, ]))
+        add_res_button = Widget('Add Resource', 'PushButton')
+        self.add_action(Action('FileDialog', add_res_button, callback=self.add_resource, data='All Files (*)'))
+        remove_res_button = Widget('Remove Resource', 'PushButton')
+        self.add_action(Action('FillFields', remove_res_button, callback=self.remove_resource))
+        self.add_row([add_res_button, remove_res_button])
+
+        self.add_action(Action('OnShow', campaign_list, callback=self.get_campaign_table))
+        self.add_action(Action('FillFields', campaign_list, callback=self.fill_page))
+
+        file_menu = Menu('&File')
+        # file_menu.add_action(Action('ListDialog', Widget('&Choose Campaign', 'MenuAction'),
+        #                             callback=self.choose_campaign))
+        file_menu.add_action(Action('FileDialog', Widget('&Open Adventure', 'MenuAction'),
+                                    callback=self.open_adventure, data='Adventure XML (*.xml)'))
+        file_menu.add_action(Action('Wizard', Widget('&Create Campaign', 'MenuAction'), data=CampaignCreator,
+                                    callback=self.create_campaign_callback))
+        self.add_menu(file_menu)
+
+    def get_campaign_table(self, fields):
+        return {'Campaign List': DbQuery.getTable('Campaigns')}
+
+    def push_button(self, fields):
+        print(fields)
+
+    def open_adventure(self, filename, fields):
+        print(filename)
+        return {}
+
+    def create_campaign_callback(self, campaign, fields):
+        data_list = [campaign['unique_id'],
+                     campaign['Name'],
+                     campaign['Setting'],
+                     campaign['In-Game_Date']]
+
+        DbQuery.begin()
+        DbQuery.insertRow('Campaigns', data_list)
+
+        for meta_row in campaign['Campaigns_meta']:
+            data_list = [meta_row['campaign_id'],
+                         meta_row['Type'],
+                         meta_row['Entry_ID'],
+                         meta_row['Data'],
+                         meta_row['Notes']]
+            DbQuery.insertRow('Campaigns_meta', data_list)
+
+        DbQuery.commit()
+
+        campaign_table = DbQuery.getTable('Campaigns')
+        return {'Campaign List': campaign_table}
+
+    def fill_page(self, fields):
+        current_campaign = fields['Campaign List Current']
+        if current_campaign is None:
+            return {}
+        res_list = [(res['Entry_ID'], res) for res in current_campaign['Campaigns_meta']
+                    if res['Type'] == 'image' or res['Type'] == 'audio']
+        return {'Name': current_campaign['Name'],
+                'Setting': current_campaign['Setting'],
+                'In-Game Date': current_campaign['In-Game_Date'],
+                'Resources': res_list}
+
+    def resource_callback(self, resource, fields):
+        res_type = resource['Type']
+        res_data = resource['Data']
+        return res_type, res_data
+
+    def add_resource(self, filename, fields):
+        mime_type, _ = mimetypes.guess_type(filename)
+        mime_cat, mime_spec = mime_type.split('/')
+        with open(filename, 'rb') as resource_file:
+            data = base64.b64encode(resource_file.read())
+
+        entry_id = os.path.basename(filename)
+        return {'Resources': (entry_id, {'Data': data.decode(), 'Type': mime_cat, 'Entry_ID': entry_id})}
+
+    def remove_resource(self, fields):
+        return {'Resources': ()}
+
+    class Adventures(Manage):
+        def __init__(self):
+
+            super().__init__()
+            test = Widget('Test', 'TextLabel', data='Adventure Text')
+            self.add_row([test, ])
+
+
+class CampaignCreator(Wizard):
+
+    def __init__(self):
+        super().__init__('Create Campaign')
+
+        self.add_wizard_page(CampaignIntro())
+        self.add_wizard_page(CampaignResources())
+
+    def accept(self, fields, pages, external_data):
+        unique_id = '{}-{}-{}'.format(fields['Name'], fields['Setting'], time.time())
+        campaign = {'unique_id': unique_id,
+                    'Name': fields['Name'],
+                    'Setting': fields['Setting'],
+                    'In-Game_Date': fields['In-Game Date'],
+                    'Campaigns_meta': []}
+        for resource in fields['Resource List']:
+            meta_row = {'campaign_id': unique_id,
+                        'Type': resource['Type'],
+                        'Entry_ID': resource['Entry_ID'],
+                        'Data': resource['Data'],
+                        'Notes': ''}
+            campaign['Campaigns_meta'].append(meta_row)
+        return campaign
+
+
+class CampaignIntro(WizardPage):
+
+    def __init__(self):
+        super().__init__(0, 'Create a Campaign')
+        self.set_subtitle('Create a new campaign.')
+
+        empty = Widget('Empty', 'Empty')
+        self.add_row([empty, ])
+
+        name = Widget('Name', 'LineEdit')
+        self.add_row([name, ])
+        setting = Widget('Setting', 'LineEdit')
+        self.add_row([setting, ])
+        date = Widget('In-Game Date', 'LineEdit')
+        self.add_row([date, ])
+
+    def is_complete(self, fields, pages, external_data):
+        if len(fields['Name']) == 0 or fields['Name'].isspace()\
+                or len(fields['Setting']) == 0 or fields['Setting'].isspace():
+            return False
+        return True
+
+
+class CampaignResources(WizardPage):
+
+    def __init__(self):
+        super().__init__(1, 'Resources')
+        self.set_subtitle('Add Resources')
+
+        text = Widget('ResourceText', 'TextLabel', align='Center',
+                      data='Add resources such as images or audio.', col_span=2)
+        self.add_row([text, ])
+        add_button = Widget('Add Resource', 'PushButton', align='Center')
+        self.add_action(Action('FileDialog', add_button, callback=self.add_resource, data='All Files (*)'))
+        remove_button = Widget('Remove Resource', 'PushButton', align='Center')
+        self.add_action(Action('FillFields', remove_button, callback=self.remove_resource))
+        self.add_row([add_button, remove_button])
+        resource_list = Widget('Resource List_', 'ListBox', col_span=2)
+        self.add_row([resource_list, ])
+
+    def add_resource(self, filename, fields, pages, external_data):
+        mime_type, _ = mimetypes.guess_type(filename)
+        mime_cat, mime_spec = mime_type.split('/')
+        if mime_cat == 'image':
+            print('image')
+        elif mime_cat == 'audio':
+            print('audio')
+        with open(filename, 'rb') as resource_file:
+            data = base64.b64encode(resource_file.read())
+
+        entry_id = os.path.basename(filename)
+        return {'Resource List': (filename, {'Data': data.decode(), 'Type': mime_cat, 'Entry_ID': entry_id})}
+
+    def remove_resource(self, fields, pages, external_data):
+        return {'Resource List': ()}
 
 
 image_data = '/9j/4AAQSkZJRgABAQEASABIAAD//gATQ3JlYXRlZCB3aXRoIEdJTVD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/\

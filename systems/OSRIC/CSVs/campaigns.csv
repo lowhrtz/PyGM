@@ -1,0 +1,4 @@
+'Campaigns',,,
+'unique_id','Name','Setting','In-Game_Date'
+'VARCHAR(20) UNIQUE','VARCHAR(50)','VARCHAR(50)','VARCHAR(50)'
+,'display_col',,
