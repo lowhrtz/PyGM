@@ -7,11 +7,12 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget,
                              QHBoxLayout, QVBoxLayout,
                              QLabel, QComboBox, QPushButton)
 from PyQt5.QtGui import QIcon
-from pylib.Common import get_pixmap_from_base64
-from pylib.resources import icon_png
 
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.join(THIS_DIR, 'pylib'))
+from Common import get_pixmap_from_base64
+from resources import icon_png
 
 
 class ChooseSystem(QMainWindow):
@@ -92,7 +93,7 @@ class ChooseSystem(QMainWindow):
         self.close()
         system_path = self.choose.currentData()
         # self.w = MainWindow( system_path )
-        sys.path.append(os.path.join(THIS_DIR, 'pylib'))
+        #sys.path.append(os.path.join(THIS_DIR, 'pylib'))
         sys.path.append(system_path)
         import Windows
         self.w = Windows.MainWindow(system_path)

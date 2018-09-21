@@ -3,10 +3,6 @@ import resources
 import PyQt5.QtCore as QtCore
 from PyQt5.QtWidgets import QListWidgetItem
 from PyQt5.QtGui import QImage, QPixmap
-try:
-    import DbQuery
-except ImportError:
-    pass
 
 
 def find_image(system_path, table_name, unique_id):
@@ -67,6 +63,8 @@ def add_item_to_listbox(listbox, item, tool_tip=None, fields=None, original_list
     elif type(item).__name__ == 'dict':
         item_dict = item
         table_name = item['TableName']
+        # Import DbQuery now because it will fail on initial loading of this module
+        import DbQuery
         display_col = DbQuery.getDisplayCol(table_name)
         display = item[display_col]
         list_item = QListWidgetItem()
