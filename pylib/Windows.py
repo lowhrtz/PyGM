@@ -1,7 +1,7 @@
 import inspect
 import os
 import PyQt5.QtCore as QtCore
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import pyqtSignal, QTimer
 from PyQt5.QtWidgets import (QMainWindow, QAction, QWidget, QTabWidget,
                              QDesktopWidget, QHBoxLayout, QVBoxLayout, QGridLayout,
                              QScrollArea, QWizard, QWizardPage, QPushButton, QCheckBox,
@@ -902,6 +902,11 @@ class WidgetRegistry(dict):
                 drag_image = self[k].qt_widget
                 drag_image.setAcceptDrops(v)
 
+        elif action_type.lower() == 'window':
+            if callback:
+                manage = callback(self.get_fields())
+                ManageWindow(manage, self.parent)
+
         elif action_type.lower() == 'callbackonly':
             if callback:
                 callback(self.get_fields())
@@ -929,6 +934,7 @@ class ManageWindow(CenterableWindow):
         self.manage = manage
         self.parent = parent
         self.widget_registry = WidgetRegistry(self)
+        self.close_callback = lambda x: x
 
         class_name = type(manage).__name__
 
@@ -971,7 +977,13 @@ class ManageWindow(CenterableWindow):
             data = action.get_data()
             if action_type.lower() == 'onshow':
                 self.onshow.connect(callback_factory(self.on_show, callback))
-            elif widget1_type.lower() == 'pushbutton':
+            elif action_type.lower() == 'onclose':
+                self.close_callback = callback
+            elif action_type.lower() == 'timer':
+                self.timer = QTimer()
+                self.timer.timeout.connect(callback_factory(self.on_timeout, callback))
+                self.timer.start(data)
+            elif widget1_type.lower() == 'pushbutton' or widget1_type.lower() == 'checkbox':
                 qt_widget = self.widget_registry[widget1_field_name].qt_widget
                 qt_widget.clicked.connect(callback_factory(self.widget_registry.process_action, action))
             elif widget1_type.lower() == 'listbox':
@@ -981,7 +993,8 @@ class ManageWindow(CenterableWindow):
         menu_list = manage.get_menu_list()
         self.widget_registry.fill_menu_bar(self.menuBar(), menu_list, self)
 
-        self.setWindowModality(QtCore.Qt.ApplicationModal)
+        if manage.get_modality() == 'block':
+            self.setWindowModality(QtCore.Qt.ApplicationModal)
         self.setWindowTitle(class_name)
         self.onshow.emit()
         self.show()
@@ -993,6 +1006,19 @@ class ManageWindow(CenterableWindow):
         # print( fields )
         callback_return = callback(fields)
         self.widget_registry.fill_fields(callback_return)
+
+    def on_timeout(self, callback):
+        fields = self.widget_registry.get_fields()
+        callback_return = callback(fields)
+        self.widget_registry.fill_fields(callback_return)
+
+    def closeEvent(self, event):
+        self.close_callback(self.widget_registry.get_fields())
+        try:
+            self.timer.stop()
+        except:
+            pass
+        super().closeEvent(event)
 
 
 class GuiWizard(QWizard):

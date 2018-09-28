@@ -4,11 +4,13 @@ import mimetypes
 import os
 import SystemSettings
 import time
+from Common import callback_factory_1param
 from decimal import Decimal
 from CharacterCreation import CharacterCreationWizard
 from LevelUp import LevelUpWizard
 from ManageDefs import Manage
 from GuiDefs import *
+from wsgiref.simple_server import make_server
 
 
 class Characters(Manage):
@@ -577,6 +579,11 @@ class Campaigns(Manage):
                                     callback=self.create_campaign_callback))
         self.add_menu(file_menu)
 
+        tools_menu = Menu('&Tools')
+        tools_menu.add_action(Action('Window', Widget('&Server', 'MenuAction'),
+                                     callback=self.open_server))
+        self.add_menu(tools_menu)
+
     def get_campaign_table(self, fields):
         return {'Campaign List': DbQuery.getTable('Campaigns')}
 
@@ -586,6 +593,10 @@ class Campaigns(Manage):
     def open_adventure(self, filename, fields):
         print(filename)
         return {}
+
+    def open_server(self, fields):
+        adventure_window = self.AdventureServer(fields)
+        return adventure_window
 
     def create_campaign_callback(self, campaign, fields):
         data_list = [campaign['unique_id'],
@@ -637,12 +648,83 @@ class Campaigns(Manage):
     def remove_resource(self, fields):
         return {'Resources': ()}
 
-    class Adventures(Manage):
-        def __init__(self):
+    class AdventureServer(Manage):
+        def __init__(self, fields):
 
-            super().__init__()
-            test = Widget('Test', 'TextLabel', data='Adventure Text')
+            super().__init__(modality='unblock')
+            test = Widget('Test', 'TextLabel', data='Adventure Server', align='Center', col_span=2)
             self.add_row([test, ])
+
+            adventure_title = Widget('Title', 'LineEdit')
+            background_color = Widget('BG Color', 'LineEdit')
+            self.add_row([adventure_title, background_color])
+            handout_text = Widget('Handout Text', 'TextLabel', data='Handouts')
+            self.add_row([handout_text, ])
+            self.resources = {}
+            for res in fields['Resources']:
+                entry_id = res['Entry_ID']
+                self.resources[entry_id] = res
+                r = Widget(entry_id, 'Checkbox')
+                self.add_action(Action('CallbackOnly', r, callback=callback_factory_1param(self.checkbox_callback, r)))
+                self.add_row([r, ])
+
+            self.web_server = make_server('', 1234, self.web_app)
+            self.web_server.timeout = 0
+            self.web_server.base_environ['Extern'] = fields
+            self.web_server.base_environ['Fields'] = {}
+            self.add_action(Action('Timer', Widget('Empty', 'Empty'), callback=self.handle_request, data=1))
+            self.add_action(Action('OnClose', Widget('Empty', 'Empty'), callback=self.on_close))
+
+        def web_app(self, environ, start_response):
+            fields = environ['Fields']
+            start_response('200 OK', [('Content-type', 'text/html')])
+            html = '''<style>
+
+h1, h2, h3 {
+    text-align: center;
+}
+
+h1 {
+    font-size: 200%
+}
+
+img {
+    border: 5px inset lightgrey;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+</style>
+'''
+            html += '<body style="background: {}"><h1>{}</h1><h2>{}</h2>'\
+                .format(fields['BG Color'], environ['Extern']['Name'], fields['Title'])
+            image_tags = ''
+            for entry_id, res in self.resources.items():
+                checked = fields[entry_id]
+                if checked and res['Type'] == 'image':
+                    image_tags += '<img width=800 src=data:image;base64,{} /><br />'\
+                        .format(res['Data'])
+            if image_tags:
+                html += '<h3>Handouts</h3>{}'.format(image_tags)
+            html += '</body>'
+
+            return [html.encode('utf-8')]
+
+        def handle_request(self, fields):
+            self.web_server.base_environ['Fields'] = fields
+            self.web_server.handle_request()
+            return {}
+
+        def checkbox_callback(self, fields, box):
+            field_name = box.get_field_name()
+            checked = fields[field_name]
+            res = self.resources[field_name]
+            if checked and res['Type'] == 'image':
+                print(field_name, ':', res['Type'], ':', res['Data'][:20])
+
+        def on_close(self, fields):
+            self.web_server.server_close()
 
 
 class CampaignCreator(Wizard):
