@@ -2,7 +2,7 @@ import os
 import resources
 import PyQt5.QtCore as QtCore
 from PyQt5.QtWidgets import QListWidgetItem
-from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtGui import QColor, QImage, QPixmap
 
 
 def find_image(system_path, table_name, unique_id):
@@ -42,6 +42,15 @@ def get_pixmap_from_base64(base64):
     if pixmap.height() > 200 or pixmap.width() > 200:
         pixmap = pixmap.scaled(200, 200, QtCore.Qt.KeepAspectRatio)
     return pixmap
+
+
+def get_pixmap_from_hex_color(hex_color, width=200, height=200):
+    image = QImage(width, height, QImage.Format_RGB888)
+    color = QColor(hex_color)
+    for y in range(height):
+        for x in range(width):
+            image.setPixelColor(x, y, color)
+    return QPixmap.fromImage(image)
 
 
 def callback_factory(callback, *args, **kwargs):

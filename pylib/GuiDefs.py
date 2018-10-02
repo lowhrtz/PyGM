@@ -15,7 +15,7 @@ class Widget(object):
     data = None
 
     def __init__(self, field_name, widget_type, enable_edit=True, height=None, width=None,
-                 col_span=1, row_span=1, stretch=True, align=None, direction='Vertical', data=None):
+                 col_span=1, row_span=1, stretch=True, align=None, direction='Vertical', data=None, style=None):
         self.field_name = field_name
         self.widget_type = widget_type
         self.enable_edit = enable_edit
@@ -27,6 +27,7 @@ class Widget(object):
         self.align = align
         self.direction = direction
         self.data = data
+        self.style = style
 
     def __str__(self):
         return self.field_name
@@ -63,6 +64,9 @@ class Widget(object):
 
     def get_data(self):
         return self.data
+
+    def get_style(self):
+        return self.style
 
 
 class Action(object):

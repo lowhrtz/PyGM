@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (QMainWindow, QAction, QWidget, QTabWidget,
                              QScrollArea, QWizard, QWizardPage, QPushButton, QCheckBox,
                              QLabel, QListWidget, QListWidgetItem, QLineEdit, QTextEdit,
                              QFrame, QComboBox, QSpinBox, QRadioButton, QButtonGroup,
-                             QFileDialog,
+                             QFileDialog, QColorDialog
                              )
 from PyQt5.QtGui import QIcon, QPixmap, QFont, QTextDocument, QDrag
 from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer
@@ -20,8 +20,8 @@ import DbQuery
 import Manage
 import ManageDefs
 import resources
-from Common import find_image, get_pixmap_from_base64, get_default_pixmap, callback_factory,\
-    fill_listbox, add_item_to_listbox, remove_item_from_listbox
+from Common import (find_image, get_pixmap_from_base64, get_default_pixmap, callback_factory,
+                    fill_listbox, add_item_to_listbox, remove_item_from_listbox, get_pixmap_from_hex_color)
 from Dialogs import YesNoDialog, EntryDialog, DualListDialog, ProgressDialog
 
 
@@ -230,6 +230,7 @@ class WidgetRegistry(dict):
         is_enabled = widget.is_edit_enabled()
         stretch = widget.get_stretch()
         widget_data = widget.get_data()
+        widget_style = widget.get_style()
 
         widget_layout = None
         qt_widget = None
@@ -461,7 +462,8 @@ class WidgetRegistry(dict):
                 if valid is not True:
                     return
                 # if type( slots_new_value ).__name__ == 'str':
-                slots_label.setText('<b>{}: </b>{}'.format(slots_name, str(slots_new_value)))
+                if slots:
+                    slots_label.setText('<b>{}: </b>{}'.format(slots_name, str(slots_new_value)))
                 if remove is True:
                     current_list.takeItem(current_list.currentRow())
 
@@ -490,7 +492,8 @@ class WidgetRegistry(dict):
                 new_display = remove_return.get('new_display')
                 if valid is not True:
                     return
-                slots_label.setText('<b>{}: </b>{}'.format(slots_name, str(slots_new_value)))
+                if slots:
+                    slots_label.setText('<b>{}: </b>{}'.format(slots_name, str(slots_new_value)))
                 # print(slots_new_value)
                 if type(new_display).__name__ == 'tuple':
                     replace_index = new_display[0]
@@ -518,8 +521,12 @@ class WidgetRegistry(dict):
                                 qt_widget.category_hash[category] = original_list = QListWidget(self.parent)
                                 tabbed_avail_lists.addTab(qt_widget.category_hash[category], category)
                         else:
-                            original_list = tabbed_avail_lists.getCurrentWidget()
-                    add_item_to_listbox(original_list, current_data, tool_tip, self.get_fields(), original_list, wizard=gui_wizard_page)
+                            # original_list = tabbed_avail_lists.getCurrentWidget()
+                            original_list = tabbed_avail_lists.currentWidget()
+                    replace_item = current_data
+                    if new_display and type(new_display).__name__ == 'str':
+                        replace_item = new_display, current_data
+                    add_item_to_listbox(original_list, replace_item, tool_tip, self.get_fields(), original_list, wizard=gui_wizard_page)
                 chosen_list.takeItem(chosen_list.currentRow())
 
             add_button.pressed.connect(add_pressed)
@@ -534,11 +541,21 @@ class WidgetRegistry(dict):
 
         elif widget_type.lower() == 'image':
             widget_layout = QVBoxLayout()
-            pixmap = get_pixmap_from_base64(widget_data or '')
+            widget_base64 = widget_data or ''
+            if widget_base64.startswith('#') and len(widget_base64) < 8:
+                pixmap = get_pixmap_from_hex_color(widget_base64)
+            elif widget_base64.find('|') > -1:
+                hex_color, width, height = widget_base64.split('|')
+                pixmap = get_pixmap_from_hex_color(hex_color, int(width), int(height))
+            else:
+                pixmap = get_pixmap_from_base64(widget_base64)
             qt_widget = QLabel()
             qt_widget.setPixmap(pixmap)
             qt_widget.base64 = widget_data or ''
             qt_widget.setEnabled(is_enabled)
+            if widget_style:
+                widget_style = widget_style
+                qt_widget.setStyleSheet(widget_style)
             widget_layout.addWidget(qt_widget)
 
         elif widget_type.lower() == 'dragimage':
@@ -702,7 +719,13 @@ class WidgetRegistry(dict):
                     add_item_to_listbox(widget, v)
             elif widget_type.lower() == 'image':
                 widget.base64 = v or ''
-                pixmap = get_pixmap_from_base64(widget.base64)
+                if widget.base64.startswith('#') and len(widget.base64) < 8:
+                    pixmap = get_pixmap_from_hex_color(widget.base64)
+                elif widget.base64.find('|') > -1:
+                    hex_color, width, height = widget.base64.split('|')
+                    pixmap = get_pixmap_from_hex_color(hex_color, int(width), int(height))
+                else:
+                    pixmap = get_pixmap_from_base64(widget.base64)
                 widget.setPixmap(pixmap)
             elif widget_type.lower() == 'resourceselect':
                 if isinstance(v, list):
@@ -727,10 +750,12 @@ class WidgetRegistry(dict):
                 category_hash = widget.category_hash = {}
                 owned_items = v
 
-                if gui_wizard_page:
-                    slots_return = slots(self.get_fields(), gui_wizard_page.wizard_pages, gui_wizard_page.external_data)
-                else:
-                    slots_return = slots(self.get_fields())
+                if slots:
+                    if gui_wizard_page:
+                        slots_return = slots(self.get_fields(), gui_wizard_page.wizard_pages, gui_wizard_page.external_data)
+                    else:
+                        slots_return = slots(self.get_fields())
+                    slots_label.setText('<b>{}: </b>{}'.format(slots_name, slots_return))
                 if fill_avail:
                     if gui_wizard_page:
                         avail_items = fill_avail(owned_items, self.get_fields(), gui_wizard_page.wizard_pages, gui_wizard_page.external_data)
@@ -738,7 +763,6 @@ class WidgetRegistry(dict):
                         avail_items = fill_avail(owned_items, self.get_fields())
                 else:
                     avail_items = []
-                slots_label.setText('<b>{}: </b>{}'.format(slots_name, slots_return))
 
                 tabbed_avail_lists.clear()
                 if category_field:
@@ -880,6 +904,20 @@ class WidgetRegistry(dict):
                                                gui_wizard_page.external_data)
                 else:
                     callback_return = callback(filename, self.get_fields())
+                self.fill_fields(callback_return)
+
+        elif action_type.lower() == 'colordialog':
+            title = 'Choose Color'
+            if data is not None:
+                title = data
+            color = QColorDialog.getColor(parent=self.parent, title=title)
+            if color.isValid():
+                hex_color = color.name()
+                if gui_wizard_page:
+                    callback_return = callback(hex_color, self.get_fields(), gui_wizard_page.wizard_pages,
+                                               gui_wizard_page.external_data)
+                else:
+                    callback_return = callback(hex_color, self.get_fields())
                 self.fill_fields(callback_return)
 
         elif action_type.lower() == 'wizard':
