@@ -910,7 +910,7 @@ class WidgetRegistry(dict):
             title = 'Choose Color'
             if data is not None:
                 title = data
-            color = QColorDialog.getColor(parent=self.parent, title=title)
+            color = QColorDialog.getColor(parent=self.parent, title=title, options=QColorDialog.DontUseNativeDialog)
             if color.isValid():
                 hex_color = color.name()
                 if gui_wizard_page:
