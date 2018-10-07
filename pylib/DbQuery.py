@@ -169,15 +169,17 @@ def updateRow( table_name, where_col, where, row ):
     update_string = 'UPDATE {} SET '.format( table_name )
     cols = [ col[0] for col in getCols( table_name ) ]
     for i, col in enumerate( cols):
-        update_string += '{} = ?'.format( col )
+        update_string += '"{}" = ?'.format( col )
         if i < len( cols ) - 1:
             update_string += ', '
-    update_string += ' WHERE {} = "{}"'.format( where_col, where )
+    update_string += ' WHERE "{}" = "{}"'.format( where_col, where )
     values = tuple( val for val in row )
     try:
         cursor.execute( update_string, values )
         return True
-    except sqlite3.Error:
+    except sqlite3.Error as e:
+        print(e)
+        print('Query String:', update_string)
         return False
 
 def deleteRow( table_name, where_col, where ):

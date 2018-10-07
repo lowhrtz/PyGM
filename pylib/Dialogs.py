@@ -172,13 +172,13 @@ class DualListDialog(QDialog):
         if chosen_list.count() > 0:
             chosen_list.setCurrentRow(0)
 
-        slots_return = slots(fields)
-
         add_button = QPushButton('Add', self)
         remove_button = QPushButton('Remove', self)
 
-        self.slots_label = QLabel('<b>{}:</b>{}'.format(slots_name, slots_return), self)
-        layout.addWidget(self.slots_label, 1, QtCore.Qt.AlignCenter)
+        if slots:
+            slots_return = slots(fields)
+            self.slots_label = QLabel('<b>{}:</b>{}'.format(slots_name, slots_return), self)
+            layout.addWidget(self.slots_label, 1, QtCore.Qt.AlignCenter)
 
         list_layout = QHBoxLayout()
         button_layout = QVBoxLayout()
@@ -212,7 +212,7 @@ class DualListDialog(QDialog):
         self.setLayout(layout)
 
     def add_pressed(self):
-        #print( 'add_pressed' )
+        # print( 'add_pressed' )
         current_list = self.tabbed_avail_lists.currentWidget()
         if current_list.currentRow() == -1:
             return
@@ -225,7 +225,10 @@ class DualListDialog(QDialog):
         new_display = add_return.get('new_display')
         if valid is not True:
             return
-        self.slots_label.setText('<b>{}:</b>{}'.format(self.slots_name, str(slots_new_value)))
+        try:
+            self.slots_label.setText('<b>{}:</b>{}'.format(self.slots_name, str(slots_new_value)))
+        except AttributeError:
+            pass
         if remove is True:
             current_list.takeItem(current_list.currentRow())
         replace_index = None
@@ -251,7 +254,10 @@ class DualListDialog(QDialog):
         new_display = remove_return.get('new_display')
         if valid is not True:
             return
-        self.slots_label.setText('<b>{}:</b>{}'.format(self.slots_name, str(slots_new_value)))
+        try:
+            self.slots_label.setText('<b>{}:</b>{}'.format(self.slots_name, str(slots_new_value)))
+        except AttributeError:
+            pass
         if type(new_display).__name__ == 'tuple':
             replace_index = new_display[0]
             new_display = new_display[1]
@@ -272,7 +278,7 @@ class DualListDialog(QDialog):
                             self.category_hash[category] = original_list = QListWidget(self.parent)
                             self.tabbed_avail_lists.addTab(self.category_hash[category], category)
                 else:
-                    original_list = self.tabbed_avail_lists.getCurrentWidget()
+                    original_list = self.tabbed_avail_lists.currentWidget()
             add_item_to_listbox(original_list, current_data, self.tool_tip, self.fields, original_list)
         self.chosen_list.takeItem(self.chosen_list.currentRow())
 

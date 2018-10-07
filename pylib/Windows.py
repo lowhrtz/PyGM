@@ -588,6 +588,8 @@ class WidgetRegistry(dict):
                 res_type, res_data = widget.data(resource, self.get_fields())
                 if res_type.lower() == 'image':
                     res_view.setPixmap(get_pixmap_from_base64(res_data))
+                elif res_type.lower() == 'font':
+                    res_view.setPixmap(get_pixmap_from_base64(resources.font_png))
                 elif res_type.lower() == 'audio':
                     res_view.setPixmap(get_pixmap_from_base64(resources.volume_png))
                     player = QMediaPlayer(qt_widget)
@@ -598,6 +600,7 @@ class WidgetRegistry(dict):
                     player.setMedia(QMediaContent(), self.buffer)
                     player.play()
             qt_widget.clicked.connect(select_resource)
+            qt_widget.itemSelectionChanged.connect(select_resource)
 
         elif widget_type.lower() == 'hr':
             widget_layout = QHBoxLayout()
@@ -858,9 +861,13 @@ class WidgetRegistry(dict):
         elif action_type.lower() == 'entrydialog':
             # print( 'entrydialog' )
             value = [None]
-            title = widget1_field_name
-            if title.startswith('&'):
-                title = title[1:]
+            if widget1.get_widget_type().lower() == 'menuaction':
+                title = widget1_field_name.replace('&', '')
+            else:
+                title = widget1_field_name
+            # title = widget1_field_name
+            # if title.startswith('&'):
+            #     title = title[1:]
             parent = self[widget2_field_name].qt_widget.parent()
             if widget2_widget_type.lower() == 'lineedit':
                 dialog = EntryDialog(title, EntryDialog.LINE_EDIT, value, parent)
@@ -878,9 +885,12 @@ class WidgetRegistry(dict):
                 self.fill_fields(callback_return)
 
         elif action_type.lower() == 'listdialog':
-            title = widget1_field_name
-            if title.startswith('&'):
-                title = title[1:]
+            if widget1.get_widget_type().lower() == 'menuaction':
+                title = widget1_field_name.replace('&', '')
+            else:
+                title = widget1_field_name
+            # if title.startswith('&'):
+            #     title = title[1:]
             parent = self[widget2_field_name].qt_widget.parent()
             listbox = self[widget2_field_name].qt_widget
             owned_items = []
@@ -944,6 +954,19 @@ class WidgetRegistry(dict):
             if callback:
                 manage = callback(self.get_fields())
                 ManageWindow(manage, self.parent)
+
+        elif action_type.lower() == 'playsound':
+            if gui_wizard_page:
+                playsound_callback_return = callback(self.get_fields(), gui_wizard_page.wizard_pages, gui_wizard_page.external_data)
+            else:
+                playsound_callback_return = callback(self.get_fields())
+            player = QMediaPlayer(widget1.qt_widget)
+            self.byte_array = QtCore.QByteArray.fromBase64(playsound_callback_return.encode())
+            self.buffer = QtCore.QBuffer()
+            self.buffer.setData(self.byte_array)
+            self.buffer.open(QtCore.QIODevice.ReadOnly)
+            player.setMedia(QMediaContent(), self.buffer)
+            player.play()
 
         elif action_type.lower() == 'callbackonly':
             if callback:
@@ -1054,7 +1077,7 @@ class ManageWindow(CenterableWindow):
         self.close_callback(self.widget_registry.get_fields())
         try:
             self.timer.stop()
-        except:
+        except AttributeError:
             pass
         super().closeEvent(event)
 
