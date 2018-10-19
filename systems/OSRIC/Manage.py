@@ -955,10 +955,9 @@ class CampaignResources(WizardPage):
     def add_resource(self, filename, fields, pages, external_data):
         mime_type, _ = mimetypes.guess_type(filename)
         mime_cat, mime_spec = mime_type.split('/')
-        if mime_cat == 'image':
-            print('image')
-        elif mime_cat == 'audio':
-            print('audio')
+        if mime_cat == 'application' and 'font' in mime_spec:
+            mime_cat = 'font'
+        # print(mime_cat, mime_spec)
         with open(filename, 'rb') as resource_file:
             data = base64.b64encode(resource_file.read())
 
