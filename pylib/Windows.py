@@ -40,7 +40,7 @@ class CenterableWindow(QMainWindow):
         self.move(qt_rectangle.topLeft())
 
 
-class MainWindow( CenterableWindow ):
+class MainWindow(CenterableWindow):
 
     def __init__(self, system_path):
         super().__init__()
@@ -131,10 +131,10 @@ class MainWindow( CenterableWindow ):
         ManageWindow(manage, self)
 
 
-class DbWindow( CenterableWindow ):
+class DbWindow(CenterableWindow):
 
-    def __init__( self, table_name, parent ):
-        super().__init__( parent )
+    def __init__(self, table_name, parent):
+        super().__init__(parent)
         
         self.widget_registry = {}
         self.table_name = table_name
