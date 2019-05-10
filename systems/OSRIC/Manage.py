@@ -884,7 +884,7 @@ class Campaigns(Manage):
                 self.add_row(row)
 
         def play_sound_callback(self, fields, sound):
-                return sound['Data']
+            return sound['Data']
 
 
 class CampaignCreator(Wizard):
