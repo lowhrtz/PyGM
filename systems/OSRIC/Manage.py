@@ -768,6 +768,11 @@ class Campaigns(Manage):
             # self.add_row([test, ])
 
             adventure_title = Widget('Title', 'LineEdit', col_span=3)
+            title_background = Widget('Title Background', 'PushButton')
+            self.add_action(Action('FileDialog', title_background, callback=self.title_background_callback))
+            clear_title_bg = Widget('Clear Title BG', 'PushButton')
+            self.add_action(Action('FillFields', clear_title_bg, callback=lambda f: {'Title BG Preview': ''}))
+            title_bg_preview = Widget('Title BG Preview_', 'Image', data=None, row_span=3)
             background_color = Widget('Background Color', 'PushButton')
             self.add_action(Action('ColorDialog', background_color, callback=self.color_dialog_callback))
             background_color_preview = Widget('Background Color Preview_', 'Image', data='#ffffff|50|20')
@@ -805,8 +810,8 @@ class Campaigns(Manage):
                                                     data=['Light Image', 'Dark Image'])
 
             # GUI layout
-            self.add_row([adventure_title, ])
-            self.add_row([background_color, background_color_preview, chosen_color])
+            self.add_row([adventure_title, empty, empty, title_background, clear_title_bg])
+            self.add_row([background_color, background_color_preview, chosen_color, title_bg_preview])
             self.add_row([font_radio_button, built_in_fonts])
             self.add_row([empty, custom_fonts])
             self.add_row([hr, ])
@@ -856,6 +861,11 @@ class Campaigns(Manage):
             with open(filename, 'rb') as bg_file:
                 data = base64.b64encode(bg_file.read())
             return {'Handouts Background Preview': data.decode()}
+
+        def title_background_callback(self, filename, fields):
+            with open(filename, 'rb') as title_bg:
+                data = base64.b64encode(title_bg.read())
+            return {'Title BG Preview': data.decode()}
 
         def on_close(self, _):
             self.web_server.server_close()
