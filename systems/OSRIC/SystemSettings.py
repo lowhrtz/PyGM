@@ -667,6 +667,29 @@ def get_non_proficiency_penalty( class_dict, race_dict ):
 
     return class_dict['Non-Proficiency_Penalty']
 
+
+def get_class_dict(character_dict):
+    class_table = DbQuery.getTable('Classes')
+    class_dict = {'Name': '', 'classes': []}
+    classes_list = character_dict['Classes'].split('/')
+    for class_id in classes_list:
+        for cl in class_table:
+            if class_id == cl['unique_id']:
+                if class_dict['Name'] == '':
+                    if len(classes_list) == 1:
+                        class_dict = cl
+                        break
+                    class_dict['Name'] = cl['Name']
+                else:
+                    class_dict['Name'] += '/{}'.format(cl['Name'])
+                class_dict['classes'].append(cl)
+    return class_dict
+
+
+def get_class_names(character_dict):
+    return get_class_dict(character_dict)['Name']
+
+
 def get_character_pdf_markup( character_dict ):
     class_table = DbQuery.getTable( 'Classes' )
     race_table = DbQuery.getTable( 'Races' )

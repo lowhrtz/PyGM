@@ -1,3 +1,7 @@
+import SystemSettings
+from urllib.parse import parse_qs
+
+
 def get_index(environ):
     fields = environ['Fields']
     campaign = environ['Extern']
@@ -25,7 +29,7 @@ function closeMenu() {
     document.getElementById("menu").style.width = "0";
 }
 
-function openItem(item) {
+function openItem(item, post=null) {
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
@@ -35,8 +39,14 @@ function openItem(item) {
             closeMenu();
         }
     };
-    xhttp.open("GET", item, true);
-    xhttp.send();
+    if (post == null) {
+        xhttp.open("GET", item, true);
+        xhttp.send();
+    } else {
+        xhttp.open("POST", item, true);
+        xhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+        xhttp.send(post);
+    }
 }
 
 function createOrRegisterCharacter() {
@@ -46,6 +56,22 @@ function createOrRegisterCharacter() {
     } else {
         openItem('list_characters');
     }
+}
+
+function hoverOnCharacter(id, mouse_on) {
+    var summary = document.getElementById(id + '_summary');
+    if (mouse_on) {
+        summary.style.maxHeight = "500px";
+        summary.style.border = "5px solid gray";
+    } else {
+        summary.style.maxHeight = "0";
+        summary.style.border = "none";
+    }
+}
+
+function chooseExistingCharacter() {
+    var chosen_character_id = document.querySelector('input[name="characters"]:checked').value;
+    openItem('choose_character', 'character_id=' + chosen_character_id)
 }
 </script>
 
@@ -123,21 +149,49 @@ img {
   margin-left: 50px;
 }
 
-div.create_character {
+div.character_area {
     font-size: 60px;
     text-align: center;
     margin-top: 100px;
 }
 
-div.create_character input[type=radio] {
+div.character_area input[type=radio] {
     height:50px;
     width:50px;
 }
 
-div.create_character button {
+div.character_area button {
     font-size: 60px;
     padding: 20px;
     margin-top: 20px;
+}
+
+div.character_area label.character_list {
+    transition: color 0.5s;
+}
+
+div.character_area label.character_list:hover {
+    color: #555;
+}
+
+div.character_summary {
+    background: black;
+    font-size: 35px;
+    color: gray;
+    width: 600px;
+    max-height: 0;
+    margin-left: auto;
+    margin-right: auto;
+    border-radius: 10%;
+    overflow: hidden;
+    transition: 0.5s;
+}
+
+div.character_summary img {
+    margin: 15px;
+    float: left;
+    max-height: 200px;
+    max-width: 200px;
 }
 
 '''
@@ -181,7 +235,7 @@ div.handouts {{
     <a href="javascript:void(0)" class="closeButton" onclick="closeMenu()">&#x274E;</a>
     <a class="menuItem" onclick="openItem('title')">Title</a>
     <a class="menuItem" onclick="openItem('handouts')">Handouts</a>
-    <a class="menuItem" onclick="openItem('create_register_character')">Create/Register Character</a>
+    <a class="menuItem" onclick="openItem('character')">Character</a>
     <a class="menuItem" onclick="openItem('send_message')">Send Message</a>
 </div>
 <span id="main">
@@ -218,10 +272,10 @@ def get_handouts(environ):
     return html
 
 
-def get_create_register_character(environ):
+def get_character(environ):
     print(environ['REMOTE_ADDR'])
     return '''\
-<div class="create_character">
+<div class="character_area">
 <input type="radio" id="c" name="character" value="create" checked>
 <label for="c">Create Character</label><br />
 OR<br />
@@ -250,15 +304,38 @@ def get_list_character(environ):
             elif i == len(pcs) - 1:
                 br = ''
             cn = c['Name']
-            names += f'''<input type="radio" name="characters" value="{cn}" id="{cn}" {checked}>
-<label for="{cn}">{cn}</label>{br}'''
+            cid = c['unique_id']
+            names += f'''\
+<input type="radio" name="characters" value="{cid}" id="{cid}" {checked}>
+<label for="{cid}" class="character_list"
+onmouseover="hoverOnCharacter('{cid}', true)" onmouseout="hoverOnCharacter('{cid}', false )">{cn}</label>{br}
+<div class="character_summary" id="{cid + '_summary'}"><img src="data:image;base64,{c['Portrait']}">{cn}<br />
+Level {c['Level']} {SystemSettings.get_class_names(c)}</div>'''
 
     html = f'''\
-<div class="create_character">
+<div class="character_area">
 {names}
+<button onclick="chooseExistingCharacter()">Choose</button>
 </div>
 '''
     return html
+
+
+def get_choose_character(environ):
+    raw_post = environ.get('wsgi.input', '')
+    post = raw_post.read(int(environ.get('CONTENT_LENGTH', 0)))
+    post_dict = parse_qs(post.decode(), True)
+    character_id = post_dict.get('character_id', None)
+    if character_id:
+        character_id = character_id[0]
+        pcs = environ['Extern'].get('PCs', [])
+        for c in pcs:
+            if c['unique_id'] == character_id:
+                print(environ.get('chosen_pcs', None))
+                environ['chosen_pcs'] = {environ['REMOTE_ADDR']: character_id}
+                print(environ.get('chosen_pcs', None))
+                return f'''<div style="font-size: 60px;">You Have Chosen: {c['Name']}</div>'''
+    return ''
 
 
 def get_builtin_font_css(font):
@@ -297,14 +374,17 @@ def adventure(environ, start_response):
     elif path_info == '/handouts':
         html = get_handouts(environ)
         status = status_ok
-    elif path_info == '/create_register_character':
-        html = get_create_register_character(environ)
+    elif path_info == '/character':
+        html = get_character(environ)
         status = status_ok
     elif path_info == '/create_page':
         html = get_create_page(environ)
         status = status_ok
     elif path_info == '/list_characters':
         html = get_list_character(environ)
+        status = status_ok
+    elif path_info == '/choose_character':
+        html = get_choose_character(environ)
         status = status_ok
     else:
         html = '<h1>404 Page Not Found!</h1>'
