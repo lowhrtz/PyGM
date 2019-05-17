@@ -1,3 +1,4 @@
+import DbQuery
 import SystemSettings
 from urllib.parse import parse_qs
 
@@ -49,7 +50,7 @@ function openItem(item, post=null) {
     }
 }
 
-function createOrRegisterCharacter() {
+function createOrChooseCharacter() {
     var create_checked = document.getElementById('c').checked;
     if (create_checked) {
         openItem('create_page');
@@ -72,6 +73,24 @@ function hoverOnCharacter(id, mouse_on) {
 function chooseExistingCharacter() {
     var chosen_character_id = document.querySelector('input[name="characters"]:checked').value;
     openItem('choose_character', 'character_id=' + chosen_character_id)
+}
+
+function toggleBonus(element_id) {
+    bonus_element = document.getElementById(element_id);
+    if (bonus_element.style.display == 'none' || bonus_element.style.display == '') {
+        bonus_element.style.display = 'block';
+    } else {
+        bonus_element.style.display = 'none';
+    }
+}
+
+function changeCharacterPage(page_id) {
+    var character_pages = document.getElementsByClassName("character_page");
+    for (i = 0; i < character_pages.length; i++) {
+        character_pages[i].style.display = "none";
+    }
+    
+    document.getElementById(page_id).style.display = "block";
 }
 </script>
 
@@ -194,6 +213,42 @@ div.character_summary img {
     max-width: 200px;
 }
 
+div.character_sheet {
+     text-align: center;
+     font-size: 60px;
+}
+
+div.character_page {
+    display: none;
+}
+
+div.character_menu {
+    margin-top: 20px;
+    line-height: 150%;
+}
+
+div.character_menu span {
+    background: gray;
+    border: 3px outset #cfcfcf;
+    padding: 10px;
+    margin: 10px;
+    font-size: 20px;
+}
+
+div.character_menu span:active {
+    background: #999;
+}
+
+.bonus {
+    background: black;
+    color: lightgray;
+    padding: 5px;
+    display: none;
+    border: 5px outset #cfcfcf;
+    border-radius: 20px;
+    font-size: 30px;
+}
+
 '''
 
     background_image_css = ''
@@ -203,7 +258,7 @@ div.character_summary img {
     background-position: center;
     background-repeat: no-repeat;
     background-size: cover;
-    box-shadow:inset 0 0 10px 5px black;
+    box-shadow:inset 0 0 10px 5px gray;
 '''
 
     html += f'''
@@ -273,21 +328,196 @@ def get_handouts(environ):
 
 
 def get_character(environ):
-    print(environ['REMOTE_ADDR'])
+    remote_addr = environ['REMOTE_ADDR']
+    webapp_table = DbQuery.getTable('WebApp')
+    for entry in webapp_table:
+        if entry['remote_addr'] == remote_addr:
+            return get_existing_character(environ, entry['character_id'])
+    return get_new_character(environ)
+
+
+def get_character_html(character_dict):
+    get_bonus_string = SystemSettings.get_attribute_bonus_string
+    class_dict = SystemSettings.get_class_dict(character_dict)
+    race_dict = {}
+    for race in DbQuery.getTable('Races'):
+        if race['unique_id'] == character_dict['Race']:
+            race_dict = race
+    equip_id_list = []
+    spellbook_id_list = []
+    daily_spells_id_list = []
+    daily_spells2_id_list = []
+    daily_spells3_id_list = []
+    proficiency_id_dict = {}
+    for meta_row in character_dict['Characters_meta']:
+        if meta_row['Type'] == 'Equipment':
+            equip_id_list.append(meta_row['Entry_ID'])
+        elif meta_row['Type'] == 'Treasure':
+            if meta_row['Entry_ID'] == 'gp':
+                gp = meta_row['Data']
+
+            elif meta_row['Entry_ID'] == 'pp':
+                pp = meta_row['Data']
+
+            elif meta_row['Entry_ID'] == 'ep':
+                ep = meta_row['Data']
+
+            elif meta_row['Entry_ID'] == 'sp':
+                sp = meta_row['Data']
+
+            elif meta_row['Entry_ID'] == 'cp':
+                cp = meta_row['Data']
+        elif meta_row['Type'] == 'Spellbook':
+            spellbook_id_list.append(meta_row['Entry_ID'])
+        elif meta_row['Type'] == 'DailySpells':
+            daily_spells_id_list.append(meta_row['Entry_ID'])
+        elif meta_row['Type'] == 'DailySpells2':
+            daily_spells2_id_list.append(meta_row['Entry_ID'])
+        elif meta_row['Type'] == 'DailySpells3':
+            daily_spells3_id_list.append(meta_row['Entry_ID'])
+        elif meta_row['Type'] == 'Proficiency':
+            proficiency_id_dict[meta_row['Entry_ID']] = meta_row['Data']
+
+    items_table = DbQuery.getTable('Items')
+    proficiency_list = []
+    specialised_list = []
+    double_specialised_list = []
+    for prof in items_table:
+        if prof['Is_Proficiency'].lower() == 'yes' and prof['unique_id'] in list(proficiency_id_dict.keys()):
+            # prof_name = prof['Name']
+            prof_level = proficiency_id_dict[prof['unique_id']]
+            if prof_level == 'P':
+                proficiency_list.append(prof)
+            elif prof_level == 'S':
+                specialised_list.append(prof)
+            elif prof_level == '2XS':
+                double_specialised_list.append(prof)
+
+    equipment_list = []
+    for equip in items_table:
+        if equip['unique_id'] in equip_id_list:
+            equipment_list.append(equip)
+
+    level = character_dict['Level']
+    class_abilities = {}
+    if 'classes' in class_dict:
+        level_list = [int(l) for l in level.split('/')]
+        for i, cl in enumerate(class_dict['classes']):
+            class_abilities[cl['Name']] = SystemSettings.get_class_abilities(level_list[i], character_dict, cl)
+    else:
+        class_abilities[class_dict['Name']] = SystemSettings.get_class_abilities(level, character_dict, class_dict)
+    race_abilities = SystemSettings.get_race_abilities(race_dict)
+
+    spells_table = DbQuery.getTable('Spells')
+    spellbook = []
+    daily_spells = []
+    daily_spells2 = []
+    daily_spells3 = []
+    for spell in spells_table:
+        if spell['spell_id'] in spellbook_id_list:
+            spellbook.append(spell)
+        if spell['spell_id'] in daily_spells_id_list:
+            daily_spells.append(spell)
+        if spell['spell_id'] in daily_spells2_id_list:
+            daily_spells2.append(spell)
+        if spell['spell_id'] in daily_spells3_id_list:
+            daily_spells3.append(spell)
+    ac = SystemSettings.calculate_ac(character_dict, class_dict, race_dict, equipment_list)
+    html = f'''\
+<div class="character_sheet">
+
+<div class="character_page" style="display: block;" id="basic_info">
+<span style="position: absolute; left: 30px;">HP: {character_dict['HP']}<br />AC: {ac}</span>
+<img style="height: 600px; margin: 30px auto 30px auto;" src="data:image;base64,{character_dict['Portrait']}" />
+{character_dict['Name']}<br />
+Level: {character_dict['Level']}<br />
+Class: {SystemSettings.get_class_names(character_dict)}<br />
+Race: {race_dict['Name']}<br />
+Alignment: {character_dict['Alignment']}
+</div>
+
+<div class="character_page" id="attributes">
+<table style="padding: 20px;">
+<tr><th>Str:</th><td onclick="toggleBonus('str_bonus')">{character_dict['STR']}</td><td class="bonus" id="str_bonus">{get_bonus_string('STR', character_dict['STR'])}</td></tr>
+<tr><th>Int:</th><td onclick="toggleBonus('int_bonus')">{character_dict['INT']}</td><td class="bonus" id="int_bonus">{get_bonus_string('INT', character_dict['INT'])}</td></tr>
+<tr><th>Wis:</th><td onclick="toggleBonus('wis_bonus')">{character_dict['WIS']}</td><td class="bonus" id="wis_bonus">{get_bonus_string('WIS', character_dict['WIS'])}</td></tr>
+<tr><th>Dex:</th><td onclick="toggleBonus('dex_bonus')">{character_dict['DEX']}</td><td class="bonus" id="dex_bonus">{get_bonus_string('DEX', character_dict['DEX'])}</td></tr>
+<tr><th>Con:</th><td onclick="toggleBonus('con_bonus')">{character_dict['CON']}</td><td class="bonus" id="con_bonus">{get_bonus_string('CON', character_dict['CON'])}</td></tr>
+<tr><th>Cha:</th><td onclick="toggleBonus('cha_bonus')">{character_dict['CHA']}</td><td class="bonus" id="cha_bonus">{get_bonus_string('CHA', character_dict['CHA'])}</td></tr>
+</table>
+</div>
+
+<div class="character_page" id="equipment">
+{''.join('<div>' + e['Name'] + '</div>' for e in equipment_list)}
+<br />
+<hr />
+PP:{pp} GP:{gp} SP:{sp} EP:{ep} CP:{cp}
+</div>
+
+<div class="character_page" id="abilities">
+{class_abilities_html(class_abilities)}
+{'<b>' + race_dict['Name'] + ' Abilities</b>' +
+ ''.join(f'<div>{ra[0]} {ra[1]} {ra[2]}</div>' for ra in race_abilities) if race_abilities else ''}
+{'<b>Spell Book</b>' + ''.join('<div>' + s['Name'] + '</div>' for s in spellbook) if spellbook else ''}
+{'<b>Daily Spells</b>' + ''.join('<div>' + s['Name'] + '</div>' for s in daily_spells) if daily_spells else ''}
+</div>
+
+<div class="character_menu">
+<span onclick="changeCharacterPage('basic_info')">Basic Info</span>
+<span onclick="changeCharacterPage('attributes')">Attributes</span>
+<span onclick="changeCharacterPage('equipment')">Equipment</span>
+<span onclick="changeCharacterPage('abilities')">Abilities</span>
+</div>
+</div>
+'''
+    return html
+
+
+def class_abilities_html(class_abilities):
+    html = ''
+    for ca in class_abilities:
+        html += f'<div><b>{ca} Abilities</b></br>'
+        for cai in class_abilities[ca]:
+            if cai[0]:
+                html += f'<b>{cai[0]}:</b> {cai[1]}<br />'
+            else:
+                html += '<table style="font-size: 50%"><tr>'
+                for caih in cai[1][0]:
+                    html += f'<th>{caih}</th>'
+                html += '</tr>'
+                for caid in cai[1][1]:
+                    html += f'<td>{caid}</td>'
+                html += '</tr></table>'
+        html += '</div>'
+
+    return html
+
+
+def get_existing_character(environ, character_id):
+    pcs = environ['Extern']['PCs']
+    for c in pcs:
+        if c['unique_id'] == character_id:
+            # return SystemSettings.get_character_pdf_markup(c)[1]
+            return get_character_html(c)
+    return '<h1>Problem!</h1>'
+
+
+def get_new_character(environ):
+    # print(environ['REMOTE_ADDR'])
     return '''\
 <div class="character_area">
 <input type="radio" id="c" name="character" value="create" checked>
 <label for="c">Create Character</label><br />
 OR<br />
 <input type="radio" id="r" name="character" value="register">
-<label for="r">Register Character</label></input><br />
-<button type="button" onclick="createOrRegisterCharacter()">Next</button>
+<label for="r">Choose Existing Character</label></input><br />
+<button type="button" onclick="createOrChooseCharacter()">Next</button>
 </div>
 '''
 
 
 def get_create_page(environ):
-    return ''
+    return '<h1>Not Implemented Yet!</h1>'
 
 
 def get_list_character(environ):
@@ -331,10 +561,10 @@ def get_choose_character(environ):
         pcs = environ['Extern'].get('PCs', [])
         for c in pcs:
             if c['unique_id'] == character_id:
-                print(environ.get('chosen_pcs', None))
-                environ['chosen_pcs'] = {environ['REMOTE_ADDR']: character_id}
-                print(environ.get('chosen_pcs', None))
-                return f'''<div style="font-size: 60px;">You Have Chosen: {c['Name']}</div>'''
+                DbQuery.insertRow('WebApp', (environ['REMOTE_ADDR'], character_id))
+                DbQuery.commit()
+                return f'''<div style="font-size: 60px; text-align: center;">You Have Chosen: {c['Name']}<br />
+<button style="font-size: 60px;" onclick=openItem('character')>To Character</button></div>'''
     return ''
 
 

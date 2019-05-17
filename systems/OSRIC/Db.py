@@ -2838,3 +2838,11 @@ class spells(Table):
         ['wall_of_fog','Wall of Fog','no','illusionist','Transmutation/Alteration','1','N/A','30\'','2d4 rounds + 1 round/caster level','20 ft cube/caster level','V,S,M','1 segment','None','The illusionist creates a curtain of obscuring fog in the area of effect. Vision of all kinds is reduced to 2 ft through the swirling vapour. The fog can be affected by normal or magical wind and breezes.'],
         ]
 
+class web_app(Table):
+    table_name = 'WebApp'
+    cols = ['remote_addr','character_id']
+    colDefs = ['TEXT','TEXT']
+    blank = 1
+    data = [
+        ]
+
