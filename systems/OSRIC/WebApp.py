@@ -120,6 +120,17 @@ img {
     margin-right: auto;
 }
 
+legend {
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+fieldset {
+    border: 1px solid black;
+    border-radius: 15px;
+    margin: 10px 5px;
+}
+
 .menuButton {
     padding: 15px;
     font-size: 60px;
@@ -456,10 +467,16 @@ PP:{pp} GP:{gp} SP:{sp} EP:{ep} CP:{cp}
 
 <div class="character_page" id="abilities">
 {class_abilities_html(class_abilities)}
-{'<b>' + race_dict['Name'] + ' Abilities</b>' +
- ''.join(f'<div>{ra[0]} {ra[1]} {ra[2]}</div>' for ra in race_abilities) if race_abilities else ''}
-{'<b>Spell Book</b>' + ''.join('<div>' + s['Name'] + '</div>' for s in spellbook) if spellbook else ''}
-{'<b>Daily Spells</b>' + ''.join('<div>' + s['Name'] + '</div>' for s in daily_spells) if daily_spells else ''}
+{'<fieldset><legend><b>' + race_dict['Name'] + ' Abilities</b></legend>' +
+ ''.join(f'<div>{ra[0]} {ra[1]} {ra[2]}</div>' for ra in race_abilities) + '</fieldset>' if race_abilities else ''}
+{'<fieldset><legend><b>Spell Book</b></legend>' +
+ ''.join('<div>' + s['Name'] + '</div>' for s in spellbook) + '</fieldset>' if spellbook else ''}
+{f'<fieldset><legend><b>{daily_spells[0]["Type"].title().replace("_", " ")} Daily Spells</b></legend>' +
+ ''.join('<div>' + s['Name'] + '</div>' for s in daily_spells) + '</fieldset>' if daily_spells else ''}
+{f'<fieldset><legend><b>{daily_spells2[0]["Type"].title().replace("_", " ")} Daily Spells</b></legend>' +
+ ''.join('<div>' + s['Name'] + '</div>' for s in daily_spells2) + '</fieldset>' if daily_spells2 else ''}
+{f'<fieldset><legend><b>{daily_spells3[0]["Type"].title().replace("_", " ")} Daily Spells</b></legend>' +
+ ''.join('<div>' + s['Name'] + '</div>' for s in daily_spells3) + '</fieldset>' if daily_spells3 else ''}
 </div>
 
 <div class="character_menu">
@@ -476,19 +493,19 @@ PP:{pp} GP:{gp} SP:{sp} EP:{ep} CP:{cp}
 def class_abilities_html(class_abilities):
     html = ''
     for ca in class_abilities:
-        html += f'<div><b>{ca} Abilities</b></br>'
+        html += f'<div><fieldset><legend><b>{ca} Abilities</b></legend>'
         for cai in class_abilities[ca]:
             if cai[0]:
                 html += f'<b>{cai[0]}:</b> {cai[1]}<br />'
             else:
-                html += '<table style="font-size: 50%"><tr>'
+                html += '<table style="font-size: 40%"><tr>'
                 for caih in cai[1][0]:
                     html += f'<th>{caih}</th>'
                 html += '</tr>'
                 for caid in cai[1][1]:
                     html += f'<td>{caid}</td>'
                 html += '</tr></table>'
-        html += '</div>'
+        html += '</fieldset></div>'
 
     return html
 
