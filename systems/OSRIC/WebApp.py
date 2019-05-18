@@ -260,6 +260,25 @@ div.character_menu span:active {
     font-size: 30px;
 }
 
+div.more_info + div {
+    display: none;
+    font-size: 60%;
+    border: 4px outset #cfcfcf;
+    border-radius: 15px;
+    background: black;
+    color: lightgray;
+    padding: 5px;
+}
+
+div.more_info:hover + div {
+    display: block;
+}
+
+div.spell + div {
+    text-align: left;
+    padding: 10px;
+}
+
 '''
 
     background_image_css = ''
@@ -269,7 +288,7 @@ div.character_menu span:active {
     background-position: center;
     background-repeat: no-repeat;
     background-size: cover;
-    box-shadow:inset 0 0 10px 5px gray;
+    box-shadow:inset 0 0 10px 5px black;
 '''
 
     html += f'''
@@ -360,6 +379,7 @@ def get_character_html(character_dict):
     daily_spells2_id_list = []
     daily_spells3_id_list = []
     proficiency_id_dict = {}
+    gp = pp = ep = sp = cp = 0
     for meta_row in character_dict['Characters_meta']:
         if meta_row['Type'] == 'Equipment':
             equip_id_list.append(meta_row['Entry_ID'])
@@ -434,17 +454,20 @@ def get_character_html(character_dict):
         if spell['spell_id'] in daily_spells3_id_list:
             daily_spells3.append(spell)
     ac = SystemSettings.calculate_ac(character_dict, class_dict, race_dict, equipment_list)
+    saves_dict = SystemSettings.get_saves(level, character_dict, class_dict, race_dict)
+    movement_tuple = SystemSettings.calculate_movement(race_dict, class_dict, character_dict, equipment_list)
+    movement_rate, movement_desc = movement_tuple
     html = f'''\
 <div class="character_sheet">
 
 <div class="character_page" style="display: block;" id="basic_info">
-<span style="position: absolute; left: 30px;">HP: {character_dict['HP']}<br />AC: {ac}</span>
+<span style="position: absolute; left: 30px;"><b>HP:</b> {character_dict['HP']}<br /><b>AC:</b> {ac}</span>
 <img style="height: 600px; margin: 30px auto 30px auto;" src="data:image;base64,{character_dict['Portrait']}" />
-{character_dict['Name']}<br />
-Level: {character_dict['Level']}<br />
-Class: {SystemSettings.get_class_names(character_dict)}<br />
-Race: {race_dict['Name']}<br />
-Alignment: {character_dict['Alignment']}
+<b>{character_dict['Name']}</b><br />
+<b>Level:</b> {character_dict['Level']}<br />
+<b>Class:</b> {SystemSettings.get_class_names(character_dict)}<br />
+<b>Race:</b> {race_dict['Name']}<br />
+<b>Alignment:</b> {character_dict['Alignment']}
 </div>
 
 <div class="character_page" id="attributes">
@@ -456,13 +479,37 @@ Alignment: {character_dict['Alignment']}
 <tr><th>Con:</th><td onclick="toggleBonus('con_bonus')">{character_dict['CON']}</td><td class="bonus" id="con_bonus">{get_bonus_string('CON', character_dict['CON'])}</td></tr>
 <tr><th>Cha:</th><td onclick="toggleBonus('cha_bonus')">{character_dict['CHA']}</td><td class="bonus" id="cha_bonus">{get_bonus_string('CHA', character_dict['CHA'])}</td></tr>
 </table>
+<hr />
+<b>Saving Throws</b>
+<div style="font-size: 50%;">
+<b>Aimed Magic Items:</b> {saves_dict['Aimed_Magic_Items']}<br />
+<b>Breath Weapon:</b> {saves_dict['Breath_Weapons']}<br />
+<b>Death, Paralysis, Poison:</b> {saves_dict['Death_Paralysis_Poison']}<br />
+<b>Petrifaction, Polymorph:</b> {saves_dict['Petrifaction_Polymorph']}<br />
+<b>Spells:</b> {saves_dict['Spells']}
+</div>
 </div>
 
 <div class="character_page" id="equipment">
-{''.join('<div>' + e['Name'] + '</div>' for e in equipment_list)}
+{''.join('<div class="more_info">' + e['Name'] + '</div><div>' + item_html(e) + '</div>' for e in equipment_list)}
 <br />
 <hr />
-PP:{pp} GP:{gp} SP:{sp} EP:{ep} CP:{cp}
+<b>PP:</b>{pp} <b>GP:</b>{gp} <b>SP:</b>{sp} <b>EP:</b>{ep} <b>CP:</b>{cp}
+<hr />
+<b>Movement Rate:</b> {movement_rate} ft/round<br />
+<b>Surprise:</b> {movement_desc}<br />
+<b>Non-Proficiency Penalty: </b> {SystemSettings.get_non_proficiency_penalty(class_dict, race_dict)}
+
+{'<fieldset><legend><b>Proficiency</b></legend>' + '<br />'.join(p['Name'] for p in proficiency_list) +
+'</fieldset>' if proficiency_list else ''}
+
+{'<fieldset><legend><b>Specialised</b></legend>' + '<br />'.join(p['Name'] for p in specialised_list) +
+ '</fieldset>' if specialised_list else ''}
+
+
+{'<fieldset><legend><b>Double Specialised</b></legend>' + '<br />'.join(p['Name'] for p in double_specialised_list) +
+ '</fieldset>' if double_specialised_list else ''}
+
 </div>
 
 <div class="character_page" id="abilities">
@@ -470,13 +517,17 @@ PP:{pp} GP:{gp} SP:{sp} EP:{ep} CP:{cp}
 {'<fieldset><legend><b>' + race_dict['Name'] + ' Abilities</b></legend>' +
  ''.join(f'<div>{ra[0]} {ra[1]} {ra[2]}</div>' for ra in race_abilities) + '</fieldset>' if race_abilities else ''}
 {'<fieldset><legend><b>Spell Book</b></legend>' +
- ''.join('<div>' + s['Name'] + '</div>' for s in spellbook) + '</fieldset>' if spellbook else ''}
+ ''.join('<div class="more_info spell">' + s['Name'] + '</div><div>' + spell_html(s) + '</div>' for s in spellbook)
+ + '</fieldset>' if spellbook else ''}
 {f'<fieldset><legend><b>{daily_spells[0]["Type"].title().replace("_", " ")} Daily Spells</b></legend>' +
- ''.join('<div>' + s['Name'] + '</div>' for s in daily_spells) + '</fieldset>' if daily_spells else ''}
+ ''.join('<div class="more_info spell">' + s['Name'] + '</div><div>' + spell_html(s) + '</div>' for s in daily_spells)
+ + '</fieldset>' if daily_spells else ''}
 {f'<fieldset><legend><b>{daily_spells2[0]["Type"].title().replace("_", " ")} Daily Spells</b></legend>' +
- ''.join('<div>' + s['Name'] + '</div>' for s in daily_spells2) + '</fieldset>' if daily_spells2 else ''}
+ ''.join('<div class="more_info spell">' + s['Name'] + '</div><div>' + spell_html(s) + '</div>' for s in daily_spells2)
+ + '</fieldset>' if daily_spells2 else ''}
 {f'<fieldset><legend><b>{daily_spells3[0]["Type"].title().replace("_", " ")} Daily Spells</b></legend>' +
- ''.join('<div>' + s['Name'] + '</div>' for s in daily_spells3) + '</fieldset>' if daily_spells3 else ''}
+ ''.join('<div class="more_info spell">' + s['Name'] + '</div><div>' + spell_html(s) + '</div>' for s in daily_spells3)
+ + '</fieldset>' if daily_spells3 else ''}
 </div>
 
 <div class="character_menu">
@@ -508,6 +559,37 @@ def class_abilities_html(class_abilities):
         html += '</fieldset></div>'
 
     return html
+
+
+def spell_html(spell):
+    return f'''\
+<b>Reversible: </b>{spell['Reversible']}<br />
+<b>Level: </b>{spell['Level']}<br />
+<b>Damage: </b>{spell['Damage']}<br />
+<b>Range: </b>{spell['Range']}<br />
+<b>Duration: </b>{spell['Duration']}<br />
+<b>Area of Effect: </b>{spell['Area_of_Effect']}<br />
+<b>Components: </b>{spell['Components']}<br />
+<b>Casting Time: </b>{spell['Casting_Time']}<br />
+<b>Saving Throw: </b>{spell['Saving_Throw']}<br />
+<b>Description: </b>{spell['Description']}<br /><br />
+'''
+
+
+def item_html(item):
+    return f'''\
+{'<b>Magical</b><br />' if item['Is_Magic'].lower() == 'yes' else ''}
+<b>Category:</b> {item['Category']}<br />
+{'<b>Sub-Category:</b> ' + item['Subcategory'] + '<br />' if item['Subcategory'] else ''}
+<b>Weight:</b> {item['Weight']}<br />
+{'<b>Damage Vs S or M:</b> ' + item['Damage_Vs_S_or_M'] + '<br />' if item['Damage_Vs_S_or_M'] else ''}
+{'<b>Damage Vs L:</b> ' + item['Damage_Vs_L'] + '<br />' if item['Damage_Vs_S_or_M'] else ''}
+{'<b>Damage Type:</b> ' + item['Damage_Type'] + '<br />' if item['Damage_Type'] else ''}
+{'<b>Rate of Fire:</b> ' + item['Rate_of_Fire'] + '<br />' if item['Rate_of_Fire'] else ''}
+{'<b>Range:</b> ' + item['Range'] + '<br />' if item['Range'] else ''}
+{'<b>AC Effect:</b> ' + str(item['AC_Effect']) + '<br />' if item['AC_Effect'] else ''}
+{'<b>Notes:</b> ' + item['Notes'] + '<br />' if item['Notes'] else ''}
+'''
 
 
 def get_existing_character(environ, character_id):
