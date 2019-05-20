@@ -281,6 +281,7 @@ class Characters(Manage):
         if fields['Character List Current'] is None:
             return {}
         unique_id = fields['Character List Current']['unique_id']
+        background = fields['Character List Current']['Background']
         update_list = [
             unique_id,
             fields['Name'],
@@ -294,6 +295,7 @@ class Characters(Manage):
             fields['Age'],
             fields['Height'],
             fields['Weight'],
+            background,
             fields['Portrait'],
             'jpg',
             fields['STR'],
@@ -364,6 +366,7 @@ class Characters(Manage):
             character['Age'],
             character['Height'],
             character['Weight'],
+            '',
             character['Portrait'],
             character['Portrait_Image_Type'],
             character['STR'],

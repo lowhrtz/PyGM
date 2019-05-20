@@ -92,6 +92,12 @@ function changeCharacterPage(page_id) {
     
     document.getElementById(page_id).style.display = "block";
 }
+
+function saveBackground() {
+    var background = document.getElementById("background_text").value;
+    var character_id = document.getElementById("character_id").value;
+    openItem('save_background', 'character_id=' + character_id + '&background=' + background);
+}
 </script>
 
 <style>
@@ -459,6 +465,7 @@ def get_character_html(character_dict):
     movement_rate, movement_desc = movement_tuple
     html = f'''\
 <div class="character_sheet">
+<input type="hidden" id="character_id" value="{character_dict['unique_id']}" />
 
 <div class="character_page" style="display: block;" id="basic_info">
 <span style="position: absolute; left: 30px;"><b>HP:</b> {character_dict['HP']}<br /><b>AC:</b> {ac}</span>
@@ -496,19 +503,6 @@ def get_character_html(character_dict):
 <hr />
 <b>PP:</b>{pp} <b>GP:</b>{gp} <b>SP:</b>{sp} <b>EP:</b>{ep} <b>CP:</b>{cp}
 <hr />
-<b>Movement Rate:</b> {movement_rate} ft/round<br />
-<b>Surprise:</b> {movement_desc}<br />
-<b>Non-Proficiency Penalty: </b> {SystemSettings.get_non_proficiency_penalty(class_dict, race_dict)}
-
-{'<fieldset><legend><b>Proficiency</b></legend>' + '<br />'.join(p['Name'] for p in proficiency_list) +
-'</fieldset>' if proficiency_list else ''}
-
-{'<fieldset><legend><b>Specialised</b></legend>' + '<br />'.join(p['Name'] for p in specialised_list) +
- '</fieldset>' if specialised_list else ''}
-
-
-{'<fieldset><legend><b>Double Specialised</b></legend>' + '<br />'.join(p['Name'] for p in double_specialised_list) +
- '</fieldset>' if double_specialised_list else ''}
 
 </div>
 
@@ -530,11 +524,52 @@ def get_character_html(character_dict):
  + '</fieldset>' if daily_spells3 else ''}
 </div>
 
+<div class="character_page" id="combat_info">
+<table class="tohit-table" style="font-size: 50%; margin-top: 20px;" border=1 align=center>
+<tr><td><b>Enemy AC</b></td><td align=center> -10 </td><td align=center> -9 </td><td align=center> -8 </td>
+<td align=center> -7 </td><td align=center> -6 </td><td align=center> -5 </td>
+<td align=center> -4 </td><td align=center> -3 </td><td align=center> -2 </td><td align=center> -1 </td>
+<td align=center> 0 </td><td align=center> 1 </td><td align=center> 2 </td><td align=center> 3 </td>
+<td align=center> 4 </td><td align=center> 5 </td><td align=center> 6 </td><td align=center> 7 </td>
+<td align=center> 8 </td><td align=center> 9 </td><td align=center> 10 </td></tr>
+<tr><td><b>To Hit</b></td>{'<td align=center>' + '</td><td align=center>'
+        .join(SystemSettings.get_tohit_row(level, class_dict, race_dict)) + '</td>'}</tr>
+</table>
+<b>Movement Rate:</b> {movement_rate} ft/round<br />
+<b>Surprise:</b> {movement_desc}<br />
+<b>Non-Proficiency Penalty: </b> {SystemSettings.get_non_proficiency_penalty(class_dict, race_dict)}
+
+{'<fieldset><legend><b>Proficiency</b></legend>' + '<br />'.join(p['Name'] for p in proficiency_list) +
+'</fieldset>' if proficiency_list else ''}
+
+{'<fieldset><legend><b>Specialised</b></legend>' + '<br />'.join(p['Name'] for p in specialised_list) +
+ '</fieldset>' if specialised_list else ''}
+
+
+{'<fieldset><legend><b>Double Specialised</b></legend>' + '<br />'.join(p['Name'] for p in double_specialised_list) +
+ '</fieldset>' if double_specialised_list else ''}
+
+</div>
+
+<div class="character_page" id="personal_info">
+<div style="margin: 15px 5px;">
+<b>Height:</b> {character_dict['Height']} <b>Weight:</b> {character_dict['Weight']}<br />
+<b>Sex:</b> {character_dict['Gender']}<br />
+</div>
+<b>Background</b><br />
+<textarea style="font-size: 30px; margin-bottom: 35px;" id="background_text" rows=15 cols=35>
+{character_dict['Background']}
+</textarea><br />
+<button style="font-size: 50px;" onclick="saveBackground()")">Save Background</button>
+</div>
+
 <div class="character_menu">
 <span onclick="changeCharacterPage('basic_info')">Basic Info</span>
 <span onclick="changeCharacterPage('attributes')">Attributes</span>
 <span onclick="changeCharacterPage('equipment')">Equipment</span>
 <span onclick="changeCharacterPage('abilities')">Abilities</span>
+<span onclick="changeCharacterPage('combat_info')">Combat Info</span>
+<span onclick="changeCharacterPage('personal_info')">Personal Info</span>
 </div>
 </div>
 '''
@@ -592,8 +627,50 @@ def item_html(item):
 '''
 
 
+def get_save_background(environ):
+    raw_post = environ.get('wsgi.input', '')
+    post = raw_post.read(int(environ.get('CONTENT_LENGTH', 0)))
+    post_dict = parse_qs(post.decode(), True)
+    character_id = post_dict.get('character_id', None)
+    background = post_dict.get('background', None)
+    if character_id and background:
+        character_id = character_id[0]
+        background = background[0]
+        characters = DbQuery.getTable('Characters')
+        for c in characters:
+            if c['unique_id'] == character_id:
+                row = [
+                    c['unique_id'],
+                    c['Name'],
+                    c['Level'],
+                    c['XP'],
+                    c['Gender'],
+                    c['Alignment'],
+                    c['Classes'],
+                    c['Race'],
+                    c['HP'],
+                    c['Age'],
+                    c['Height'],
+                    c['Weight'],
+                    background,
+                    c['Portrait'],
+                    c['Portrait_Image_Type'],
+                    c['STR'],
+                    c['INT'],
+                    c['WIS'],
+                    c['DEX'],
+                    c['CON'],
+                    c['CHA']
+                ]
+                DbQuery.updateRow('Characters', 'unique_id', character_id, row)
+                DbQuery.commit()
+                return get_existing_character(environ, character_id)
+    return '<h1>Problem saving background!</h1>'
+
+
 def get_existing_character(environ, character_id):
-    pcs = environ['Extern']['PCs']
+    # pcs = environ['Extern']['PCs']
+    pcs = DbQuery.getTable('Characters')
     for c in pcs:
         if c['unique_id'] == character_id:
             # return SystemSettings.get_character_pdf_markup(c)[1]
@@ -662,8 +739,9 @@ def get_choose_character(environ):
             if c['unique_id'] == character_id:
                 DbQuery.insertRow('WebApp', (environ['REMOTE_ADDR'], character_id))
                 DbQuery.commit()
-                return f'''<div style="font-size: 60px; text-align: center;">You Have Chosen: {c['Name']}<br />
-<button style="font-size: 60px;" onclick=openItem('character')>To Character</button></div>'''
+                return get_character_html(c)
+                #return f'''<div style="font-size: 60px; text-align: center;">You Have Chosen: {c['Name']}<br />
+#<button style="font-size: 60px;" onclick=openItem('character')>To Character</button></div>'''
     return ''
 
 
@@ -714,6 +792,9 @@ def adventure(environ, start_response):
         status = status_ok
     elif path_info == '/choose_character':
         html = get_choose_character(environ)
+        status = status_ok
+    elif path_info == '/save_background':
+        html = get_save_background(environ)
         status = status_ok
     else:
         html = '<h1>404 Page Not Found!</h1>'

@@ -1,4 +1,4 @@
-'Characters',,,,,,,,,,,,,,,,,,,
-'unique_id','Name','Level','XP','Gender','Alignment','Classes','Race','HP','Age','Height','Weight','Portrait','Portrait_Image_Type','STR','INT','WIS','DEX','CON','CHA'
-'VARCHAR(20) UNIQUE','VARCHAR(50)','VARCHAR(20)','INTEGER','VARCHAR(20)','VARCHAR(20)','VARCHAR(50)','VARCHAR(50)','INTEGER','INTEGER','VARCHAR(20)','VARCHAR(20)','CLOB','VARCHAR(20)','VARCHAR(20)','VARCHAR(20)','VARCHAR(20)','VARCHAR(20)','VARCHAR(20)','VARCHAR(20)'
-,'display_col',,,,,,,,,,,'base64_image_col','image_type_col',,,,,,
+'Characters',,,,,,,,,,,,,,,,,,,,
+'unique_id','Name','Level','XP','Gender','Alignment','Classes','Race','HP','Age','Height','Weight','Background','Portrait','Portrait_Image_Type','STR','INT','WIS','DEX','CON','CHA'
+'VARCHAR(20) UNIQUE','VARCHAR(50)','VARCHAR(20)','INTEGER','VARCHAR(20)','VARCHAR(20)','VARCHAR(50)','VARCHAR(50)','INTEGER','INTEGER','VARCHAR(20)','VARCHAR(20)','TEXT','CLOB','VARCHAR(20)','VARCHAR(20)','VARCHAR(20)','VARCHAR(20)','VARCHAR(20)','VARCHAR(20)','VARCHAR(20)'
+,'display_col',,,,,,,,,,,,'base64_image_col','image_type_col',,,,,,

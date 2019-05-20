@@ -19,11 +19,11 @@ class campaigns_meta(Table):
 
 class characters(Table):
     table_name = 'Characters'
-    cols = ['unique_id','Name','Level','XP','Gender','Alignment','Classes','Race','HP','Age','Height','Weight','Portrait','Portrait_Image_Type','STR','INT','WIS','DEX','CON','CHA']
-    colDefs = ['VARCHAR(20) UNIQUE','VARCHAR(50)','VARCHAR(20)','INTEGER','VARCHAR(20)','VARCHAR(20)','VARCHAR(50)','VARCHAR(50)','INTEGER','INTEGER','VARCHAR(20)','VARCHAR(20)','CLOB','VARCHAR(20)','VARCHAR(20)','VARCHAR(20)','VARCHAR(20)','VARCHAR(20)','VARCHAR(20)','VARCHAR(20)']
+    cols = ['unique_id','Name','Level','XP','Gender','Alignment','Classes','Race','HP','Age','Height','Weight','Background','Portrait','Portrait_Image_Type','STR','INT','WIS','DEX','CON','CHA']
+    colDefs = ['VARCHAR(20) UNIQUE','VARCHAR(50)','VARCHAR(20)','INTEGER','VARCHAR(20)','VARCHAR(20)','VARCHAR(50)','VARCHAR(50)','INTEGER','INTEGER','VARCHAR(20)','VARCHAR(20)','TEXT','CLOB','VARCHAR(20)','VARCHAR(20)','VARCHAR(20)','VARCHAR(20)','VARCHAR(20)','VARCHAR(20)','VARCHAR(20)']
     display_col = 1
-    base64_image_col = 12
-    image_type_col = 13
+    base64_image_col = 13
+    image_type_col = 14
     data = [
         ]
 
