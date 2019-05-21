@@ -350,7 +350,7 @@ class WidgetRegistry(dict):
             qt_widget.setEnabled(is_enabled)
             qt_widget.setStyleSheet(disabled_stylesheet)
             if widget_data:
-                fill_listbox(widget, widget_data)
+                fill_listbox(qt_widget, widget_data)
             if not hide_field:
                 widget_layout.addWidget(QLabel(field_name))
             widget_layout.addWidget(qt_widget)
