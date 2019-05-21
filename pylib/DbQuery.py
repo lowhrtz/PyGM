@@ -182,6 +182,21 @@ def updateRow( table_name, where_col, where, row ):
         print('Query String:', update_string)
         return False
 
+
+def update_cols(table_name, where_col, where, cols, values):
+    cursor = DB.cursor()
+    update_string = f'''\
+UPDATE {table_name} SET {'"' + '" = ? "'.join(cols) + '" = ? '} WHERE "{where_col}" = "{where}"'''
+    values = tuple(val for val in values)
+    try:
+        cursor.execute(update_string, values)
+        return True
+    except sqlite3.Error as e:
+        print(e)
+        print(('Query String:', update_string))
+        return False
+
+
 def deleteRow( table_name, where_col, where ):
     cursor = DB.cursor()
     delete_string = 'DELETE FROM {} WHERE {}="{}"'.format( table_name, where_col, where )

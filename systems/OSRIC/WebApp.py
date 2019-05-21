@@ -639,30 +639,7 @@ def get_save_background(environ):
         characters = DbQuery.getTable('Characters')
         for c in characters:
             if c['unique_id'] == character_id:
-                row = [
-                    c['unique_id'],
-                    c['Name'],
-                    c['Level'],
-                    c['XP'],
-                    c['Gender'],
-                    c['Alignment'],
-                    c['Classes'],
-                    c['Race'],
-                    c['HP'],
-                    c['Age'],
-                    c['Height'],
-                    c['Weight'],
-                    background,
-                    c['Portrait'],
-                    c['Portrait_Image_Type'],
-                    c['STR'],
-                    c['INT'],
-                    c['WIS'],
-                    c['DEX'],
-                    c['CON'],
-                    c['CHA']
-                ]
-                DbQuery.updateRow('Characters', 'unique_id', character_id, row)
+                DbQuery.update_cols('Characters', 'unique_id', character_id, ['Background'], (background, ))
                 DbQuery.commit()
                 return get_existing_character(environ, character_id)
     return '<h1>Problem saving background!</h1>'
