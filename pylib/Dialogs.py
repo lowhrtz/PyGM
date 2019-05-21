@@ -50,7 +50,7 @@ class EntryDialog(QDialog):
 
     LINE_EDIT, TEXT_EDIT, SPIN_BOX, IMAGE = range(4)
 
-    def __init__(self, title, entry_type, value, parent, image_data=None):
+    def __init__(self, title, entry_type, value, parent, image_data=None, prefill_text=None):
         super().__init__(parent)
 
         self.value = value
@@ -62,8 +62,12 @@ class EntryDialog(QDialog):
 
         if entry_type == self.LINE_EDIT:
             self.entry_widget = QLineEdit(self)
+            if prefill_text:
+                self.entry_widget.setText(prefill_text)
         elif entry_type == self.TEXT_EDIT:
             self.entry_widget = QTextEdit(self)
+            if prefill_text:
+                self.entry_widget.setText(prefill_text)
         elif entry_type == self.SPIN_BOX:
             self.entry_widget = QSpinBox(self)
             self.entry_widget.setRange(-1000000000, 1000000000)

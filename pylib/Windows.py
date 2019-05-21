@@ -868,11 +868,23 @@ class WidgetRegistry(dict):
             # title = widget1_field_name
             # if title.startswith('&'):
             #     title = title[1:]
-            parent = self[widget2_field_name].qt_widget.parent()
+            if widget2_field_name in self.keys():
+                parent = self[widget2_field_name].qt_widget.parent()
+            elif len(self.keys()) > 0:
+                parent = self[list(self.keys())[0]].qt_widget.parent()
+            else:
+                parent = None
+
+            data_return = None
+            if callable(data):
+                data_return = data(fields)
+            elif data:
+                data_return = data
+
             if widget2_widget_type.lower() == 'lineedit':
-                dialog = EntryDialog(title, EntryDialog.LINE_EDIT, value, parent)
+                dialog = EntryDialog(title, EntryDialog.LINE_EDIT, value, parent, prefill_text=data_return)
             elif widget2_widget_type.lower() == 'textedit':
-                dialog = EntryDialog(title, EntryDialog.TEXT_EDIT, value, parent)
+                dialog = EntryDialog(title, EntryDialog.TEXT_EDIT, value, parent, prefill_text=data_return)
             elif widget2_widget_type.lower() == 'spinbox':
                 dialog = EntryDialog(title, EntryDialog.SPIN_BOX, value, parent)
             elif widget2_widget_type.lower() == 'image':
