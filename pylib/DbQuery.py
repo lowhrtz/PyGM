@@ -185,9 +185,9 @@ def updateRow( table_name, where_col, where, row ):
 
 def update_cols(table_name, where_col, where, cols, values):
     cursor = DB.cursor()
-    update_string = f'''\
-UPDATE {table_name} SET {'"' + '" = ?, "'.join(cols) + '" = ? '} WHERE "{where_col}" = "{where}"'''
-    values = tuple(val for val in values)
+    update_string = f'''UPDATE {table_name} SET {'"' + '" = ?, "'.join(cols) + '" = ? '} WHERE "{where_col}" = ?'''
+    values = list(values)
+    values.append(where)
     try:
         cursor.execute(update_string, values)
         return True
