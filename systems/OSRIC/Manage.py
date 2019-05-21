@@ -134,13 +134,10 @@ class Characters(Manage):
                                          callback=self.equipment_callback,
                                          data=equipment_data))
 
-        def test_text_area(new_text, fields):
-            # print(new_text)
-            # print(fields.keys())
+        def save_background(new_text, fields):
             DbQuery.update_cols('Characters', 'unique_id',
                                 fields['Character List Current']['unique_id'], ['Background'], [new_text])
             DbQuery.commit()
-            # return self.get_character_table(fields)
             return {}
 
         def get_background(fields):
@@ -151,7 +148,7 @@ class Characters(Manage):
             return fields['Character List Current']['Background']
 
         character_menu.add_action(Action('EntryDialog', Widget('&Background', 'MenuAction'), Widget('', 'TextEdit'),
-                                         callback=test_text_area, data=get_background))
+                                         callback=save_background, data=get_background))
         self.add_menu(character_menu)
 
         self.class_table = DbQuery.getTable('Classes')
