@@ -602,8 +602,10 @@ class Campaigns(Manage):
         tools_menu = Menu('&Tools')
         tools_menu.add_action(Action('Window', Widget('&Server', 'MenuAction'),
                                      callback=self.open_server))
-        tools_menu.add_action(Action('Window', Widget('&Sound Board', 'MenuAction'),
+        tools_menu.add_action(Action('Window', Widget('Sound &Board', 'MenuAction'),
                                      callback=self.open_sound_board))
+        tools_menu.add_action(Action('Window', Widget('&Encounters', 'MenuAction'),
+                                     callback=lambda f: self.Encounters(f)))
 
         self.add_menu(tools_menu)
 
@@ -914,6 +916,62 @@ class Campaigns(Manage):
 
         def play_sound_callback(self, fields, sound):
             return sound['Data']
+
+    class Encounters(Manage):
+
+        def __init__(self, fields):
+            super().__init__(modality='unblock')
+
+            # Define internal functions
+
+            def get_available_characters(owned_items, f):
+                # print(owned_items)
+                pcs = fields['PCs']
+                pc_ids = [pc['unique_id'] for pc in pcs]
+                # print(pc_ids)
+                pcs = [c for c in DbQuery.getTable('Characters') if c['unique_id'] in pc_ids]
+                avail_pcs = []
+                for pc in pcs:
+                    if pc not in owned_items:
+                        avail_pcs.append(pc)
+                return avail_pcs
+
+            def add_ally(ally, f):
+                return {
+                    'valid': True,
+                    'remove': True,
+                }
+
+            def remove_ally(ally, f):
+                return {
+                    'valid': True,
+                    'replace': True,
+                }
+
+            def add_pc_ally_callback(chosen_list, f):
+                # print(chosen_list, f)
+                return {'PC Team': chosen_list}
+
+            # Define Widgets
+            empty = Widget('', 'Empty')
+
+            pc_team = Widget('PC Team', 'ListBox')
+            monster_team = Widget('Monster Team', 'ListBox')
+            add_pc_ally = Widget('Add PC/Ally', 'PushButton')
+            add_pc_ally_data = {
+                'fill_avail': get_available_characters,
+                'tool_tip': SystemSettings.character_tool_tip,
+                'add': add_ally,
+                'remove': remove_ally,
+            }
+
+            # Add Actions
+            self.add_action(Action('ListDialog', add_pc_ally, pc_team,
+                                   callback=add_pc_ally_callback, data=add_pc_ally_data))
+
+            # Initialize GUI
+            self.add_row([pc_team, empty, monster_team])
+            self.add_row([add_pc_ally])
 
 
 class CampaignCreator(Wizard):

@@ -702,11 +702,12 @@ def get_class_names(character_dict):
 def character_tool_tip(character, fields):
     return f'''\
 <div>
-<img style="float: left;" height="200"  src=data:image;base64,{character['Portrait']}>
-<b>{character['Name']}</b><br />
-<b>Level:</b> {character['Level']}<br />
-<b>Class:</b> {get_class_names(character)}<br />
-<b>Race:</b> {get_race_dict(character)['Name']}<br />
+<table>
+<tr><td rowspan="4"><img height="200"  src=data:image;base64,{character['Portrait']}></td><th colspan="2">{character['Name']}</th></tr>
+<tr><th>Level:</th><td>{character['Level']}</td></tr>
+<tr><th>Class:</th><td>{get_class_names(character)}</td></tr>
+<tr><th>Race:</th><td>{get_race_dict(character)['Name']}</td></tr>
+</table>
 </div>'''
 
 
