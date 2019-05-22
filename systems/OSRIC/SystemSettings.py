@@ -699,7 +699,7 @@ def get_class_names(character_dict):
     return get_class_dict(character_dict)['Name']
 
 
-def character_tool_tip(character, fields):
+def character_tool_tip(character, _fields):
     return f'''\
 <div>
 <table>
