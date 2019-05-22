@@ -699,6 +699,17 @@ def get_class_names(character_dict):
     return get_class_dict(character_dict)['Name']
 
 
+def character_tool_tip(character, fields):
+    return f'''\
+<div>
+<img style="float: left;" height="200"  src=data:image;base64,{character['Portrait']}>
+<b>{character['Name']}</b><br />
+<b>Level:</b> {character['Level']}<br />
+<b>Class:</b> {get_class_names(character)}<br />
+<b>Race:</b> {get_race_dict(character)['Name']}<br />
+</div>'''
+
+
 def get_character_pdf_markup( character_dict ):
     class_table = DbQuery.getTable( 'Classes' )
     race_table = DbQuery.getTable( 'Races' )
