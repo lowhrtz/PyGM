@@ -635,6 +635,15 @@ def get_class_abilities( level, attr_dict, single_class_dict ):
 
     return cl_ab
 
+
+def get_race_name(character_dict):
+    race_dict = {}
+    for race in DbQuery.getTable('Races'):
+        if race['unique_id'] == character_dict['Race']:
+            race_dict = race
+    return race_dict
+
+
 def get_race_abilities( race_dict ):
     return_list = []
     subtype_list = [ 'combat', 'starting languages', 'infravision', 'misc' ]
