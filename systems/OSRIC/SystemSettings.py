@@ -636,7 +636,7 @@ def get_class_abilities( level, attr_dict, single_class_dict ):
     return cl_ab
 
 
-def get_race_name(character_dict):
+def get_race_dict(character_dict):
     race_dict = {}
     for race in DbQuery.getTable('Races'):
         if race['unique_id'] == character_dict['Race']:
