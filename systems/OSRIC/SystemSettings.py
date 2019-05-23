@@ -703,12 +703,30 @@ def character_tool_tip(character, _fields):
     return f'''\
 <div>
 <table>
-<tr><td rowspan="4"><img height="200"  src=data:image;base64,{character['Portrait']}></td><th colspan="2">{character['Name']}</th></tr>
+<tr><td rowspan="4"><img height="200"  src=data:image;base64,{character['Portrait']}></td>
+<th colspan="2">{character['Name']}</th></tr>
 <tr><th>Level:</th><td>{character['Level']}</td></tr>
 <tr><th>Class:</th><td>{get_class_names(character)}</td></tr>
 <tr><th>Race:</th><td>{get_race_dict(character)['Name']}</td></tr>
 </table>
 </div>'''
+
+
+def monster_tool_tip(monster, _fields):
+    return f'''\
+<style>
+table th {{
+    text-align: right;
+}}
+</style>
+<table>
+<tr><th align="center" colspan="2">{monster['Name']}</th></tr>
+<tr><th>Type:</th><td>{monster['Type']}</td></tr>
+<tr><th>Frequency:</th><td>{monster['Frequency']}</td></tr>
+<tr><th>Size:</th><td>{monster['Size']}</td></tr>
+<tr><th>AC:</th><td>{monster['AC']}</td></tr>
+<tr><th>HD:</th><td>{monster['HD']}</td></tr>
+</table>'''
 
 
 def get_character_pdf_markup( character_dict ):
