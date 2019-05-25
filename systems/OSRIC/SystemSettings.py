@@ -155,6 +155,14 @@ def has_secondary_spells_at_level(level, single_class):
     return False
 
 
+def get_race_dict(character_dict):
+    race_dict = {}
+    for race in DbQuery.getTable('Races'):
+        if race['unique_id'] == character_dict['Race']:
+            race_dict = race
+    return race_dict
+
+
 def get_attribute_bonuses(attr_key, score):
     score = float(score)
     return_bonus = ()
