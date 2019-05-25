@@ -84,8 +84,8 @@ class Characters(Manage):
         spellbook = Widget('Spellbook', 'ListBox', col_span=2)
         daily_spells = Widget('Daily Spells', 'ListBox')
         daily_spells2 = Widget('Daily Spells 2_', 'ListBox')
-        dail_spells3 = Widget('Daily Spells 3_', 'ListBox')
-        self.add_row([spellbook, empty_widget, daily_spells, daily_spells2, dail_spells3])
+        daily_spells3 = Widget('Daily Spells 3_', 'ListBox')
+        self.add_row([spellbook, empty_widget, daily_spells, daily_spells2, daily_spells3])
 
         #        pdf_button = Widget( 'Save PDF', 'PushButton' )
         #        self.add_row( [ pdf_button, ] )
@@ -919,59 +919,119 @@ class Campaigns(Manage):
 
     class Encounters(Manage):
 
-        def __init__(self, fields):
+        def __init__(self, extern):
             super().__init__(modality='unblock')
 
             # Define internal functions
+            def get_available_characters(owned_items, fields):
+                if fields['PC or Ally'] == 0:
+                    characters = extern['PCs']
+                else:
+                    characters = extern['NPCs']
+                character_ids = [c['unique_id'] for c in characters]
+                characters = [c for c in DbQuery.getTable('Characters') if c['unique_id'] in character_ids]
+                avail_characters = []
+                for c in characters:
+                    if c not in owned_items:
+                        avail_characters.append(c)
+                return avail_characters
 
-            def get_available_characters(owned_items, f):
-                # print(owned_items)
-                pcs = fields['PCs']
-                pc_ids = [pc['unique_id'] for pc in pcs]
-                # print(pc_ids)
-                pcs = [c for c in DbQuery.getTable('Characters') if c['unique_id'] in pc_ids]
-                avail_pcs = []
-                for pc in pcs:
-                    if pc not in owned_items:
-                        avail_pcs.append(pc)
-                return avail_pcs
-
-            def add_ally(ally, f):
+            def add_ally(_ally, _fields):
                 return {
                     'valid': True,
                     'remove': True,
                 }
 
-            def remove_ally(ally, f):
+            def remove_ally(_ally, _fields):
                 return {
                     'valid': True,
                     'replace': True,
                 }
 
-            def add_pc_ally_callback(chosen_list, f):
+            def add_pc_ally_callback(chosen_list, _fields):
                 # print(chosen_list, f)
                 return {'PC Team': chosen_list}
+
+            def get_available_enemies(owned_items, fields):
+                if fields['Monster or Enemy'] == 0:
+                    enemies = DbQuery.getTable('Monsters')
+                    return enemies
+                else:
+                    npcs = extern['NPCs']
+                    npc_ids = [c['unique_id'] for c in npcs]
+                    npcs = [c for c in DbQuery.getTable('Characters') if c['unique_id'] in npc_ids]
+                    avail_npcs = []
+                    for npc in npcs:
+                        if npc not in owned_items:
+                            avail_npcs.append(npc)
+                    return avail_npcs
+
+            def enemy_tool_tip(enemy, _fields):
+                if enemy['TableName'] == 'Characters':
+                    return SystemSettings.character_tool_tip(enemy, _fields)
+                else:
+                    return SystemSettings.monster_tool_tip(enemy, _fields)
+
+            def add_enemy(enemy, _fields):
+                remove = False
+                if enemy['TableName'] == 'Characters':
+                    remove = True
+                return {
+                    'valid': True,
+                    'remove': remove,
+                }
+
+            def remove_enemy(enemy, _fields):
+                replace = False
+                if enemy['TableName'] == 'Characters':
+                    replace = True
+                return {
+                    'valid': True,
+                    'replace': replace,
+                }
+
+            def add_monster_enemy_callback(chosen_list, _fields):
+                return {'Monster Team': chosen_list}
+
+            def accept_encounter(encounter_tracker_return, _fields):
+                return encounter_tracker_return
 
             # Define Widgets
             empty = Widget('', 'Empty')
 
-            pc_team = Widget('PC Team', 'ListBox')
-            monster_team = Widget('Monster Team', 'ListBox')
+            pc_team = Widget('PC Team', 'ListBox', col_span=2)
+            monster_team = Widget('Monster Team', 'ListBox', col_span=2)
             add_pc_ally = Widget('Add PC/Ally', 'PushButton')
+            pc_ally_radio = Widget('PC or Ally', 'RadioButton', data=['PC', 'Ally'])
+            add_monster_enemy = Widget('Add Monster/Enemy', 'PushButton')
+            monster_enemy_radio = Widget('Monster or Enemy', 'RadioButton', data=['Monster', 'Enemy'])
+            start_encounter = Widget('Start Encounter', 'PushButton', col_span=4, align='Center')
+
+            # Add Actions
             add_pc_ally_data = {
                 'fill_avail': get_available_characters,
                 'tool_tip': SystemSettings.character_tool_tip,
                 'add': add_ally,
                 'remove': remove_ally,
             }
-
-            # Add Actions
             self.add_action(Action('ListDialog', add_pc_ally, pc_team,
                                    callback=add_pc_ally_callback, data=add_pc_ally_data))
+            add_monster_enemy_data = {
+                'fill_avail': get_available_enemies,
+                'tool_tip': enemy_tool_tip,
+                'add': add_enemy,
+                'remove': remove_enemy,
+            }
+            from EncounterTracker import EncounterTrackerWizard
+            self.add_action(Action('ListDialog', add_monster_enemy, monster_team,
+                                   callback=add_monster_enemy_callback, data=add_monster_enemy_data))
+            self.add_action(Action('Wizard', start_encounter, data=EncounterTrackerWizard,
+                                   callback=accept_encounter))
 
             # Initialize GUI
             self.add_row([pc_team, empty, monster_team])
-            self.add_row([add_pc_ally])
+            self.add_row([add_pc_ally, pc_ally_radio, add_monster_enemy, monster_enemy_radio])
+            self.add_row([start_encounter])
 
 
 class CampaignCreator(Wizard):
