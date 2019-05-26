@@ -1,4 +1,6 @@
 import Dice
+import SystemSettings
+import DbQuery
 from GuiDefs import *
 
 
@@ -37,11 +39,23 @@ class SurprisePage(WizardPage):
         super().__init__(1, 'Surprise')
         self.set_subtitle('Determine Surprise')
 
+        item_table = DbQuery.getTable('Items')
+
         # Define internal functions
+        def pc_tool_tip(pc, _fields, _pages, _external):
+            race_dict = SystemSettings.get_race_dict(pc)
+            class_dict = SystemSettings.get_class_dict(pc)
+            equipment_ids = [row['Entry_ID'] for row in pc['Characters_meta'] if row['Type'] == 'Equipment']
+            equipment = [equip for equip in item_table if equip['unique_id'] in equipment_ids]
+            _, surprise = SystemSettings.calculate_movement(race_dict, class_dict, pc, equipment)
+            return f'''\
+<b>{pc['Name']}</b><br />
+Surprise: {surprise}
+'''
 
         # Define Widgets
         pc_team_surprise = Widget('PC Team Surprise', 'SpinBox')
-        pc_team = Widget('PC Team', 'ListBox')
+        pc_team = Widget('PC Team', 'ListBox', tool_tip=pc_tool_tip)
         monster_team_surprise = Widget('Monster Team Surprise', 'SpinBox')
         monster_team = Widget('Monster Team', 'ListBox')
 

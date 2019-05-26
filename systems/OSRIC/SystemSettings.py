@@ -552,21 +552,37 @@ def calculate_movement(race_dict, class_dict, attr_dict, equipment_list):
     for wa in wearable_armour:
         if not best_armour or wa['AC_Effect'] < best_armour['AC_Effect']:
             best_armour = wa
+    best_armour_weight = 0
     if best_armour:
+        best_armour_weight = int(''.join([c for c in best_armour['Weight'] if c.isdigit()]))
         max_move = ''.join([c for c in best_armour['Max_Move_Rate'] if c.isdigit()])
         if int(max_move) < max_movement:
             max_movement = int(max_move)
 
+    def surprise_bonus_string(surprise_bonus):
+        if surprise_bonus >= 0:
+            return f'+{surprise_bonus}'
+        else:
+            return f'{surprise_bonus}'
+    surprise_bonus = int(get_attribute_bonuses('DEX', attr_dict['DEX'])[0])
     if equipment_weight <= 35 + int(str_bonus):
-        movement = (min(base_movement, max_movement), '+1 (for armour lighter than chain mail only)')
+        # +1 (for armour lighter than chain mail only)
+        if best_armour_weight < 30:
+            surprise_bonus += 1
+        movement = (min(base_movement, max_movement), surprise_bonus_string(surprise_bonus))
     elif equipment_weight <= 70 + int(str_bonus):
-        movement = (min(base_movement - 30, max_movement), 'Normal bonuses apply')
+        # Normal bonuses apply
+        movement = (min(base_movement - 30, max_movement), surprise_bonus_string(surprise_bonus))
     elif equipment_weight <= 105 + int(str_bonus):
-        movement = (min(base_movement - 60, max_movement), 'No normal bonuses apply (but penalties do)')
+        # No normal bonuses apply (but penalties do)
+        movement = (min(base_movement - 60, max_movement), surprise_bonus_string(min(surprise_bonus, 0)))
     elif equipment_weight <= 150 + int(str_bonus):
-        movement = (min(30, max_movement), 'No normal bonuses apply (but penalties do); -1 extra penalty')
+        # No normal bonuses apply (but penalties do); -1 extra penalty
+        surprise_bonus = min(surprise_bonus, 0)
+        surprise_bonus -= 1
+        movement = (min(30, max_movement), surprise_bonus_string(surprise_bonus))
     else:
-        movement = (0, 'No movement possible')
+        movement = (0, 'No movement or surprise possible')
 
     return movement
 

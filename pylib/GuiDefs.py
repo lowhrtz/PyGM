@@ -4,18 +4,18 @@ import Dice
 
 
 class Widget(object):
-    field_name = None
-    widget_type = None
-    enable_edit = True
-    height = None
-    width = None
-    col_span = 1
-    row_span = 1
-    align = None
-    data = None
+    # field_name = None
+    # widget_type = None
+    # enable_edit = True
+    # height = None
+    # width = None
+    # col_span = 1
+    # row_span = 1
+    # align = None
+    # data = None
 
-    def __init__(self, field_name, widget_type, enable_edit=True, height=None, width=None,
-                 col_span=1, row_span=1, stretch=True, align=None, direction='Vertical', data=None, style=None):
+    def __init__(self, field_name, widget_type, enable_edit=True, height=None, width=None, col_span=1, row_span=1,
+                 stretch=True, align=None, direction='Vertical', data=None, style=None, tool_tip=None):
         self.field_name = field_name
         self.widget_type = widget_type
         self.enable_edit = enable_edit
@@ -28,6 +28,7 @@ class Widget(object):
         self.direction = direction
         self.data = data
         self.style = style
+        self.tool_tip = tool_tip
 
     def __str__(self):
         return self.field_name
@@ -67,6 +68,9 @@ class Widget(object):
 
     def get_style(self):
         return self.style
+
+    def get_tool_tip(self):
+        return self.tool_tip
 
 
 class Action(object):

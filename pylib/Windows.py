@@ -231,6 +231,7 @@ class WidgetRegistry(dict):
         stretch = widget.get_stretch()
         widget_data = widget.get_data()
         widget_style = widget.get_style()
+        widget_tool_tip = widget.get_tool_tip()
 
         widget_layout = None
         qt_widget = None
@@ -247,6 +248,8 @@ class WidgetRegistry(dict):
             qt_widget = QCheckBox(text)
             qt_widget.setEnabled(is_enabled)
             qt_widget.setStyleSheet(disabled_stylesheet)
+            if not callable(widget_tool_tip):
+                qt_widget.setToolTip(widget_tool_tip)
             widget_layout.addWidget(qt_widget)
             if gui_wizard_page:
                 qt_widget.clicked.connect(lambda: gui_wizard_page.completeChanged.emit())
@@ -256,6 +259,8 @@ class WidgetRegistry(dict):
             qt_widget = QTextEdit()
             qt_widget.setEnabled(is_enabled)
             qt_widget.setStyleSheet(disabled_stylesheet)
+            if not callable(widget_tool_tip):
+                qt_widget.setToolTip(widget_tool_tip)
             if not hide_field:
                 widget_layout.addWidget(QLabel(field_name))
             widget_layout.addWidget(qt_widget)
@@ -273,6 +278,8 @@ class WidgetRegistry(dict):
                 qt_widget.setFixedWidth(widget_width)
             qt_widget.setEnabled(is_enabled)
             qt_widget.setStyleSheet(disabled_stylesheet)
+            if not callable(widget_tool_tip):
+                qt_widget.setToolTip(widget_tool_tip)
             if not hide_field:
                 if not stretch:
                     widget_layout.addWidget(QLabel(field_name), 1, QtCore.Qt.AlignRight)
@@ -290,6 +297,8 @@ class WidgetRegistry(dict):
             qt_widget = QSpinBox()
             qt_widget.setEnabled(is_enabled)
             qt_widget.setStyleSheet(disabled_stylesheet)
+            if not callable(widget_tool_tip):
+                qt_widget.setToolTip(widget_tool_tip)
             qt_widget.setRange(-1000000000, 1000000000)
             if not hide_field:
                 widget_layout.addWidget(QLabel(field_name))
@@ -306,6 +315,8 @@ class WidgetRegistry(dict):
             qt_widget = QPushButton(button_text)
             qt_widget.setEnabled(is_enabled)
             qt_widget.setStyleSheet(disabled_stylesheet)
+            if not callable(widget_tool_tip):
+                qt_widget.setToolTip(widget_tool_tip)
             widget_layout.addWidget(qt_widget)
 
         elif widget_type.lower() == 'radiobutton':
@@ -322,6 +333,8 @@ class WidgetRegistry(dict):
                     radio_button = QRadioButton(radio)
                 radio_button.setEnabled(is_enabled)
                 radio_button.setStyleSheet(disabled_stylesheet)
+                if not callable(widget_tool_tip):
+                    radio_button.setToolTip(widget_tool_tip)
                 qt_widget.addButton(radio_button)
                 qt_widget.setId(radio_button, i)
                 if i == 0:
@@ -335,6 +348,8 @@ class WidgetRegistry(dict):
             qt_widget = QComboBox()
             qt_widget.setEnabled(is_enabled)
             qt_widget.setStyleSheet(disabled_stylesheet)
+            if not callable(widget_tool_tip):
+                qt_widget.setToolTip(widget_tool_tip)
             if widget_data:
                 for item in widget_data:
                     qt_widget.addItem(item)
@@ -349,11 +364,14 @@ class WidgetRegistry(dict):
             qt_widget = QListWidget()
             qt_widget.setEnabled(is_enabled)
             qt_widget.setStyleSheet(disabled_stylesheet)
+            if not callable(widget_tool_tip):
+                qt_widget.setToolTip(widget_tool_tip)
             if widget_data:
                 fill_listbox(qt_widget, widget_data)
             if not hide_field:
                 widget_layout.addWidget(QLabel(field_name))
             widget_layout.addWidget(qt_widget)
+            qt_widget.gui_wizard_page = gui_wizard_page
             if gui_wizard_page:
                 qt_widget.currentRowChanged.connect(lambda: gui_wizard_page.completeChanged.emit())
 
@@ -537,6 +555,8 @@ class WidgetRegistry(dict):
             qt_widget = QLabel(widget_data)
             qt_widget.setEnabled(is_enabled)
             qt_widget.setStyleSheet(disabled_stylesheet)
+            if not callable(widget_tool_tip):
+                qt_widget.setToolTip(widget_tool_tip)
             widget_layout.addWidget(qt_widget)
 
         elif widget_type.lower() == 'image':
@@ -556,6 +576,8 @@ class WidgetRegistry(dict):
             if widget_style:
                 widget_style = widget_style
                 qt_widget.setStyleSheet(widget_style)
+            if not callable(widget_tool_tip):
+                qt_widget.setToolTip(widget_tool_tip)
             widget_layout.addWidget(qt_widget)
 
         elif widget_type.lower() == 'dragimage':
@@ -714,12 +736,15 @@ class WidgetRegistry(dict):
                     widget.clear()
                     widget.addItems(v)
             elif widget_type.lower() == 'listbox':
+                tool_tip = self[k].get_tool_tip()
+                if not callable(tool_tip):
+                    tool_tip = None
                 if isinstance(v, list):
-                    fill_listbox(widget, v)
+                    fill_listbox(widget, v, tool_tip=tool_tip, wizard=widget.gui_wizard_page)
                 elif isinstance(v, tuple) and len(v) == 0:
                     remove_item_from_listbox(widget)
                 else:
-                    add_item_to_listbox(widget, v)
+                    add_item_to_listbox(widget, v, tool_tip=tool_tip, wizard=widget.gui_wizard_page)
             elif widget_type.lower() == 'image':
                 widget.base64 = v or ''
                 if widget.base64.startswith('#') and len(widget.base64) < 8:
