@@ -53,11 +53,25 @@ class SurprisePage(WizardPage):
 Surprise: {surprise}
 '''
 
+        def enemy_tool_tip(enemy, _fields, _pages, _external):
+            if enemy['TableName'] == 'Monsters':
+                special_attacks = enemy['Special_Attacks']
+                special_defences = enemy['Special_Defences']
+                description = enemy['Description']
+                return f'''\
+<b>{enemy['Name']}</b><br />
+Special Attacks: {special_attacks}<br />
+Special Defences: {special_defences}<br /><br />
+{description}
+'''
+            else:
+                return pc_tool_tip(enemy, _fields, _pages, _external)
+
         # Define Widgets
         pc_team_surprise = Widget('PC Team Surprise', 'SpinBox')
         pc_team = Widget('PC Team', 'ListBox', tool_tip=pc_tool_tip)
         monster_team_surprise = Widget('Monster Team Surprise', 'SpinBox')
-        monster_team = Widget('Monster Team', 'ListBox')
+        monster_team = Widget('Monster Team', 'ListBox', tool_tip=enemy_tool_tip)
 
         # Add Actions
 
