@@ -40,13 +40,15 @@ class SurprisePage(WizardPage):
         self.set_subtitle('Determine Surprise')
 
         item_table = DbQuery.getTable('Items')
+        indexed_items = {item['unique_id']: item for item in item_table}
 
         # Define internal functions
         def pc_tool_tip(pc, _fields, _pages, _external):
             race_dict = SystemSettings.get_race_dict(pc)
             class_dict = SystemSettings.get_class_dict(pc)
             equipment_ids = [row['Entry_ID'] for row in pc['Characters_meta'] if row['Type'] == 'Equipment']
-            equipment = [equip for equip in item_table if equip['unique_id'] in equipment_ids]
+            # equipment = [equip for equip in item_table if equip['unique_id'] in equipment_ids]
+            equipment = [indexed_items[equipment_id] for equipment_id in equipment_ids]
             _, surprise = SystemSettings.calculate_movement(race_dict, class_dict, pc, equipment)
             return f'''\
 <b>{pc['Name']}</b><br />

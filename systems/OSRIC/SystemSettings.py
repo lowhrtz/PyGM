@@ -846,10 +846,12 @@ def get_character_pdf_markup( character_dict ):
             elif prof_level == '2XS':
                 double_specialised_list.append( prof )
 
-    equipment_list = []
-    for equip in items_table:
-        if equip['unique_id'] in equip_id_list:
-            equipment_list.append( equip )
+    # equipment_list = []
+    # for equip in items_table:
+    #     if equip['unique_id'] in equip_id_list:
+    #         equipment_list.append( equip )
+    indexed_items = {item['unique_id']: item for item in items_table}
+    equipment_list = [indexed_items[equip_id] for equip_id in equip_id_list]
 
     class_abilities = {}
     if 'classes' in class_dict:
