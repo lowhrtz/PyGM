@@ -990,7 +990,8 @@ class WidgetRegistry(dict):
         elif action_type.lower() == 'window':
             if callback:
                 manage = callback(self.get_fields())
-                ManageWindow(manage, self.parent)
+                if manage:
+                    ManageWindow(manage, self.parent)
 
         elif action_type.lower() == 'playsound':
             if gui_wizard_page:
