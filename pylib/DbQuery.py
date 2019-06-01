@@ -183,11 +183,17 @@ def updateRow( table_name, where_col, where, row ):
         return False
 
 
-def update_cols(table_name, where_col, where, cols, values):
+def update_cols(table_name, where_col, where, cols, values, where_col2=None, where2=None):
     cursor = DB.cursor()
-    update_string = f'''UPDATE {table_name} SET {'"' + '" = ?, "'.join(cols) + '" = ? '} WHERE "{where_col}" = ?'''
     values = list(values)
-    values.append(where)
+    if where_col2 is None or where2 is None:
+        update_string = f'''UPDATE {table_name} SET {'"' + '" = ?, "'.join(cols) + '" = ? '} WHERE "{where_col}" = ?'''
+        values.append(where)
+    else:
+        update_string = f'''\
+UPDATE {table_name} SET {'"' + '" = ?, "'.join(cols) + '" = ? '} WHERE "{where_col}" = ? and "{where_col2}" = ?'''
+        values.append(where)
+        values.append(where2)
     try:
         cursor.execute(update_string, values)
         return True
