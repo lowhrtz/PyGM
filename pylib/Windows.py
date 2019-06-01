@@ -310,7 +310,9 @@ class WidgetRegistry(dict):
 
         elif widget_type.lower() == 'pushbutton':
             widget_layout = QHBoxLayout()
-            if not hide_field:
+            if widget_data:
+                button_text = widget_data
+            elif not hide_field:
                 button_text = field_name
             else:
                 button_text = ''
