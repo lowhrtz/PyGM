@@ -892,6 +892,8 @@ class WidgetRegistry(dict):
             value = [None]
             if widget1.get_widget_type().lower() == 'menuaction':
                 title = widget1_field_name.replace('&', '')
+            elif widget1.get_data():
+                title = widget1.get_data()
             else:
                 title = widget1_field_name
             # title = widget1_field_name
