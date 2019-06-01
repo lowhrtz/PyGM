@@ -61,6 +61,10 @@ def callback_factory_1param(callback, *args, **kwargs):
     return lambda x: callback(x, *args, **kwargs)
 
 
+def callback_factory_2param(callback, *args, **kwargs):
+    return lambda x, y: callback(x, y, *args, **kwargs)
+
+
 def remove_item_from_listbox(listbox):
     remove_index = listbox.currentRow()
     if remove_index == -1:
