@@ -295,6 +295,8 @@ class WidgetRegistry(dict):
         elif widget_type.lower() == 'spinbox':
             widget_layout = QHBoxLayout()
             qt_widget = QSpinBox()
+            if widget_data:
+                qt_widget.setValue(widget_data)
             qt_widget.setEnabled(is_enabled)
             qt_widget.setStyleSheet(disabled_stylesheet)
             if not callable(widget_tool_tip):
