@@ -13,7 +13,8 @@ def randomInt(lower, upper):
 def rollString(dice_string):
     single_dice_format = re.compile('^d?[0-9]+$')
     dice_format = re.compile('^[0-9]+[d][0-9]+$')
-    complex_format = re.compile('^\\(?[0-9]+[d][0-9]+(\\s*\\+[0-9]+\\s*)?\\)?(\\s*[x|×]\\s*[0-9]+)?$')
+    # complex_format = re.compile('^\\(?[0-9]+[d][0-9]+(\\s*\\+[0-9]+\\s*)?\\)?(\\s*[x|×]\\s*[0-9]+)?$')
+    complex_format = re.compile('^\\(?[0-9]+[d][0-9]+(\\s*[+-][0-9]+\\s*)?\\)?(\\s*[x|×]\\s*[0-9]+)?$')
 
     if single_dice_format.match(dice_string):
         sides = int(dice_string.replace('d', ''))
