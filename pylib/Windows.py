@@ -995,7 +995,10 @@ class WidgetRegistry(dict):
 
         elif action_type.lower() == 'window':
             if callback:
-                manage = callback(self.get_fields())
+                if gui_wizard_page:
+                    manage = callback(self.get_fields(), gui_wizard_page.wizard_pages, gui_wizard_page.external_data)
+                else:
+                    manage = callback(self.get_fields())
                 if manage:
                     ManageWindow(manage, self.parent)
 
