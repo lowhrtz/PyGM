@@ -317,6 +317,14 @@ class classes_meta(Table):
         ['thief','ability','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','','Read Scrolls','10','When a thief reaches 10th level, he or she has become well-versed enough in training to cast spells from an arcane or phantasmal scroll (magic user or illusionist).'],
         ]
 
+class encounters(Table):
+    table_name = 'Encounters'
+    cols = ['unique_id','pc_team','enemy_team']
+    colDefs = ['VARCHAR(50) UNIQUE','CLOB','CLOB']
+    blank = 0
+    data = [
+        ]
+
 class items(Table):
     table_name = 'Items'
     cols = ['unique_id','Name','Category','Subcategory','Weight','Cost','Value','Damage_Vs_S_or_M','Damage_Vs_L','Damage_Type','Is_Proficiency','Is_Magic','Rate_of_Fire','Range','Max_Move_Rate','AC_Effect','Ability_Modifier','Save_Modifier','Notes','DM_Notes']

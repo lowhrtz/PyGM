@@ -1,0 +1,4 @@
+'Encounters',,
+'unique_id','pc_team','enemy_team'
+'VARCHAR(50) UNIQUE','CLOB','CLOB'
+'blank',,
