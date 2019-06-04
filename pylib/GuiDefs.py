@@ -116,7 +116,9 @@ class Menu(object):
 
 class Window(object):
 
-    def __init__(self):
+    def __init__(self, title=None, modality='block'):
+        self.title = title
+        self.modality = modality
         self.enabled = True
         self.menu_list = []
         self.action_list = []
@@ -139,6 +141,35 @@ class Window(object):
 
     def get_widget_matrix(self):
         return self.widget_matrix
+
+    def get_title(self):
+        return self.title
+
+    def get_modality(self):
+        return self.modality
+
+
+class DiceWindow(Window):
+    def __init__(self):
+        super().__init__(title='Dice', modality='unblock')
+
+        # Define Internal Functions
+        def roll_dice(fields):
+            return {
+                'Result': Dice.rollString(fields['Dice String'])
+            }
+
+        # Define Widgets
+        dice_string_entry = Widget('Dice String', 'LineEdit', data='1d6')
+        roll_button = Widget('Roll Button', 'PushButton', data='Roll')
+        result = Widget('Result', 'SpinBox', align='Center', col_span=2)
+
+        # Add Actions
+        self.add_action(Action('FillFields', roll_button, callback=roll_dice))
+
+        # Initialize GUI
+        self.add_row([dice_string_entry, roll_button])
+        self.add_row([result])
 
 
 class WizardPage(Window):

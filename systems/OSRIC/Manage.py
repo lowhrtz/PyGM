@@ -606,6 +606,8 @@ class Campaigns(Manage):
                                      callback=self.open_sound_board))
         tools_menu.add_action(Action('Window', Widget('&Encounters', 'MenuAction'),
                                      callback=lambda f: self.Encounters(f)))
+        tools_menu.add_action(Action('Window', Widget('&Dice Roller', 'Menu Actions'),
+                                     callback=lambda f: DiceWindow()))
 
         self.add_menu(tools_menu)
 

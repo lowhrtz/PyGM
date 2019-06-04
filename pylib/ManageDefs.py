@@ -3,8 +3,9 @@
 
 class Manage(object):
 
-    def __init__(self, modality='block'):
-        self.modaliity = modality
+    def __init__(self, title=None, modality='block'):
+        self.title = title
+        self.modality = modality
         self.enabled = True
         self.menu_list = []
         self.action_list = []
@@ -32,5 +33,8 @@ class Manage(object):
     def get_widget_matrix(self):
         return self.widget_matrix
 
+    def get_title(self):
+        return self.title
+
     def get_modality(self):
-        return self.modaliity
+        return self.modality

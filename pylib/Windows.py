@@ -1045,6 +1045,10 @@ class ManageWindow(CenterableWindow):
         self.close_callback = lambda x: x
 
         class_name = type(manage).__name__
+        if manage.get_title():
+            title = manage.get_title()
+        else:
+            title = class_name
 
         layout = QGridLayout()
         central_widget = QWidget()
@@ -1103,7 +1107,7 @@ class ManageWindow(CenterableWindow):
 
         if manage.get_modality() == 'block':
             self.setWindowModality(QtCore.Qt.ApplicationModal)
-        self.setWindowTitle(class_name)
+        self.setWindowTitle(title)
         self.onshow.emit()
         self.show()
         self.center()
