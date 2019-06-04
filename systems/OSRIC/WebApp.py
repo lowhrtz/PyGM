@@ -707,6 +707,8 @@ Level {c['Level']} {SystemSettings.get_class_names(c)}</div>'''
 
 
 def get_choose_character(environ):
+    if environ.get('REQUEST_METHOD', '') != 'POST':
+        return ''
     raw_post = environ.get('wsgi.input', '')
     post = raw_post.read(int(environ.get('CONTENT_LENGTH', 0)))
     post_dict = parse_qs(post.decode(), True)
@@ -719,8 +721,7 @@ def get_choose_character(environ):
                 DbQuery.insertRow('WebApp', (environ['REMOTE_ADDR'], character_id))
                 DbQuery.commit()
                 return get_character_html(c)
-                #return f'''<div style="font-size: 60px; text-align: center;">You Have Chosen: {c['Name']}<br />
-#<button style="font-size: 60px;" onclick=openItem('character')>To Character</button></div>'''
+
     return ''
 
 
