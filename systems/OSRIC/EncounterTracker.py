@@ -225,6 +225,10 @@ class HpTracker(Manage):
             }
 
         # Define Widgets
+        tools_menu = Menu('&Tools')
+        tools_menu.add_action(Action('Window', Widget('&Dice Roller', 'MenuAction'), callback=lambda x: DiceWindow()))
+        self.add_menu(tools_menu)
+
         pc_team_header = Widget('PC Team Header', 'TextLabel', data='<b>PC Team</b>', align='Center', col_span=3)
         self.add_row([pc_team_header])
         for character in characters:
