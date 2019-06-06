@@ -200,6 +200,9 @@ class WizardPage(Window):
     def is_complete(self, fields, pages, external_data):
         return True
 
+    def on_change(self, fields, pages, external_data):
+        return {}
+
     def get_next_page_id(self, fields, pages, external_data):
         return -2
 

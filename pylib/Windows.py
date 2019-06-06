@@ -1204,6 +1204,8 @@ class GuiWizardPage(QWizardPage):
                     grid_layout.addLayout(widget_layout, i, j, widget.get_row_span(), widget.get_col_span(), align)
         self.setLayout(grid_layout)
 
+        self.completeChanged.connect(self.on_change)
+
         actions = wizard_page.get_action_list()
         for action in actions:
             action_type = action.get_action_type()
@@ -1228,6 +1230,12 @@ class GuiWizardPage(QWizardPage):
 
     def get_page_id(self):
         return self.page_id
+
+    def on_change(self):
+        on_change_return = self.wizard_page.on_change(self.widget_registry.get_fields(),
+                                                      self.wizard_pages, self.external_data)
+        if on_change_return:
+            self.widget_registry.fill_fields(on_change_return)
 
     def initializePage(self):
         # print( self.widget_registry )
