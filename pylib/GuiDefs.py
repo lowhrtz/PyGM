@@ -265,12 +265,16 @@ class RollMethodsPage(WizardPage):
 
 class Wizard(object):
 
-    def __init__(self, title, wizard_style='Classic'):
+    def __init__(self, title, modality='block'):
         self.title = title
+        self.modality = modality
         self.wizard_pages = []
 
     def get_title(self):
         return self.title
+
+    def get_modality(self):
+        return self.modality
 
     def get_wizard_pages(self):
         return self.wizard_pages

@@ -977,12 +977,15 @@ class WidgetRegistry(dict):
             wizard = data()
             # parent = self[ widget2_field_name ].qt_widget.parent()
             gui_wizard = GuiWizard(wizard, self.get_fields(), self.parent)
-            if gui_wizard.exec_():
-                accept_return = gui_wizard.get_accept_return()
-                if callback:
-                    callback_return = callback(accept_return, self.get_fields())
-                    if callback_return:
-                        self.fill_fields(callback_return)
+            if wizard.get_modality().lower() == 'block':
+                if gui_wizard.exec_():
+                    accept_return = gui_wizard.get_accept_return()
+                    if callback:
+                        callback_return = callback(accept_return, self.get_fields())
+                        if callback_return:
+                            self.fill_fields(callback_return)
+            else:
+                gui_wizard.show()
 
         elif action_type.lower() == 'dragenable':
             if gui_wizard_page:
