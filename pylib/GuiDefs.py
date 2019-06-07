@@ -150,8 +150,8 @@ class Window(object):
 
 
 class DiceWindow(Window):
-    def __init__(self):
-        super().__init__(title='Dice', modality='unblock')
+    def __init__(self, modality='unblock'):
+        super().__init__(title='Dice', modality=modality)
 
         # Define Internal Functions
         def roll_dice(fields):
@@ -159,16 +159,33 @@ class DiceWindow(Window):
                 'Result': Dice.rollString(fields['Dice String'])
             }
 
+        def roll_percentile(_fields):
+            tens = Dice.rollString('1d10-1')
+            ones = Dice.rollString('1d10-1')
+            if tens == 0 and ones == 0:
+                percentile_result = '00'
+            else:
+                percentile_result = f'{tens or ""}{ones}%'
+
+            return {
+                'Result': percentile_result,
+            }
+
         # Define Widgets
         dice_string_entry = Widget('Dice String', 'LineEdit', data='1d6')
         roll_button = Widget('Roll Button', 'PushButton', data='Roll')
-        result = Widget('Result', 'SpinBox', align='Center', col_span=2)
+        or_text = Widget('Or Text', 'TextLabel', data='<h3>OR</h3>', align='Center', col_span=2)
+        roll_percentile_button = Widget('Roll Percentile', 'PushButton', align='Center', col_span=2)
+        result = Widget('Result', 'LineEdit', align='Center', col_span=2)
 
         # Add Actions
         self.add_action(Action('FillFields', roll_button, callback=roll_dice))
+        self.add_action(Action('FillFields', roll_percentile_button, callback=roll_percentile))
 
         # Initialize GUI
         self.add_row([dice_string_entry, roll_button])
+        self.add_row([or_text])
+        self.add_row([roll_percentile_button])
         self.add_row([result])
 
 
