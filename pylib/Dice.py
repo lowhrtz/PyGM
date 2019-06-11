@@ -11,6 +11,7 @@ def randomInt(lower, upper):
 
 
 def rollString(dice_string):
+    dice_string = dice_string.replace(',', '')
     single_dice_format = re.compile('^d?[0-9]+$')
     dice_format = re.compile('^[0-9]+[d][0-9]+$')
     # complex_format = re.compile('^\\(?[0-9]+[d][0-9]+(\\s*\\+[0-9]+\\s*)?\\)?(\\s*[x|×]\\s*[0-9]+)?$')
