@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import re
 from decimal import Decimal
 from string import Template
 import DbQuery
@@ -1183,3 +1184,38 @@ page-break-after:always;
     final_markup = t.safe_substitute( markup_template_dict )
 
     return '{}.pdf'.format(character_dict['Name']), final_markup
+
+
+MONSTER_XP_PATTERN = re.compile(r'^(\d+)/(\d+)\+(\d+)/hp.*$')
+
+
+# This assumes that the HP key has been added to the monster dictionary
+def get_xp_value(monster):
+    pattern_match = MONSTER_XP_PATTERN.match(monster['Level/XP_Value'])
+    if pattern_match:
+        _, base, per_xp = pattern_match.groups()
+        base, per_xp = int(base), int(per_xp)
+        return base + (per_xp * int(monster['HP']))
+    else:
+        return monster['Level/XP_Value']
+
+
+def parse_xp_bonus(bonus, attr_dict):
+    if bonus.lower() == 'None':
+        return 0
+    bonus_split = bonus.split()
+    if len(bonus_split) == 2:
+        attr = bonus_split[0]
+        score = bonus_split[1].replace('+', '')
+        if int(attr_dict[attr.upper()]) >= int(score):
+            return 10
+    else:
+        score = bonus_split.pop().replace('+', '')
+        attrs = [attr.strip().replace(',', '') for attr in bonus_split if attr.lower().find('and') == -1]
+        bonus_in_effect = True
+        for attr in attrs:
+            if attr_dict[attr.upper()] < score:
+                bonus_in_effect = False
+        if bonus_in_effect:
+            return 10
+    return 0
