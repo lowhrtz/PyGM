@@ -1,4 +1,5 @@
 import os
+import Dice
 import resources
 import PyQt5.QtCore as QtCore
 from PyQt5.QtWidgets import QListWidgetItem
@@ -116,3 +117,30 @@ def fill_listbox(listbox, fill, tool_tip=None, fields=None, original_list=None, 
     listbox.clear()
     for item in fill:
         add_item_to_listbox(listbox, item, tool_tip, fields, original_list, wizard)
+
+
+class Range:
+    def __init__(self, start, stop):
+        self.range = range(start, stop + 1)
+
+    def __iter__(self):
+        return iter(self.range)
+
+    def __getitem__(self, item):
+        return self.range[item]
+
+
+class RollTable:
+    def __init__(self, roll_string, matrix):
+        self.roll_string = roll_string
+        self.matrix = matrix
+
+    def roll(self):
+        r = Dice.rollString(self.roll_string)
+        for k in self.matrix.keys():
+            if r in k:
+                v = self.matrix[k]
+                if isinstance(v, RollTable):
+                    return v.roll()
+                else:
+                    return v
