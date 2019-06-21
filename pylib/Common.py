@@ -142,5 +142,7 @@ class RollTable:
                 v = self.matrix[k]
                 if isinstance(v, RollTable):
                     return v.roll()
+                elif callable(v):
+                    return v()
                 else:
                     return v
