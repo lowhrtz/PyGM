@@ -1,6 +1,7 @@
 import re
 import DbQuery
 import Dice
+from Common import Range, RollTable
 
 base_pattern = r'(\d+d\d+[+-x×]?[\d,]*|\d+) ?'
 percent_pattern = r' ?(?:\((\d+)%.*\))?'
@@ -12,6 +13,7 @@ pp_pattern = re.compile(base_pattern + 'pp' + percent_pattern)
 gems_pattern = re.compile(base_pattern + 'gems' + percent_pattern)
 jewellery_pattern = re.compile(base_pattern + 'jewellery' + percent_pattern)
 potions_pattern = re.compile(base_pattern + 'potions' + percent_pattern)
+rings_pattern = re.compile(base_pattern + 'rings' + percent_pattern)
 
 gemstone_desc_levels = [
         'Ornamental', 'Semi-Precious', 'Fancy',
@@ -54,6 +56,8 @@ def parse_treasure_text(treasure_text, wandering=True):
 
     potions_match = potions_pattern.findall(t)
     potions = [potions_table() for _ in range(1, sum(get_treasure_list(potions_match)) + 1)]
+    rings_match = rings_pattern.findall(t)
+    rings = [rings_table() for _ in range(1, sum(get_treasure_list(rings_match)) + 1)]
 
     return {
         'cp': sum(get_treasure_list(cp_match)),
@@ -65,6 +69,7 @@ def parse_treasure_text(treasure_text, wandering=True):
         'jewellery': jewellery,
 
         'potions': potions,
+        'rings': rings,
     }
 
 
@@ -290,10 +295,6 @@ def special_armour_table(armour_indexed=None):
         return armour_indexed['shield_large_+1_missile_deflector']
     else:
         return armour_indexed['armor_plate_mail_of_aethereality_16_20_charges_remaining']
-
-
-def miscellaneous_magic_table():
-    pass
 
 
 def miscellaneous_weapons_table():
@@ -612,16 +613,574 @@ def potions_table():
 
 
 def rings_table():
-    pass
+    rt = RollTable('d20', {
+        Range(1, 1): 'ring_charisma',
+        Range(2, 3): 'ring_feather_falling',
+        Range(4, 4): 'ring_fire_resistance',
+        Range(5, 5): 'ring_free_action',
+        Range(6, 6): 'ring_genie_summoning',
+        Range(7, 7): 'ring_invisibility',
+        Range(8, 12): RollTable('d100', {
+            Range(1, 68): 'ring_protection_+1',
+            Range(69, 70): 'ring_protection_+1_5_ft_radius',
+            Range(71, 92): 'ring_protection_+2',
+            Range(93, 93): 'ring_protection_+2_5_ft_radius',
+            Range(94, 97): 'ring_protection_+3',
+            Range(98, 98): 'ring_protection_+3_5_ft_radius',
+            Range(99, 99): 'ring_protection_+4ac_+1_saving_throw',
+            Range(100, 100): 'ring_protection_+5ac_+1_saving_throw',
+        }),
+        Range(13, 13): RollTable('d100', {
+            Range(1, 25): RollTable('d100', {
+                Range(1, 90): 'ring_regeneration',
+                Range(91, 100): 'ring_vampiric_regeneration'
+            }),
+            Range(26, 100): 'ring_spell_storing',
+        }),
+        Range(14, 14): 'ring_spell_turning',
+        Range(15, 15): 'ring_swimming',
+        Range(16, 16): RollTable('d100', {
+           Range(1, 50): RollTable('d100', {
+               Range(1, 25): 'ring_telekinesis_25',
+               Range(26, 50): 'ring_telekinesis_50',
+               Range(51, 89): 'ring_telekinesis_100',
+               Range(90, 99): 'ring_telekinesis_200',
+               Range(100, 100): 'ring_telekinesis_400',
+           }),
+           Range(51, 100): RollTable('d100', {
+                Range(1, 25): 'ring_three_wishes_limited',
+                Range(26, 100): 'ring_three_wishes',
+           }),
+        }),
+        Range(17, 17): 'ring_warmth',
+        Range(18, 19): 'ring_water_walking',
+        Range(20, 20): RollTable('d100', {
+            Range(1, 45): 'ring_wizardry_1st',
+            Range(46, 75): 'ring_wizardry_2nd',
+            Range(76, 82): 'ring_wizardry_3rd',
+            Range(83, 88): 'ring_wizardry_1st_2nd',
+            Range(89, 92): 'ring_wizardry_4th',
+            Range(93, 95): 'ring_wizardry_5th',
+            Range(96, 99): 'ring_wizardry_1st_2nd_3rd',
+            Range(100, 100): 'ring_wizardry_4th_5th',
+        }),
+    })
+
+    rings = [r for r in DbQuery.getTable('Items') if r['Category'] == 'Ring']
+    rings_indexed = {r['unique_id']: r for r in rings}
+    return rings_indexed[rt.roll()]
 
 
 def rods_staves_wands_table():
-    pass
+    rswt = RollTable('d20', {
+        Range(1, 1): 'rod_absorption',
+        Range(2, 3): 'rod_cancellation',
+        Range(4, 4): RollTable('d100', {
+            Range(1, 25): 'rod_captivation',
+            Range(26, 75): 'rod_lordly_might',
+            Range(76, 100): 'rod_resurrection',
+        }),
+        Range(5, 5): RollTable('d100', {
+            Range(1, 50): 'rod_rulership',
+            Range(51, 100): 'rod_striking',
+        }),
+        Range(6, 6): RollTable('d100', {
+            Range(1, 50): 'staff_compulsion',
+            Range(51, 100): 'staff_healing',
+        }),
+        Range(7, 7): RollTable('d100', {
+            Range(1, 25): 'staff_power',
+            Range(26, 100): RollTable('d100', {
+                Range(1, 60): 'staff_serpent_python',
+                Range(61, 100): 'staff_serpent_viper',
+            }),
+        }),
+        Range(8, 8): RollTable('d100', {
+            Range(1, 75): 'staff_withering',
+            Range(76, 100): 'staff_wizardry',
+        }),
+        Range(9, 9): 'wand_detecting_magic',
+        Range(10, 10): 'wand_detecting_minerals_metals',
+        Range(11, 11): 'wand_detecting_traps_secret_doors',
+        Range(12, 12): 'wand_enemy_detection',
+        Range(13, 13): RollTable('d100', {
+            Range(1, 50): 'wand_fear',
+            Range(51, 100): 'wand_fire',
+        }),
+        Range(14, 14): RollTable('d100', {
+            Range(1, 50): 'wand_ice',
+            Range(51, 100): 'wand_light',
+        }),
+        Range(15, 15): RollTable('d100', {
+            Range(1, 50): 'wand_illusion',
+            Range(51, 100): 'wand_lightning',
+        }),
+        Range(16, 16): 'wand_magic_missiles',
+        Range(17, 17): 'wand_negation',
+        Range(18, 18): 'wand_paralysation',
+        Range(19, 19): 'wand_polymorphing',
+        Range(20, 20): RollTable('d100', {
+            Range(1, 50): 'wand_summoning',
+            Range(51, 100): 'wand_wonder',
+        }),
+    })
+
+    rswl = ['Rod', 'Staff', 'Wand']
+    rsw = [s for s in DbQuery.getTable('Items') if s['Category'] in rswl]
+    rsw_indexed = {s['unique_id']: s for s in rsw}
+    return rsw_indexed[rswt.roll()]
 
 
 def scrolls_table():
-    pass
+    st = RollTable('d20', {
+        Range(1, 12): RollTable('d20', {
+            Range(1, 3): 'scroll_cleric',
+            Range(4, 5): 'scroll_druid',
+            Range(6, 7): 'scroll_illusionist',
+            Range(8, 20): 'scroll_magic_user',
+        }),
+        Range(13, 19): RollTable('d20', {
+            Range(1, 2): 'scroll_warding_acid',
+            Range(3, 4): 'scroll_warding_demons',
+            Range(5, 6): 'scroll_warding_devils',
+            Range(7, 9): RollTable('d20', {
+                Range(1, 3): 'scroll_warding_elemental_air',
+                Range(4, 6): 'scroll_warding_elemental_earth',
+                Range(7, 9): 'scroll_warding_elemental_fire',
+                Range(10, 12): 'scroll_warding_elemental_water',
+                Range(13, 20): 'scroll_warding_elemental_all',
+            }),
+            Range(10, 11): RollTable('d20', {
+                Range(1, 1): 'scroll_warding_lycanthropes_werebears',
+                Range(2, 2): 'scroll_warding_lycanthropes_wereboars',
+                Range(3, 4): 'scroll_warding_lycanthropes_wererats',
+                Range(5, 5): 'scroll_warding_lycanthropes_weretigers',
+                Range(6, 8): 'scroll_warding_lycanthropes_werewolves',
+                Range(9, 19): 'scroll_warding_lycanthropes_all_lycanthropes',
+                Range(20, 20): 'scroll_warding_lycanthropes_all_shape_changers',
+            }),
+            Range(12, 14): 'scroll_warding_magic',
+            Range(15, 16): 'scroll_warding_petrification',
+            Range(17, 18): RollTable('d2', {
+                Range(1, 1): 'scroll_warding_possession',
+                Range(2, 2): 'scroll_warding_polymorph',
+            }),
+            Range(19, 20): 'scroll_warding_undead',
+        }),
+        Range(20, 20): 'scroll_cursed',
+    })
+
+    scrolls = [s for s in DbQuery.getTable('Items') if s['Category'] == 'Scroll']
+    scrolls_indexed = {s['unique_id']: s for s in scrolls}
+    return scrolls_indexed[st.roll()]
 
 
 def swords_table():
+    sf = RollTable('d20', {
+        Range(1, 1): RollTable('d100', {
+            Range(1, 20): 'claymore',
+            Range(21, 100): 'bastard',
+        }),
+        Range(2, 5): 'broad',
+        Range(6, 19): 'long',
+        Range(20, 20): RollTable('d100', {
+            Range(1, 20): 'scimitar',
+            Range(21, 100): 'short',
+        }),
+    })
+
+    sp = RollTable('d20', {
+        Range(1, 10): '+1',
+        Range(11, 15): '+2',
+        Range(16, 16): '+3',
+        Range(17, 17): RollTable('d100', {
+            Range(1, 65): '+4',
+            Range(66, 100): '+5',
+        }),
+        Range(18, 18): 'cursed',
+        Range(19, 20): RollTable('d100', {
+            Range(1, 1): 'bleeding_sword',
+            Range(2, 6): 'dancing_sword',
+            Range(7, 16): 'defender',
+            Range(17, 21): 'dragonbane',
+            Range(32, 36): 'flaming_blade',
+            Range(37, 46): 'giantbane',
+            Range(47, 51): 'holy_sword',
+            Range(52, 53): 'keenblade',
+            Range(54, 69): 'luck_blade',
+            Range(70, 74): 'magebane',
+            Range(75, 79): 'nine_lives_stealer',
+            Range(80, 84): 'trollbane',
+            Range(85, 89): 'vampire_blade',
+            Range(90, 90): 'vorpal_blade',
+            Range(91, 95): 'werebane',
+            Range(96, 99): 'wyrmbane',
+            Range(100, 100): 'unusual',
+        }),
+    })
+
+    swords = [s for s in DbQuery.getTable('Items') if s['Category'] == 'Sword']
+    swords_indexed = {s['unique_id']: s for s in swords}
+    return swords_indexed[f'sword_{sf.roll()}_{sp.roll()}']
+
+
+def miscellaneous_magic_table(ignore_100=False):
+    mmt = RollTable('d100', {
+        Range(1, 50): mm_table_i(),
+        Range(51, 70): mm_table_ii(),
+        Range(71, 90): mm_table_iii(),
+        Range(91, 99): mm_table_iv(),
+        Range(100, 100): 0,
+    })
+
+    if ignore_100:
+        temp = mmt.roll()
+        while temp == 0:
+            temp = mmt.roll()
+        mmtr = temp
+    else:
+        mmtr = mmt.roll()
+
+    if mmtr == 0:
+        return [miscellaneous_magic_table(ignore_100=True), miscellaneous_magic_table(ignore_100=True)]
+
+    return mmtr
+
+
+def mm_table_i():
+    mmti = RollTable('d100', {
+        Range(1, 1): 'incense_meditation',
+        Range(2, 2): 'javelin_raptor',
+        Range(3, 3): 'thunder_spear',
+        Range(4, 4): 'boots_elvenkind',
+        Range(5, 5): RollTable('1d9', {
+            Range(1, 1): 'candle_invocation_lawful_good',
+            Range(2, 2): 'candle_invocation_neutral_good',
+            Range(3, 3): 'candle_invocation_chaotic_good',
+            Range(4, 4): 'candle_invocation_lawful_neutral',
+            Range(5, 5): 'candle_invocation_true_neutral',
+            Range(6, 6): 'candle_invocation_chaotic_neutral',
+            Range(7, 7): 'candle_invocation_lawful_evil',
+            Range(8, 8): 'candle_invocation_neutral_evil',
+            Range(9, 9): 'candle_invocation_chaotic_evil',
+        }),
+        Range(6, 6): 'dust_appearance',
+        Range(7, 7): 'dust_disappearance',
+        Range(8, 8): 'rope_climbing',
+        Range(9, 9): 'scarab_protection',
+        Range(10, 10): 'slippers_spider_climbing',
+        Range(11, 11): RollTable('d6', {
+            Range(1, 4): 'strand_prayer_beads',
+            Range(5, 5): 'strand_prayer_beads_lesser',
+            Range(6, 6): 'strand_prayer_beads_greater',
+        }),
+        Range(12, 13): RollTable('d4', {
+            Range(1, 1): 'amulet_natural_armour_+1',
+            Range(2, 2): 'amulet_natural_armour_+2',
+            Range(3, 3): 'amulet_natural_armour_+3',
+            Range(4, 4): 'amulet_natural_armour_+4',
+        }),
+        Range(14, 15): 'blessed_book',
+        Range(16, 17): 'brooch_shielding',
+        Range(18, 19): 'hat_disguise',
+        Range(20, 21): RollTable('d4', {
+            Range(1, 1): 'horn_valhalla_silver',
+            Range(2, 2): 'horn_valhalla_brass',
+            Range(3, 3): 'horn_valhalla_bronze',
+            Range(4, 4): 'horn_valhalla_iron',
+        }),
+        Range(22, 23): 'periapt_proof_against_poison',
+        Range(24, 25): 'phylactery_faithfulness',
+        Range(26, 27): 'robe_blending',
+        Range(28, 30): 'pipes_sewers',
+        Range(31, 33): 'restorative_ointment',
+        Range(34, 36): 'robe_useful_items',
+        Range(37, 39): 'vest_escape',
+        Range(40, 42): 'cloak_elvenkind',
+        Range(43, 46): 'wings_flying',
+        Range(47, 55): RollTable('d100', {
+            Range(1, 50): 'cloak_resistance_+1',
+            Range(51, 75): 'cloak_resistance_+2',
+            Range(76, 90): 'cloak_resistance_+3',
+            Range(91, 99): 'cloak_resistance_+4',
+            Range(100, 100): 'cloak_resistance_+5',
+        }),
+        Range(56, 65): RollTable('d6', {
+            Range(1, 1): 'feather_token_anchor',
+            Range(2, 2): 'feather_token_bird',
+            Range(3, 3): 'feather_token_fan',
+            Range(4, 4): 'feather_token_swan_boat',
+            Range(5, 5): 'feather_token_tree',
+            Range(6, 6): 'feather_token_whip',
+        }),
+        Range(66, 75): RollTable('d9', {
+            Range(1, 1): 'figurines_wondrous_power_bronze_griffon',
+            Range(2, 2): 'figurines_wondrous_power_ebony_fly',
+            Range(3, 3): 'figurines_wondrous_power_golden_lions',
+            Range(4, 4): 'figurines_wondrous_power_ivory_goats',
+            Range(5, 5): 'figurines_wondrous_power_marble_elephant',
+            Range(6, 6): 'figurines_wondrous_power_obsidian_steed',
+            Range(7, 7): 'figurines_wondrous_power_onyx_dog',
+            Range(8, 8): 'figurines_wondrous_power_serpentine_owl',
+            Range(9, 9): 'figurines_wondrous_power_silver_raven',
+        }),
+        Range(76, 100): RollTable('d100', {
+            Range(1, 35): 'bracers_armour_ac_9',
+            Range(36, 60): 'bracers_armour_ac_8',
+            Range(61, 75): 'bracers_armour_ac_7',
+            Range(76, 85): 'bracers_armour_ac_6',
+            Range(86, 91): 'bracers_armour_ac_5',
+            Range(92, 96): 'bracers_armour_ac_4',
+            Range(97, 99): 'bracers_armour_ac_3',
+            Range(100, 100): 'bracers_armour_ac_2',
+        }),
+    })
+
+    mms = [mi for mi in DbQuery.getTable('Items') if mi['Category'] == 'Misc Magic']
+    mms_indexed = {mm['unique_id']: mm for mm in mms}
+
+    return mms_indexed[mmti.roll()]
+
+
+def mm_table_ii(ignore_over_98=False):
+    mmtii = RollTable('d100', {
+        Range(1, 1): 'arrow_direction',
+        Range(2, 2): 'brazier_commanding_fire_elementals',
+        Range(3, 3): 'cape_mountebank',
+        Range(4, 4): 'cloak_manta_ray',
+        Range(5, 5): 'decanter_endless_water',
+        Range(6, 6): 'dust_dryness',
+        Range(7, 7): 'elixir_swimming',
+        Range(8, 8): 'gloves_arrow_snaring',
+        Range(9, 9): 'gloves_swimming_climbing',
+        Range(10, 10): 'goggles_night',
+        Range(11, 11): 'horseshoes_speed',
+        Range(12, 12): 'necklace_adaptation',
+        Range(13, 13): 'orb_storms',
+        Range(14, 14): 'periapt_health',
+        Range(15, 15): 'pipes_haunting',
+        Range(16, 16): 'ring_gates',
+        Range(17, 17): 'robe_bones',
+        Range(18, 18): 'unguent_timelessness',
+        Range(19, 20): 'universal_solvent',
+        Range(21, 22): 'amulet_proof_against_detection_location',
+        Range(23, 24): 'boots_speed',
+        Range(25, 26): 'boots_striding_springing',
+        Range(27, 28): 'bracers_archery_lesser',
+        Range(29, 30): 'candle_truth',
+        Range(31, 32): 'cloak_displacement_minor',
+        Range(33, 34): 'cloak_bat',
+        Range(35, 36): 'dark_skull',
+        Range(37, 38): 'dust_tracelessness',
+        Range(39, 40): 'elixir_truth',
+        Range(41, 42): 'elixir_vision',
+        Range(43, 44): 'glove_storing',
+        Range(45, 46): 'horn_tritons',
+        Range(47, 48): RollTable('d7', {
+            Range(1, 1): 'necklace_fireballs_type_i',
+            Range(2, 2): 'necklace_fireballs_type_ii',
+            Range(3, 3): 'necklace_fireballs_type_iii',
+            Range(4, 4): 'necklace_fireballs_type_iv',
+            Range(5, 5): 'necklace_fireballs_type_v',
+            Range(6, 6): 'necklace_fireballs_type_vi',
+            Range(7, 7): 'necklace_fireballs_type_vii',
+        }),
+        Range(49, 50): 'periapt_wound_closure',
+        Range(51, 52): 'phylactery_undead_turning',
+        Range(53, 54): 'rope_entanglement',
+        Range(55, 56): RollTable('d2', {
+            Range(1, 1): 'stone_horse_draft',
+            Range(2, 2): 'stone_horse_heavy_war'
+        }),
+        Range(57, 58): 'stone_alarm',
+        Range(59, 60): 'sustaining_spoon',
+        Range(61, 62): 'wind_fan',
+        Range(63, 65): RollTable('d4', {
+            Range(1, 1): 'bag_holding_type_i',
+            Range(2, 2): 'bag_holding_type_ii',
+            Range(3, 3): 'bag_holding_type_iii',
+            Range(4, 4): 'bag_holding_type_iv',
+        }),
+        Range(66, 68): 'boots_levitation',
+        Range(69, 71): 'bottle_air',
+        Range(72, 74): 'broom_flying',
+        Range(75, 77): RollTable('d100', {
+            Range(1, 75): 'crystal_ball',
+            Range(75, 85): 'crystal_ball_clairaudience',
+            Range(86, 90): 'crystal_ball_see_invisibility',
+            Range(91, 95): 'crystal_ball_esp',
+            Range(96, 100): 'crystal_ball_true_seeing',
+        }),
+        Range(78, 80): 'elixir_fire_breath',
+        Range(81, 83): 'elixir_hiding',
+        Range(84, 86): 'handy_haversack',
+        Range(87, 89): 'harp_charming',
+        Range(90, 92): 'helm_comprehend_languages_read_magic',
+        Range(93, 95): 'helm_underwater_action',
+        Range(96, 98): 'horn_fog',
+        Range(99, 99): 0,
+        Range(100, 100): 1,
+    })
+
+    if ignore_over_98:
+        tmp = mmtii.roll()
+        while tmp == 99 or tmp == 100:
+            tmp = mmtii.roll()
+        roll = mmtii.roll()
+    else:
+        roll = mmtii.roll()
+
+    if roll == 0:
+        return [mm_table_i(), mm_table_i()]
+    elif roll == 1:
+        return [mm_table_ii(ignore_over_98=True), mm_table_ii(ignore_over_98=True)]
+
+    mms = [mi for mi in DbQuery.getTable('Items') if mi['Category'] == 'Misc Magic']
+    mms_indexed = {mm['unique_id']: mm for mm in mms}
+
+    return mms_indexed[roll]
+
+
+def mm_table_iii(ignore_over_65=False):
+    mmtiii = RollTable('d100', {
+        Range(1, 1): 'ahmeks_copious_coin_purse',
+        Range(2, 2): 'alchemy_jug',
+        Range(3, 3): 'amulet_health',
+        Range(4, 4): 'amulet_planes',
+        Range(5, 5): 'apparatus_lobster',
+        Range(6, 6): RollTable('d6', {
+            Range(1, 2): 'bag_tricks_grey',
+            Range(3, 4): 'bag_tricks_rust',
+            Range(5, 6): 'bag_tricks_tan',
+        }),
+        Range(7, 7): 'bead_force',
+        Range(8, 8): 'blemish_blotter',
+        Range(9, 9): 'boots_winterlands',
+        Range(10, 10): 'bowl_commanding_water_elementals',
+        Range(11, 11): 'bracelet_friends',
+        Range(12, 12): 'bracers_archery_greater',
+        Range(13, 13): RollTable('d6', {
+            Range(1, 2): 'carpet_flying_5_5',
+            Range(3, 4): 'carpet_flying_5_10',
+            Range(5, 6): 'carpet_flying_10_10',
+        }),
+        Range(14, 14): 'censer_controlling_air_elementals',
+        Range(15, 15): 'chime_interruption',
+        Range(16, 16): 'chime_opening',
+        Range(17, 17): 'circlet_blasting_minor',
+        Range(18, 18): 'circlet_persuasion',
+        Range(19, 19): 'cloak_aetherealness',
+        Range(20, 20): 'cloak_arachnida',
+        Range(21, 21): 'cloak_charisma',
+        Range(22, 22): 'cloak_displacement_major',
+        Range(23, 23): 'cube_force',
+        Range(24, 24): 'cube_frost_resistance',
+        Range(25, 25): 'cubic_gate',
+        Range(26, 26): 'deck_illusions',
+        Range(27, 27): 'dimensional_shackles',
+        Range(28, 28): 'drums_panic',
+        Range(29, 29): 'dust_illusion',
+        Range(30, 30): 'efficient_quiver',
+        Range(31, 31): RollTable('d4', {
+            Range(1, 1): 'elemental_gem_air',
+            Range(2, 2): 'elemental_gem_earth',
+            Range(3, 3): 'elemental_gem_fire',
+            Range(4, 4): 'elemental_gem_water',
+        }),
+        Range(32, 32): 'eyes_eagle',
+        Range(33, 33): RollTable('d18', {
+            Range(1, 1): 'gauntlets_ogre_power_+1_to_hit_+1_damage',
+            Range(2, 2): 'gauntlets_ogre_power_+1_to_hit_+2_damage',
+            Range(3, 3): 'gauntlets_ogre_power_+1_to_hit_+3_damage',
+            Range(4, 4): 'gauntlets_ogre_power_+1_to_hit_+4_damage',
+            Range(5, 5): 'gauntlets_ogre_power_+1_to_hit_+5_damage',
+            Range(6, 6): 'gauntlets_ogre_power_+1_to_hit_+6_damage',
+            Range(7, 7): 'gauntlets_ogre_power_+2_to_hit_+1_damage',
+            Range(8, 8): 'gauntlets_ogre_power_+2_to_hit_+2_damage',
+            Range(9, 9): 'gauntlets_ogre_power_+2_to_hit_+3_damage',
+            Range(10, 10): 'gauntlets_ogre_power_+2_to_hit_+4_damage',
+            Range(11, 11): 'gauntlets_ogre_power_+2_to_hit_+5_damage',
+            Range(12, 12): 'gauntlets_ogre_power_+2_to_hit_+6_damage',
+            Range(13, 13): 'gauntlets_ogre_power_+3_to_hit_+1_damage',
+            Range(14, 14): 'gauntlets_ogre_power_+3_to_hit_+2_damage',
+            Range(15, 15): 'gauntlets_ogre_power_+3_to_hit_+3_damage',
+            Range(16, 16): 'gauntlets_ogre_power_+3_to_hit_+4_damage',
+            Range(17, 17): 'gauntlets_ogre_power_+3_to_hit_+5_damage',
+            Range(18, 18): 'gauntlets_ogre_power_+3_to_hit_+6_damage',
+        }),
+        Range(34, 34): 'gauntlet_rust',
+        Range(35, 35): 'gloves_dexterity',
+        Range(36, 36): 'goggles_minute_seeing',
+        Range(37, 37): 'headband_intellect',
+        Range(38, 38): 'helm_telepathy',
+        Range(39, 39): 'horn_goodness_evil',
+        Range(40, 40): 'horseshoes_zephyr',
+        Range(41, 41): 'instant_fortress',
+        Range(42, 42): 'iron_bands_binding',
+        Range(43, 43): 'iron_flask',
+        Range(44, 44): 'lantern_revealing',
+        Range(45, 45): 'mantle_faith',
+        Range(46, 46): 'mantle_magic_resistance',
+        Range(47, 47): 'marvellous_pigments',
+        Range(48, 48): 'mask_skull',
+        Range(49, 49): 'medallion_thoughts',
+        Range(50, 50): pearl_power_roll,
+    })
+
+
+def pearl_power_roll():
+    def roll_two_levels():
+        roll1 = Dice.rollString('d6')
+        roll2 = Dice.rollString('d6')
+
+        suffix = ['th', 'st', 'nd', 'rd'] + ['th'] * 3
+
+        ord1 = str(roll1) + suffix[roll1]
+        ord2 = str(roll2) + suffix[roll2]
+        while ord2 == ord1:
+            roll2 = Dice.rollString('d6')
+            ord2 = str(roll2) + suffix[roll2]
+
+        if roll1 < roll2:
+            first_level = ord1
+            second_level = ord2
+        else:
+            first_level = ord2
+            second_level = ord1
+
+        return f'pearl_power_{first_level}_{second_level}'
+
+    ppr = RollTable('d6', {
+        Range(1, 1): 'pearl_power_1st',
+        Range(2, 2): 'pearl_power_2nd',
+        Range(3, 3): 'pearl_power_3rd',
+        Range(4, 4): 'pearl_power_4th',
+        Range(5, 5): 'pearl_power_5th',
+        Range(6, 6): RollTable('d8', {
+            Range(1, 1): 'pearl_power_1st',
+            Range(2, 2): 'pearl_power_2nd',
+            Range(3, 3): 'pearl_power_3rd',
+            Range(4, 4): 'pearl_power_4th',
+            Range(5, 5): 'pearl_power_5th',
+            Range(6, 6): 'pearl_power_6th',
+            Range(7, 7): 'pearl_power_7th',
+            Range(8, 8): RollTable('d10', {
+                Range(1, 1): 'pearl_power_1st',
+                Range(2, 2): 'pearl_power_2nd',
+                Range(3, 3): 'pearl_power_3rd',
+                Range(4, 4): 'pearl_power_4th',
+                Range(5, 5): 'pearl_power_5th',
+                Range(6, 6): 'pearl_power_6th',
+                Range(7, 7): 'pearl_power_7th',
+                Range(8, 8): 'pearl_power_8th',
+                Range(9, 9): 'pearl_power_9th',
+                Range(10, 10): roll_two_levels,
+            }),
+        }),
+    })
+
+    return ppr.roll()
+
+
+def mm_table_iv():
     pass
