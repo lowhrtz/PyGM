@@ -342,11 +342,12 @@ class WrapUpPage(WizardPage):
         # treasure_text = '<br />'.join([f'{e["Name"]}: {e["Treasure"]}' for e in enemies])
         treasure_text = ''
         import Treasure
+        import pprint
         for enemy in enemies:
             # print([f'{t["Subcategory"]}, {t["Value"]}, {t["Actual Value"]}' for t in Treasure.parse_treasure_text(enemy['Treasure'], wandering=False)['gems']])
             # print([f'{t["Name"]} | {t["Value"]} | {t["Actual Value"]}' for t in Treasure.parse_treasure_text(enemy['Treasure'], wandering=False)['jewellery']])
-            print([f'{p["Name"]} | {p["Value"]}' for p in Treasure.parse_treasure_text(enemy['Treasure'], wandering=False)['potions']])
-            # print(Treasure.parse_treasure_text(enemy['Treasure'], wandering=False))
+            # print([f'{p["Name"]} | {p["Value"]}' for p in Treasure.parse_treasure_text(enemy['Treasure'], wandering=False)['potions']])
+            pprint.pprint(Treasure.parse_treasure_text(enemy['Treasure'], wandering=False))
         return {
             'XP Text': xp_text,
             'Treasure Text': treasure_text,

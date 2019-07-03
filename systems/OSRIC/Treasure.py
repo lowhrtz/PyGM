@@ -1,5 +1,5 @@
 import re
-import DbQuery
+# import DbQuery
 import Dice
 from Common import Range, RollTable
 
@@ -19,6 +19,11 @@ gemstone_desc_levels = [
         'Ornamental', 'Semi-Precious', 'Fancy',
         'Precious', 'Gem', 'Jewel'
     ]
+
+gemstone_value_levels = [
+        '4d4', '2d4x10', '4d4x10',
+        '2d4x100', '4d4x100', '2d4x1000'
+]
 
 alter_roll_dice_string = '1d10'
 
@@ -76,20 +81,31 @@ def parse_treasure_text(treasure_text, wandering=True):
 def gemstone_table(description=None):
     if description:
         return alter_gemstone(description)
-    else:
-        percent_roll = Dice.randomInt(1, 100)
-        if 1 <= percent_roll <= 30:
-            return alter_gemstone('Ornamental')
-        elif 31 <= percent_roll <= 55:
-            return alter_gemstone('Semi-Precious')
-        elif 56 <= percent_roll <= 75:
-            return alter_gemstone('Fancy')
-        elif 76 <= percent_roll <= 90:
-            return alter_gemstone('Precious')
-        elif 91 <= percent_roll <= 99:
-            return alter_gemstone('Gem')
-        else:
-            return alter_gemstone('Jewel')
+    # else:
+    #     percent_roll = Dice.randomInt(1, 100)
+    #     if 1 <= percent_roll <= 30:
+    #         return alter_gemstone('Ornamental')
+    #     elif 31 <= percent_roll <= 55:
+    #         return alter_gemstone('Semi-Precious')
+    #     elif 56 <= percent_roll <= 75:
+    #         return alter_gemstone('Fancy')
+    #     elif 76 <= percent_roll <= 90:
+    #         return alter_gemstone('Precious')
+    #     elif 91 <= percent_roll <= 99:
+    #         return alter_gemstone('Gem')
+    #     else:
+    #         return alter_gemstone('Jewel')
+
+    gt = RollTable('d100', {
+        Range(1, 30): lambda: alter_gemstone('Ornamental'),
+        Range(31, 55): lambda: alter_gemstone('Semi-Precious'),
+        Range(56, 75): lambda: alter_gemstone('Fancy'),
+        Range(76, 90): lambda: alter_gemstone('Precious'),
+        Range(91, 99): lambda: alter_gemstone('Gem'),
+        Range(100, 100): lambda: alter_gemstone('Jewel'),
+    })
+
+    return gt.roll()
 
 
 def alter_gemstone(description):
@@ -100,7 +116,7 @@ def alter_gemstone(description):
 def alter_table(alter_roll, desc_level, ignore_list=()):
     if alter_roll in ignore_list:
         return alter_table(Dice.rollString(alter_roll_dice_string), desc_level, ignore_list)
-    gemstones = [i for i in DbQuery.getTable('Items') if i['Category'] == 'Gemstone']
+    # gemstones = [i for i in DbQuery.getTable('Items') if i['Category'] == 'Gemstone']
     if alter_roll == 1:
         return alter_table(Dice.rollString(alter_roll_dice_string), desc_level + 1, [9, 10])
     elif alter_roll == 10:
@@ -137,21 +153,24 @@ def alter_table(alter_roll, desc_level, ignore_list=()):
             desc_level = 0
         elif desc_level >= len(gemstone_desc_levels):
             desc_level = len(gemstone_desc_levels) - 1
-        gemstone_candidates = [g for g in gemstones if g['Subcategory'] == gemstone_desc_levels[desc_level]]
-        gemstone = gemstone_candidates[Dice.randomInt(0, len(gemstone_candidates) - 1)]
+        # gemstone_candidates = [g for g in gemstones if g['Subcategory'] == gemstone_desc_levels[desc_level]]
+        # gemstone = gemstone_candidates[Dice.randomInt(0, len(gemstone_candidates) - 1)]
+        # if value is None:
+        #     value = Dice.rollString(gemstone['Value'])
         if value is None:
-            value = Dice.rollString(gemstone['Value'])
+            value = Dice.rollString(gemstone_value_levels[desc_level])
         if alter_roll == 2 or alter_roll == 3:
             value *= alter_roll
         elif alter_roll == 9:
             value -= value*Dice.rollString('1d4x10')/100
-        gemstone['Actual Value'] = value
-        return gemstone
+        # gemstone['Actual Value'] = value
+        # return gemstone
+        return gemstone_desc_levels[desc_level], value
 
 
 def jewellery_table():
-    jewellery = [i for i in DbQuery.getTable('Items') if i['Category'] == 'Jewellery']
-    jewellery_indexed = {j['unique_id']: j for j in jewellery}
+    # jewellery = [i for i in DbQuery.getTable('Items') if i['Category'] == 'Jewellery']
+    # jewellery_indexed = {j['unique_id']: j for j in jewellery}
     percent_roll = Dice.randomInt(1, 100)
     d10_roll = Dice.rollString('d10')
     for key in jewellery_matrix.keys():
@@ -168,9 +187,10 @@ def jewellery_table():
                 if d10_roll in range(int(l), int(u) + 1):
                     jewellery_quality = jewellery_quality_levels[i]
                     item_id = f'jewellery_{jewellery_item}_{jewellery_quality}'
-                    j = jewellery_indexed[item_id]
-                    j['Actual Value'] = Dice.rollString(j['Value'])
-                    return j
+                    # j = jewellery_indexed[item_id]
+                    # j['Actual Value'] = Dice.rollString(j['Value'])
+                    # return j
+                    return item_id
 
 
 treasure_matrix_key_pattern = re.compile(r'^(\d+)[-]?(\d+)?$')
@@ -214,92 +234,143 @@ jewellery_matrix = {
 
 
 def magic_items_table():
-    magic_items_roll = Dice.rollString('d20')
-    if 1 <= magic_items_roll <= 3:
-        return armour_shield_table()
-    elif 4 <= magic_items_roll <= 6:
-        return miscellaneous_magic_table()
-    elif 7 <= magic_items_roll <= 9:
-        return miscellaneous_weapons_table()
-    elif 10 <= magic_items_roll <= 13:
-        return potions_table()
-    elif magic_items_roll == 14:
-        return rings_table()
-    elif magic_items_roll == 15:
-        return rods_staves_wands_table()
-    elif 16 <= magic_items_roll <= 18:
-        return scrolls_table()
-    else:
-        return swords_table()
+    # magic_items_roll = Dice.rollString('d20')
+    # if 1 <= magic_items_roll <= 3:
+    #     return armour_shield_table()
+    # elif 4 <= magic_items_roll <= 6:
+    #     return miscellaneous_magic_table()
+    # elif 7 <= magic_items_roll <= 9:
+    #     return miscellaneous_weapons_table()
+    # elif 10 <= magic_items_roll <= 13:
+    #     return potions_table()
+    # elif magic_items_roll == 14:
+    #     return rings_table()
+    # elif magic_items_roll == 15:
+    #     return rods_staves_wands_table()
+    # elif 16 <= magic_items_roll <= 18:
+    #     return scrolls_table()
+    # else:
+    #     return swords_table()
+
+    mit = RollTable('d20', {
+        Range(1, 3): armour_shield_table,
+        Range(4, 6): miscellaneous_magic_table,
+        Range(7, 9): miscellaneous_weapons_table,
+        Range(10, 13): potions_table,
+        Range(14, 14): rings_table,
+        Range(15, 15): rods_staves_wands_table,
+        Range(16, 18): scrolls_table,
+        Range(19, 20): swords_table,
+
+    })
+
+    return mit.roll()
 
 
 def armour_shield_table():
-    armour = [i for i in DbQuery.getTable('Items') if i['Category'] == 'Armour']
-    armour_indexed = {a['unique_id']: a for a in armour}
-    first_roll = Dice.rollString('d20')
-    second_roll = Dice.randomInt(1, 100)
-    if first_roll == 1:
-        armour_type = 'banded'
-    elif 2 <= first_roll <= 4:
-        if 1 <= second_roll <= 90:
-            armour_type = 'chain'
-        else:
-            armour_type = 'elfin_chain'
-    elif 5 <= first_roll <= 6:
-        armour_type = 'leather'
-    elif 7 <= first_roll <= 9:
-        armour_type = 'plate'
-    elif first_roll == 10:
-        armour_type = 'ring'
-    elif 11 <= first_roll <= 12:
-        armour_type = 'splint'
-    elif 13 <= first_roll <= 14:
-        armour_type = 'scale'
-    elif first_roll == 15:
-        armour_type = 'studded'
-    else:
-        armour_type = 'medium'
+    # armour = [i for i in DbQuery.getTable('Items') if i['Category'] == 'Armour']
+    # armour_indexed = {a['unique_id']: a for a in armour}
+    # first_roll = Dice.rollString('d20')
+    # second_roll = Dice.randomInt(1, 100)
+    # if first_roll == 1:
+    #     armour_type = 'banded'
+    # elif 2 <= first_roll <= 4:
+    #     if 1 <= second_roll <= 90:
+    #         armour_type = 'chain'
+    #     else:
+    #         armour_type = 'elfin_chain'
+    # elif 5 <= first_roll <= 6:
+    #     armour_type = 'leather'
+    # elif 7 <= first_roll <= 9:
+    #     armour_type = 'plate'
+    # elif first_roll == 10:
+    #     armour_type = 'ring'
+    # elif 11 <= first_roll <= 12:
+    #     armour_type = 'splint'
+    # elif 13 <= first_roll <= 14:
+    #     armour_type = 'scale'
+    # elif first_roll == 15:
+    #     armour_type = 'studded'
+    # else:
+    #     armour_type = 'medium'
 
-    power_roll = Dice.rollString('d20')
-    second_power_roll = Dice.randomInt(1, 100)
-    if 1 <= power_roll <= 10:
-        power = '+1'
-    elif 11 <= power_roll <= 15:
-        power = '+2'
-    elif power_roll == 16:
-        power = '+3'
-    elif power_roll == 17:
-        if 1 <= second_power_roll <= 65:
-            power = '+4'
-        else:
-            power = '+5'
-    elif power_roll == 18:
-        power = 'cursed'
-    else:
-        return special_armour_table(armour_indexed)
+    armour_type_table = RollTable('d20', {
+        Range(1, 1): 'banded',
+        Range(2, 4): RollTable('d100', {
+            Range(1, 90): 'chain',
+            Range(91, 100): 'elfin_chain',
+        }),
+        Range(5, 6): 'leather',
+        Range(7, 9): 'plate',
+        Range(10, 10): 'ring',
+        Range(11, 12): 'splint',
+        Range(13, 14): 'scale',
+        Range(15, 15): 'studded',
+        Range(16, 20): 'medium',
+    })
+    armour_type = armour_type_table.roll()
+
+    # power_roll = Dice.rollString('d20')
+    # second_power_roll = Dice.randomInt(1, 100)
+    # if 1 <= power_roll <= 10:
+    #     power = '+1'
+    # elif 11 <= power_roll <= 15:
+    #     power = '+2'
+    # elif power_roll == 16:
+    #     power = '+3'
+    # elif power_roll == 17:
+    #     if 1 <= second_power_roll <= 65:
+    #         power = '+4'
+    #     else:
+    #         power = '+5'
+    # elif power_roll == 18:
+    #     power = 'cursed'
+    # else:
+    #     return special_armour_table(armour_indexed)
+
+    power_table = RollTable('d20', {
+        Range(1, 10): '+1',
+        Range(11, 15): '+2',
+        Range(16, 16): '+3',
+        Range(17, 17): RollTable('d100', {
+            Range(1, 65): '+4',
+            Range(66, 100): '+5',
+        }),
+        Range(18, 18): 'cursed',
+        Range(19, 20): 0,
+    })
+    power = power_table.roll()
+    if power == 0:
+        return special_armour_table()
 
     if armour_type == 'medium':
         id_prefix = 'shield'
     else:
         id_prefix = 'armour'
-    armour_id = f'{id_prefix}_{armour_type}_{power}'
-    return armour_indexed[armour_id]
+    # armour_id = f'{id_prefix}_{armour_type}_{power}'
+    # return armour_indexed[armour_id]
+    return f'{id_prefix}_{armour_type}_{power}'
 
 
-def special_armour_table(armour_indexed=None):
-    if armour_indexed is None:
-        armour = [i for i in DbQuery.getTable('Items') if i['Category'] == 'Armour']
-        armour_indexed = {a['unique_id']: a for a in armour}
-    roll = Dice.rollString('1d2')
-    if roll == 1:
-        return armour_indexed['shield_large_+1_missile_deflector']
-    else:
-        return armour_indexed['armor_plate_mail_of_aethereality_16_20_charges_remaining']
+# def special_armour_table(armour_indexed=None):
+def special_armour_table():
+    # if armour_indexed is None:
+    #     armour = [i for i in DbQuery.getTable('Items') if i['Category'] == 'Armour']
+    #     armour_indexed = {a['unique_id']: a for a in armour}
+    # roll = Dice.rollString('1d2')
+    # if roll == 1:
+    #     return armour_indexed['shield_large_+1_missile_deflector']
+    # else:
+    #     return armour_indexed['armor_plate_mail_of_aethereality_16_20_charges_remaining']
+    return RollTable('1d2', {
+        Range(1, 1): 'shield_large_+1_missile_deflector',
+        Range(2, 2): 'armor_plate_mail_of_aethereality_16_20_charges_remaining',
+    }).roll()
 
 
 def miscellaneous_weapons_table():
-    weapons = [w for w in DbQuery.getTable('Items') if w['Category'] == 'Weapon']
-    weapons_indexed = {w['unique_id']: w for w in weapons}
+    # weapons = [w for w in DbQuery.getTable('Items') if w['Category'] == 'Weapon']
+    # weapons_indexed = {w['unique_id']: w for w in weapons}
     first_roll = Dice.rollString('d20')
     second_roll = Dice.rollString('d100')
     third_roll = Dice.rollString('d4')
@@ -386,230 +457,380 @@ def miscellaneous_weapons_table():
     elif power_roll == 18:
         power = 'cursed'
     else:
-        return special_miscellaneous_weapons_table(weapons_indexed)
+        # return special_miscellaneous_weapons_table(weapons_indexed)
+        return special_miscellaneous_weapons_table()
 
     weapon_id = f'{weapon_type}_{power}'
-    return weapons_indexed[weapon_id]
+    # return weapons_indexed[weapon_id]
+    return weapon_id
 
 
-def special_miscellaneous_weapons_table(weapons_indexed=None):
-    if weapons_indexed is None:
-        weapons = [w for w in DbQuery.getTable('Items') if w['Category'] == 'Weapon']
-        weapons_indexed = {w['unique_id']: w for w in weapons}
-    first_roll = Dice.rollString('d100')
-    second_roll = Dice.rollString('d2')
-    if 1 <= first_roll <= 5:
-        return weapons_indexed['arrow_of_slaying']
-    elif 6 <= first_roll <= 15:
-        return weapons_indexed['axe_of_hurling']
-    elif 16 <= first_roll <= 30:
-        if second_roll == 1:
-            return weapons_indexed['crossbow_of_accuracy_heavy']
-        else:
-            return weapons_indexed['crossbow_of_accuracy_light']
-    elif 31 <= first_roll <= 40:
-        if second_roll == 1:
-            return weapons_indexed['crossbow_of_range_heavy']
-        else:
-            return weapons_indexed['crossbow_of_range_light']
-    elif 41 <= first_roll <= 50:
-        if second_roll == 1:
-            return weapons_indexed['crossbow_of_speed_heavy']
-        else:
-            return weapons_indexed['crossbow_of_speed_light']
-    elif 51 <= first_roll <= 60:
-        return weapons_indexed['dagger_of_venom']
-    elif 61 <= first_roll <= 70:
-        if second_roll == 1:
-            return weapons_indexed['hammer_of_the_dwarfs_war_heavy']
-        else:
-            return weapons_indexed['hammer_of_the_dwarfs_war_light']
-    elif 71 <= first_roll <= 75:
-        if second_roll == 1:
-            return weapons_indexed['mace_holy_heavy']
-        else:
-            return weapons_indexed['mace_holy_light']
-    elif 76 <= first_roll <= 85:
-        return weapons_indexed['sling_of_the_halfling']
-    else:
-        return weapons_indexed['trident_fork']
+# def special_miscellaneous_weapons_table(weapons_indexed=None):
+def special_miscellaneous_weapons_table():
+    # if weapons_indexed is None:
+    #     weapons = [w for w in DbQuery.getTable('Items') if w['Category'] == 'Weapon']
+    #     weapons_indexed = {w['unique_id']: w for w in weapons}
+    # first_roll = Dice.rollString('d100')
+    # second_roll = Dice.rollString('d2')
+    # if 1 <= first_roll <= 5:
+    #     return weapons_indexed['arrow_of_slaying']
+    # elif 6 <= first_roll <= 15:
+    #     return weapons_indexed['axe_of_hurling']
+    # elif 16 <= first_roll <= 30:
+    #     if second_roll == 1:
+    #         return weapons_indexed['crossbow_of_accuracy_heavy']
+    #     else:
+    #         return weapons_indexed['crossbow_of_accuracy_light']
+    # elif 31 <= first_roll <= 40:
+    #     if second_roll == 1:
+    #         return weapons_indexed['crossbow_of_range_heavy']
+    #     else:
+    #         return weapons_indexed['crossbow_of_range_light']
+    # elif 41 <= first_roll <= 50:
+    #     if second_roll == 1:
+    #         return weapons_indexed['crossbow_of_speed_heavy']
+    #     else:
+    #         return weapons_indexed['crossbow_of_speed_light']
+    # elif 51 <= first_roll <= 60:
+    #     return weapons_indexed['dagger_of_venom']
+    # elif 61 <= first_roll <= 70:
+    #     if second_roll == 1:
+    #         return weapons_indexed['hammer_of_the_dwarfs_war_heavy']
+    #     else:
+    #         return weapons_indexed['hammer_of_the_dwarfs_war_light']
+    # elif 71 <= first_roll <= 75:
+    #     if second_roll == 1:
+    #         return weapons_indexed['mace_holy_heavy']
+    #     else:
+    #         return weapons_indexed['mace_holy_light']
+    # elif 76 <= first_roll <= 85:
+    #     return weapons_indexed['sling_of_the_halfling']
+    # else:
+    #     return weapons_indexed['trident_fork']
+
+    smwt = RollTable('d100', {
+        Range(1, 5): 'arrow_of_slaying',
+        Range(6, 15): 'axe_of_hurling',
+        Range(16, 30): RollTable('d2', {
+            Range(1, 1): 'crossbow_of_accuracy_heavy',
+            Range(2, 2): 'crossbow_of_accuracy_light',
+        }),
+        Range(31, 40): RollTable('d2', {
+            Range(1, 1): 'crossbow_of_range_heavy',
+            Range(2, 2): 'crossbow_of_range_light',
+        }),
+        Range(41, 50): RollTable('d2', {
+            Range(1, 1): 'crossbow_of_speed_heavy',
+            Range(2, 2): 'crossbow_of_speed_light',
+        }),
+        Range(51, 60): 'dagger_of_venom',
+        Range(61, 70): RollTable('d2', {
+            Range(1, 1): 'hammer_of_the_dwarfs_war_heavy',
+            Range(2, 2): 'hammer_of_the_dwarfs_war_light',
+        }),
+        Range(71, 75): RollTable('d2', {
+            Range(1, 1): 'mace_holy_heavy',
+            Range(2, 2): 'mace_holy_light',
+        }),
+        Range(76, 85): 'sling_of_the_halfling',
+        Range(86, 100): 'trident_fork',
+    })
+
+    return smwt.roll()
 
 
 def potions_table():
-    potions = [p for p in DbQuery.getTable('Items') if p['Category'] == 'Potion']
-    potions_indexed = {p['unique_id']: p for p in potions}
+    # potions = [p for p in DbQuery.getTable('Items') if p['Category'] == 'Potion']
+    # potions_indexed = {p['unique_id']: p for p in potions}
+    #
+    # first_roll = Dice.rollString('d20')
+    # second_roll = Dice.rollString('d100')
+    #
+    # if first_roll == 1:
+    #     if 1 <= second_roll <= 50:
+    #         return potions_indexed['potion_animal_control']
+    #     else:
+    #         return potions_indexed['potion_clairaudience']
+    # elif first_roll == 2:
+    #     if 1 <= second_roll <= 50:
+    #         return potions_indexed['potion_clairvoyance']
+    #     else:
+    #         return potions_indexed['potion_climbing']
+    # elif first_roll == 3:
+    #     if 1 <= second_roll <= 50:
+    #         return potions_indexed['potion_cursed']
+    #     else:
+    #         return potions_indexed['potion_delusion']
+    # elif first_roll == 4:
+    #     if 1 <= second_roll <= 65:
+    #         return potions_indexed['potion_diminution']
+    #     else:
+    #         dragon_roll = Dice.rollString('d20')
+    #         if 1 <= dragon_roll <= 2:
+    #             return potions_indexed['potion_black_dragon_control']
+    #         elif 3 <= dragon_roll <= 4:
+    #             return potions_indexed['potion_blue_dragon_control']
+    #         elif 5 <= dragon_roll <= 6:
+    #             return potions_indexed['potion_brass_dragon_control']
+    #         elif dragon_roll == 7:
+    #             return potions_indexed['potion_bronze_dragon_control']
+    #         elif 8 <= dragon_roll <= 9:
+    #             return potions_indexed['potion_copper_dragon_control']
+    #         elif dragon_roll == 10:
+    #             return potions_indexed['potion_gold_dragon_control']
+    #         elif 11 <= dragon_roll <= 13:
+    #             return potions_indexed['potion_green_dragon_control']
+    #         elif dragon_roll == 14:
+    #             return potions_indexed['potion_red_dragon_control']
+    #         elif dragon_roll == 15:
+    #             return potions_indexed['potion_silver_dragon_control']
+    #         elif 16 <= dragon_roll <= 17:
+    #             return potions_indexed['potion_white_dragon_control']
+    #         elif 18 <= dragon_roll <= 19:
+    #             return potions_indexed['potion_evil_dragon_control']
+    #         else:
+    #             return potions_indexed['potion_good_dragon_control']
+    # elif first_roll == 5:
+    #     return potions_indexed['potion_esp']
+    # elif first_roll == 6:
+    #     if 1 <= second_roll <= 35:
+    #         return potions_indexed['potion_extra_healing']
+    #     else:
+    #         return potions_indexed['potion_fire_resistance']
+    # elif first_roll == 7:
+    #     if 1 <= second_roll <= 50:
+    #         return potions_indexed['potion_flying']
+    #     else:
+    #         return potions_indexed['potion_gaseous_form']
+    # elif first_roll == 8:
+    #     giant_roll = Dice.rollString('d20')
+    #     if 1 <= second_roll <= 50:
+    #         if 1 <= giant_roll <= 2:
+    #             return potions_indexed['potion_cloud_giant_control']
+    #         elif 3 <= giant_roll <= 6:
+    #             return potions_indexed['potion_fire_giant_control']
+    #         elif 7 <= giant_roll <= 10:
+    #             return potions_indexed['potion_frost_giant_control']
+    #         elif 11 <= giant_roll <= 15:
+    #             return potions_indexed['potion_hill_giant_control']
+    #         elif 16 <= giant_roll <= 19:
+    #             return potions_indexed['potion_stone_giant_control']
+    #         else:
+    #             return potions_indexed['potion_storm_giant_control']
+    #     else:
+    #         if 1 <= giant_roll <= 6:
+    #             return potions_indexed['potion_hill_giant_strength']
+    #         elif 7 <= giant_roll <= 10:
+    #             return potions_indexed['potion_stone_giant_strength']
+    #         elif 11 <= giant_roll <= 14:
+    #             return potions_indexed['potion_frost_giant_strength']
+    #         elif 15 <= giant_roll <= 17:
+    #             return potions_indexed['potion_fire_giant_strength']
+    #         elif 18 <= giant_roll <= 19:
+    #             return potions_indexed['potion_cloud_giant_strength']
+    #         else:
+    #             return potions_indexed['potion_storm_giant_strength']
+    # elif first_roll == 9:
+    #     return potions_indexed['potion_growth']
+    # elif first_roll == 10:
+    #     return potions_indexed['potion_healing']
+    # elif first_roll == 11:
+    #     if 1 <= second_roll <= 50:
+    #         return potions_indexed['potion_heroism']
+    #     else:
+    #         human_roll = Dice.rollString('d20')
+    #         if 1 <= human_roll <= 2:
+    #             return potions_indexed['potion_human_control_dwarfs']
+    #         elif 3 <= human_roll <= 4:
+    #             return potions_indexed['potion_human_control_elves']
+    #         elif human_roll == 5:
+    #             return potions_indexed['potion_human_control_elves_humans']
+    #         elif 6 <= human_roll <= 7:
+    #             return potions_indexed['potion_human_control_gnomes']
+    #         elif 8 <= human_roll <= 9:
+    #             return potions_indexed['potion_human_control_halflings']
+    #         elif 10 <= human_roll <= 11:
+    #             return potions_indexed['potion_human_control_half_orcs']
+    #         elif 12 <= human_roll <= 17:
+    #             return potions_indexed['potion_human_control_humans']
+    #         else:
+    #             return potions_indexed['potion_human_control_other']
+    # elif first_roll == 12:
+    #     if 1 <= second_roll <= 50:
+    #         return potions_indexed['potion_invisibility']
+    #     else:
+    #         return potions_indexed['potion_invulnerability']
+    # elif first_roll == 13:
+    #     if 1 <= second_roll <= 50:
+    #         return potions_indexed['potion_levitation']
+    #     else:
+    #         return potions_indexed['potion_longevity']
+    # elif first_roll == 14:
+    #     if 1 <= second_roll <= 50:
+    #         return potions_indexed['potion_oil_aetherealness']
+    #     else:
+    #         return potions_indexed['potion_oil_slipperiness']
+    # elif first_roll == 15:
+    #     if 1 <= second_roll <= 50:
+    #         return potions_indexed['potion_philtre_love']
+    #     else:
+    #         return potions_indexed['potion_philtre_persuasiveness']
+    # elif first_roll == 16:
+    #     if 1 <= second_roll <= 65:
+    #         return potions_indexed['potion_plant_control']
+    #     else:
+    #         return potions_indexed['potion_polymorph']
+    # elif first_roll == 17:
+    #     if 1 <= second_roll <= 50:
+    #         return potions_indexed['potion_speed']
+    #     else:
+    #         return potions_indexed['potion_super_heroism']
+    # elif first_roll == 18:
+    #     return potions_indexed['potion_sweet_water']
+    # elif first_roll == 19:
+    #     if 1 <= second_roll <= 75:
+    #         return potions_indexed['potion_treasure_finding']
+    #     else:
+    #         undead_roll = Dice.rollString('d10')
+    #         if undead_roll == 1:
+    #             return potions_indexed['potion_undead_control_ghasts']
+    #         elif undead_roll == 2:
+    #             return potions_indexed['potion_undead_control_ghosts']
+    #         elif undead_roll == 3:
+    #             return potions_indexed['potion_undead_control_ghouls']
+    #         elif undead_roll == 4:
+    #             return potions_indexed['potion_undead_control_shadows']
+    #         elif undead_roll == 5:
+    #             return potions_indexed['potion_undead_control_skeletons']
+    #         elif undead_roll == 6:
+    #             return potions_indexed['potion_undead_control_spectres']
+    #         elif undead_roll == 7:
+    #             return potions_indexed['potion_undead_control_vampires']
+    #         elif undead_roll == 8:
+    #             return potions_indexed['potion_undead_control_wights']
+    #         elif undead_roll == 9:
+    #             return potions_indexed['potion_undead_control_wraiths']
+    #         elif undead_roll == 10:
+    #             return potions_indexed['potion_undead_control_zombies']
+    # else:
+    #     return potions_indexed['potion_water_breathing']
 
-    first_roll = Dice.rollString('d20')
-    second_roll = Dice.rollString('d100')
+    pt = RollTable('d20', {
+        Range(1, 1): RollTable('d100', {
+            Range(1, 50): 'potion_animal_control',
+            Range(51, 100): 'potion_clairaudience',
+        }),
+        Range(2, 2): RollTable('d100', {
+            Range(1, 50): 'potion_clairvoyance',
+            Range(51, 100): 'potion_climbing',
+        }),
+        Range(3, 3): RollTable('d100', {
+            Range(1, 50): 'potion_cursed',
+            Range(51, 100): 'potion_delusion',
+        }),
+        Range(4, 4): RollTable('d100', {
+            Range(1, 65): 'potion_diminution',
+            Range(66, 100): RollTable('d20', {
+                Range(1, 2): 'potion_black_dragon_control',
+                Range(3, 4): 'potion_blue_dragon_control',
+                Range(5, 6): 'potion_brass_dragon_control',
+                Range(7, 7): 'potion_bronze_dragon_control',
+                Range(8, 9): 'potion_copper_dragon_control',
+                Range(10, 10): 'potion_gold_dragon_control',
+                Range(11, 13): 'potion_green_dragon_control',
+                Range(14, 14): 'potion_red_dragon_control',
+                Range(15, 15): 'potion_silver_dragon_control',
+                Range(16, 17): 'potion_white_dragon_control',
+                Range(18, 19): 'potion_evil_dragon_control',
+                Range(20, 20): 'potion_good_dragon_control',
+            }),
+        }),
+        Range(5, 5): 'potion_esp',
+        Range(6, 6): RollTable('d100', {
+            Range(1, 35): 'potion_extra_healing',
+            Range(36, 100): 'potion_fire_resistance',
+        }),
+        Range(7, 7): RollTable('d100', {
+            Range(1, 50): 'potion_flying',
+            Range(51, 100): 'potion_gaseous_form',
+        }),
+        Range(8, 8): RollTable('d100', {
+            Range(1, 50): RollTable('d20', {
+                Range(1, 2): 'potion_cloud_giant_control',
+                Range(3, 6): 'potion_fire_giant_control',
+                Range(7, 10): 'potion_frost_giant_control',
+                Range(11, 15): 'potion_hill_giant_control',
+                Range(16, 19): 'potion_stone_giant_control',
+                Range(20, 20): 'potion_storm_giant_control',
+            }),
+            Range(51, 100): RollTable('d20', {
+                Range(1, 6): 'potion_hill_giant_strength',
+                Range(7, 10): 'potion_stone_giant_strength',
+                Range(11, 14): 'potion_frost_giant_strength',
+                Range(15, 17): 'potion_fire_giant_strength',
+                Range(18, 19): 'potion_cloud_giant_strength',
+                Range(20, 20): 'potion_storm_giant_strength',
+            }),
+        }),
+        Range(9, 9): 'potion_growth',
+        Range(10, 10): 'potion_healing',
+        Range(11, 11): RollTable('d100', {
+            Range(1, 50): 'potion_heroism',
+            Range(51, 100): RollTable('d20', {
+                Range(1, 2): 'potion_human_control_dwarfs',
+                Range(3, 4): 'potion_human_control_elves',
+                Range(5, 5): 'potion_human_control_elves_humans',
+                Range(6, 7): 'potion_human_control_gnomes',
+                Range(8, 9): 'potion_human_control_halflings',
+                Range(10, 11): 'potion_human_control_half_orcs',
+                Range(12, 17): 'potion_human_control_humans',
+                Range(18, 20): 'potion_human_control_other',
+            }),
+        }),
+        Range(12, 12): RollTable('d100', {
+            Range(1, 50): 'potion_invisibility',
+            Range(51, 100): 'potion_invulnerability',
+        }),
+        Range(13, 13): RollTable('d100', {
+            Range(1, 50): 'potion_levitation',
+            Range(51, 100): 'potion_longevity',
+        }),
+        Range(14, 14): RollTable('d100', {
+            Range(1, 50): 'potion_oil_aetherealness',
+            Range(51, 100): 'potion_oil_slipperiness',
+        }),
+        Range(15, 15): RollTable('d100', {
+            Range(1, 50): 'potion_philtre_love',
+            Range(51, 100): 'potion_philtre_persuasiveness',
+        }),
+        Range(16, 16): RollTable('d100', {
+            Range(1, 65): 'potion_plant_control',
+            Range(66, 100): 'potion_polymorph',
+        }),
+        Range(17, 17): RollTable('d100', {
+            Range(1, 50): 'potion_speed',
+            Range(51, 100): 'potion_super_heroism',
+        }),
+        Range(18, 18): 'potion_sweet_water',
+        Range(19, 19): RollTable('d100', {
+            Range(1, 75): 'potion_treasure_finding',
+            Range(76, 100): RollTable('d10', {
+                Range(1, 1): 'potion_undead_control_ghasts',
+                Range(2, 2): 'potion_undead_control_ghosts',
+                Range(3, 3): 'potion_undead_control_ghouls',
+                Range(4, 4): 'potion_undead_control_shadows',
+                Range(5, 5): 'potion_undead_control_skeletons',
+                Range(6, 6): 'potion_undead_control_spectres',
+                Range(7, 7): 'potion_undead_control_vampires',
+                Range(8, 8): 'potion_undead_control_wights',
+                Range(9, 9): 'potion_undead_control_wraiths',
+                Range(10, 10): 'potion_undead_control_zombies',
+            }),
+        }),
+        Range(20, 20): 'potion_water_breathing',
+    })
 
-    if first_roll == 1:
-        if 1 <= second_roll <= 50:
-            return potions_indexed['potion_animal_control']
-        else:
-            return potions_indexed['potion_clairaudience']
-    elif first_roll == 2:
-        if 1 <= second_roll <= 50:
-            return potions_indexed['potion_clairvoyance']
-        else:
-            return potions_indexed['potion_climbing']
-    elif first_roll == 3:
-        if 1 <= second_roll <= 50:
-            return potions_indexed['potion_cursed']
-        else:
-            return potions_indexed['potion_delusion']
-    elif first_roll == 4:
-        if 1 <= second_roll <= 65:
-            return potions_indexed['potion_diminution']
-        else:
-            dragon_roll = Dice.rollString('d20')
-            if 1 <= dragon_roll <= 2:
-                return potions_indexed['potion_black_dragon_control']
-            elif 3 <= dragon_roll <= 4:
-                return potions_indexed['potion_blue_dragon_control']
-            elif 5 <= dragon_roll <= 6:
-                return potions_indexed['potion_brass_dragon_control']
-            elif dragon_roll == 7:
-                return potions_indexed['potion_bronze_dragon_control']
-            elif 8 <= dragon_roll <= 9:
-                return potions_indexed['potion_copper_dragon_control']
-            elif dragon_roll == 10:
-                return potions_indexed['potion_gold_dragon_control']
-            elif 11 <= dragon_roll <= 13:
-                return potions_indexed['potion_green_dragon_control']
-            elif dragon_roll == 14:
-                return potions_indexed['potion_red_dragon_control']
-            elif dragon_roll == 15:
-                return potions_indexed['potion_silver_dragon_control']
-            elif 16 <= dragon_roll <= 17:
-                return potions_indexed['potion_white_dragon_control']
-            elif 18 <= dragon_roll <= 19:
-                return potions_indexed['potion_evil_dragon_control']
-            else:
-                return potions_indexed['potion_good_dragon_control']
-    elif first_roll == 5:
-        return potions_indexed['potion_esp']
-    elif first_roll == 6:
-        if 1 <= second_roll <= 35:
-            return potions_indexed['potion_extra_healing']
-        else:
-            return potions_indexed['potion_fire_resistance']
-    elif first_roll == 7:
-        if 1 <= second_roll <= 50:
-            return potions_indexed['potion_flying']
-        else:
-            return potions_indexed['potion_gaseous_form']
-    elif first_roll == 8:
-        giant_roll = Dice.rollString('d20')
-        if 1 <= second_roll <= 50:
-            if 1 <= giant_roll <= 2:
-                return potions_indexed['potion_cloud_giant_control']
-            elif 3 <= giant_roll <= 6:
-                return potions_indexed['potion_fire_giant_control']
-            elif 7 <= giant_roll <= 10:
-                return potions_indexed['potion_frost_giant_control']
-            elif 11 <= giant_roll <= 15:
-                return potions_indexed['potion_hill_giant_control']
-            elif 16 <= giant_roll <= 19:
-                return potions_indexed['potion_stone_giant_control']
-            else:
-                return potions_indexed['potion_storm_giant_control']
-        else:
-            if 1 <= giant_roll <= 6:
-                return potions_indexed['potion_hill_giant_strength']
-            elif 7 <= giant_roll <= 10:
-                return potions_indexed['potion_stone_giant_strength']
-            elif 11 <= giant_roll <= 14:
-                return potions_indexed['potion_frost_giant_strength']
-            elif 15 <= giant_roll <= 17:
-                return potions_indexed['potion_fire_giant_strength']
-            elif 18 <= giant_roll <= 19:
-                return potions_indexed['potion_cloud_giant_strength']
-            else:
-                return potions_indexed['potion_storm_giant_strength']
-    elif first_roll == 9:
-        return potions_indexed['potion_growth']
-    elif first_roll == 10:
-        return potions_indexed['potion_healing']
-    elif first_roll == 11:
-        if 1 <= second_roll <= 50:
-            return potions_indexed['potion_heroism']
-        else:
-            human_roll = Dice.rollString('d20')
-            if 1 <= human_roll <= 2:
-                return potions_indexed['potion_human_control_dwarfs']
-            elif 3 <= human_roll <= 4:
-                return potions_indexed['potion_human_control_elves']
-            elif human_roll == 5:
-                return potions_indexed['potion_human_control_elves_humans']
-            elif 6 <= human_roll <= 7:
-                return potions_indexed['potion_human_control_gnomes']
-            elif 8 <= human_roll <= 9:
-                return potions_indexed['potion_human_control_halflings']
-            elif 10 <= human_roll <= 11:
-                return potions_indexed['potion_human_control_half_orcs']
-            elif 12 <= human_roll <= 17:
-                return potions_indexed['potion_human_control_humans']
-            else:
-                return potions_indexed['potion_human_control_other']
-    elif first_roll == 12:
-        if 1 <= second_roll <= 50:
-            return potions_indexed['potion_invisibility']
-        else:
-            return potions_indexed['potion_invulnerability']
-    elif first_roll == 13:
-        if 1 <= second_roll <= 50:
-            return potions_indexed['potion_levitation']
-        else:
-            return potions_indexed['potion_longevity']
-    elif first_roll == 14:
-        if 1 <= second_roll <= 50:
-            return potions_indexed['potion_oil_aetherealness']
-        else:
-            return potions_indexed['potion_oil_slipperiness']
-    elif first_roll == 15:
-        if 1 <= second_roll <= 50:
-            return potions_indexed['potion_philtre_love']
-        else:
-            return potions_indexed['potion_philtre_persuasiveness']
-    elif first_roll == 16:
-        if 1 <= second_roll <= 65:
-            return potions_indexed['potion_plant_control']
-        else:
-            return potions_indexed['potion_polymorph']
-    elif first_roll == 17:
-        if 1 <= second_roll <= 50:
-            return potions_indexed['potion_speed']
-        else:
-            return potions_indexed['potion_super_heroism']
-    elif first_roll == 18:
-        return potions_indexed['potion_sweet_water']
-    elif first_roll == 19:
-        if 1 <= second_roll <= 75:
-            return potions_indexed['potion_treasure_finding']
-        else:
-            undead_roll = Dice.rollString('d10')
-            if undead_roll == 1:
-                return potions_indexed['potion_undead_control_ghasts']
-            elif undead_roll == 2:
-                return potions_indexed['potion_undead_control_ghosts']
-            elif undead_roll == 3:
-                return potions_indexed['potion_undead_control_ghouls']
-            elif undead_roll == 4:
-                return potions_indexed['potion_undead_control_shadows']
-            elif undead_roll == 5:
-                return potions_indexed['potion_undead_control_skeletons']
-            elif undead_roll == 6:
-                return potions_indexed['potion_undead_control_spectres']
-            elif undead_roll == 7:
-                return potions_indexed['potion_undead_control_vampires']
-            elif undead_roll == 8:
-                return potions_indexed['potion_undead_control_wights']
-            elif undead_roll == 9:
-                return potions_indexed['potion_undead_control_wraiths']
-            elif undead_roll == 10:
-                return potions_indexed['potion_undead_control_zombies']
-    else:
-        return potions_indexed['potion_water_breathing']
+    return pt.roll()
 
 
 def rings_table():
@@ -666,9 +887,10 @@ def rings_table():
         }),
     })
 
-    rings = [r for r in DbQuery.getTable('Items') if r['Category'] == 'Ring']
-    rings_indexed = {r['unique_id']: r for r in rings}
-    return rings_indexed[rt.roll()]
+    # rings = [r for r in DbQuery.getTable('Items') if r['Category'] == 'Ring']
+    # rings_indexed = {r['unique_id']: r for r in rings}
+    # return rings_indexed[rt.roll()]
+    return rt.roll()
 
 
 def rods_staves_wands_table():
@@ -725,10 +947,11 @@ def rods_staves_wands_table():
         }),
     })
 
-    rswl = ['Rod', 'Staff', 'Wand']
-    rsw = [s for s in DbQuery.getTable('Items') if s['Category'] in rswl]
-    rsw_indexed = {s['unique_id']: s for s in rsw}
-    return rsw_indexed[rswt.roll()]
+    # rswl = ['Rod', 'Staff', 'Wand']
+    # rsw = [s for s in DbQuery.getTable('Items') if s['Category'] in rswl]
+    # rsw_indexed = {s['unique_id']: s for s in rsw}
+    # return rsw_indexed[rswt.roll()]
+    return rswt.roll()
 
 
 def scrolls_table():
@@ -770,9 +993,10 @@ def scrolls_table():
         Range(20, 20): 'scroll_cursed',
     })
 
-    scrolls = [s for s in DbQuery.getTable('Items') if s['Category'] == 'Scroll']
-    scrolls_indexed = {s['unique_id']: s for s in scrolls}
-    return scrolls_indexed[st.roll()]
+    # scrolls = [s for s in DbQuery.getTable('Items') if s['Category'] == 'Scroll']
+    # scrolls_indexed = {s['unique_id']: s for s in scrolls}
+    # return scrolls_indexed[st.roll()]
+    return st.roll()
 
 
 def swords_table():
@@ -819,9 +1043,10 @@ def swords_table():
         }),
     })
 
-    swords = [s for s in DbQuery.getTable('Items') if s['Category'] == 'Sword']
-    swords_indexed = {s['unique_id']: s for s in swords}
-    return swords_indexed[f'sword_{sf.roll()}_{sp.roll()}']
+    # swords = [s for s in DbQuery.getTable('Items') if s['Category'] == 'Sword']
+    # swords_indexed = {s['unique_id']: s for s in swords}
+    # return swords_indexed[f'sword_{sf.roll()}_{sp.roll()}']
+    return f'sword_{sf.roll()}_{sp.roll()}'
 
 
 def miscellaneous_magic_table(ignore_100=False):
@@ -936,10 +1161,11 @@ def mm_table_i():
         }),
     })
 
-    mms = [mi for mi in DbQuery.getTable('Items') if mi['Category'] == 'Misc Magic']
-    mms_indexed = {mm['unique_id']: mm for mm in mms}
-
-    return mms_indexed[mmti.roll()]
+    # mms = [mi for mi in DbQuery.getTable('Items') if mi['Category'] == 'Misc Magic']
+    # mms_indexed = {mm['unique_id']: mm for mm in mms}
+    #
+    # return mms_indexed[mmti.roll()]
+    return mmti.roll()
 
 
 def mm_table_ii(ignore_over_98=False):
@@ -1024,7 +1250,7 @@ def mm_table_ii(ignore_over_98=False):
 
     if ignore_over_98:
         tmp = mmtii.roll()
-        while tmp == 99 or tmp == 100:
+        while type(tmp).__name__ == 'int':
             tmp = mmtii.roll()
         roll = mmtii.roll()
     else:
@@ -1035,10 +1261,11 @@ def mm_table_ii(ignore_over_98=False):
     elif roll == 1:
         return [mm_table_ii(ignore_over_98=True), mm_table_ii(ignore_over_98=True)]
 
-    mms = [mi for mi in DbQuery.getTable('Items') if mi['Category'] == 'Misc Magic']
-    mms_indexed = {mm['unique_id']: mm for mm in mms}
-
-    return mms_indexed[roll]
+    # mms = [mi for mi in DbQuery.getTable('Items') if mi['Category'] == 'Misc Magic']
+    # mms_indexed = {mm['unique_id']: mm for mm in mms}
+    #
+    # return mms_indexed[roll]
+    return roll
 
 
 def mm_table_iii(ignore_over_65=False):
@@ -1125,21 +1352,66 @@ def mm_table_iii(ignore_over_65=False):
         Range(48, 48): 'mask_skull',
         Range(49, 49): 'medallion_thoughts',
         Range(50, 50): pearl_power_roll,
+        Range(51, 51): 'pearl_sirines',
+        Range(52, 52): 'periapt_wisdom',
+        Range(53, 53): 'pipes_pain',
+        Range(54, 54): 'pipes_sounding',
+        Range(55, 55): 'plentiful_vessel',
+        Range(56, 56): 'robe_stars',
+        Range(57, 57): 'scabbard_keen_edges',
+        Range(58, 58): 'scarab_golem_bane',
+        Range(59, 59): 'silversheen',
+        Range(60, 60): 'sovereign_glue',
+        Range(61, 61): 'stone_controlling_earth_elementals',
+        Range(62, 62): 'stone_good_luck',
+        Range(63, 63): 'stone_salve',
+        Range(64, 64): 'vestment_druids',
+        Range(65, 65): 'well_many_worlds',
+        Range(66, 75): 0,
+        Range(76, 85): 1,
+        Range(86, 95): 2,
+        Range(96, 99): 3,
+        Range(100, 100): 4,
     })
+
+    if ignore_over_65:
+        tmp = mmtiii.roll()
+        while type(tmp).__name__ == 'int':
+            tmp = mmtiii.roll()
+        roll = tmp
+    else:
+        roll = mmtiii.roll()
+
+    if roll == 0:
+        return [mm_table_i(), mm_table_i()]
+    elif roll == 1:
+        return [mm_table_i(), mm_table_ii()]
+    elif roll == 2:
+        return [mm_table_ii(), mm_table_ii()]
+    elif roll == 3:
+        return [mm_table_ii(), mm_table_iii(ignore_over_65=True)]
+    elif roll == 4:
+        return [mm_table_iii(ignore_over_65=True), mm_table_iii(ignore_over_65=True)]
+
+    # mms = [mi for mi in DbQuery.getTable('Items') if mi['Category'] == 'Misc Magic']
+    # mms_indexed = {mm['unique_id']: mm for mm in mms}
+    #
+    # return mms_indexed[roll]
+    return roll
 
 
 def pearl_power_roll():
+
     def roll_two_levels():
         roll1 = Dice.rollString('d6')
         roll2 = Dice.rollString('d6')
+        while roll1 == roll2:
+            roll2 = Dice.rollString('d6')
 
         suffix = ['th', 'st', 'nd', 'rd'] + ['th'] * 3
 
         ord1 = str(roll1) + suffix[roll1]
         ord2 = str(roll2) + suffix[roll2]
-        while ord2 == ord1:
-            roll2 = Dice.rollString('d6')
-            ord2 = str(roll2) + suffix[roll2]
 
         if roll1 < roll2:
             first_level = ord1
@@ -1182,5 +1454,162 @@ def pearl_power_roll():
     return ppr.roll()
 
 
+def belt_giant_strength_roll():
+    to_hit_bonus = Dice.rollString('1d4+2')
+    damage_bonus = Dice.rollString('1d6+6')
+
+    return f'belt_giant_strength_+{to_hit_bonus}_+{damage_bonus}'
+
+
 def mm_table_iv():
-    pass
+    mmtiv = RollTable('d100', {
+        Range(1, 2): 'afreeti_bottle',
+        Range(3, 4): 'amulet_life_protection',
+        Range(5, 5): 'amulet_mighty_fists',
+        Range(6, 7): 'belt_dwarfkind',
+        Range(8, 9): belt_giant_strength_roll,
+        Range(10, 11): 'boat_folding',
+        Range(12, 13): 'boots_teleportation',
+        Range(14, 14): 'boots_winged',
+        Range(15, 16): 'brooch_instigation',
+        Range(17, 18): 'circlet_blasting_major',
+        Range(19, 20): 'eversmoking_bottle',
+        Range(21, 22): 'eyes_charming',
+        Range(23, 24): 'eyes_doom',
+        Range(25, 26): 'eyes_petrifaction',
+        Range(27, 28): 'gem_brightness',
+        Range(29, 30): 'gem_seeing',
+        Range(31, 32): RollTable('d8', {
+            Range(1, 1): 'golem_manual_clay_cleric',
+            Range(2, 2): 'golem_manual_flesh_cleric',
+            Range(3, 3): 'golem_manual_iron_cleric',
+            Range(4, 4): 'golem_manual_stone_cleric',
+            Range(5, 5): 'golem_manual_clay_magic_user',
+            Range(6, 6): 'golem_manual_flesh_magic_user',
+            Range(7, 7): 'golem_manual_iron_magic_user',
+            Range(8, 8): 'golem_manual_stone_magic_user',
+        }),
+        Range(33, 34): 'helm_brilliance',
+        Range(35, 36): 'helm_teleportation',
+        Range(37, 38): 'horn_blasting',
+        Range(39, 40): 'horn_blasting_greater',
+        Range(41, 42): ioun_stones_table,
+        Range(43, 44): 'lyre_building',
+        Range(45, 46): 'manual_bodily_health',
+        Range(47, 48): 'manual_gainful_exercise',
+        Range(49, 50): 'manual_quickness_action',
+        Range(51, 52): 'mattock_titans',
+        Range(53, 54): 'maul_titans',
+        Range(55, 56): 'mirror_life_trapping',
+        Range(57, 58): 'mirror_mental_prowess',
+        Range(59, 60): 'mirror_opposition',
+        Range(61, 62): 'oil_famishing',
+        Range(63, 64): 'portable_hole',
+        Range(65, 66): 'robe_eyes',
+        Range(67, 68): 'robe_scintillating_colours',
+        Range(69, 70): RollTable('d100', {
+            Range(1, 45): 'robe_archmagi_white',
+            Range(46, 75): 'robe_archmagi_grey',
+            Range(76, 100): 'robe_archmagi_black',
+        }),
+        Range(71, 72): RollTable('d9', {
+            Range(1, 1): 'sagacious_volume_assassin',
+            Range(2, 2): 'sagacious_volume_cleric',
+            Range(3, 3): 'sagacious_volume_druid',
+            Range(4, 4): 'sagacious_volume_fighter',
+            Range(5, 5): 'sagacious_volume_illusionist',
+            Range(6, 6): 'sagacious_volume_magic_user',
+            Range(7, 7): 'sagacious_volume_paladin',
+            Range(8, 8): 'sagacious_volume_ranger',
+            Range(9, 9): 'sagacious_volume_thief',
+        }),
+        Range(73, 74): 'shrouds_disintegration',
+        Range(75, 76): 'tome_clear_thought',
+        Range(77, 78): 'tome_leadership_influence',
+        Range(79, 80): 'tome_understanding',
+        Range(81, 85): lambda: [mm_table_iii(), mm_table_iii()],
+        Range(86, 90): lambda: [mm_table_iv(), miscellaneous_weapons_table()],
+        Range(91, 95): lambda: [mm_table_iv(), swords_table()],
+        Range(96, 100): cursed_items_table,
+    })
+
+    return mmtiv.roll()
+
+
+def ioun_stones_table(ignore_over_96=False):
+    ist = RollTable('d100', {
+        Range(1, 6): 'ioun_stones_clear',
+        Range(7, 12): 'ioun_stones_dusty_rose',
+        Range(13, 18): 'ioun_stones_deep_red',
+        Range(19, 24): 'ioun_stones_incandescent_blue',
+        Range(25, 30): 'ioun_stones_pale_blue',
+        Range(31, 36): 'ioun_stones_pink',
+        Range(37, 42): 'ioun_stones_pink_green',
+        Range(43, 48): 'ioun_stones_scarlet_blue',
+        Range(49, 54): 'ioun_stones_dark_blue',
+        Range(55, 60): 'ioun_stones_vibrant_purple',
+        Range(61, 66): 'ioun_stones_iridescent',
+        Range(67, 72): 'ioun_stones_pale_lavender',
+        Range(73, 77): 'ioun_stones_pearly_white',
+        Range(78, 83): 'ioun_stones_pale_green',
+        Range(84, 89): 'ioun_stones_orange',
+        Range(90, 96): 'ioun_stones_lavender_green',
+        Range(97, 99): 0,
+        Range(100, 100): 1,
+    })
+
+    if ignore_over_96:
+        tmp = ist.roll()
+        while type(tmp).__name__ == 'int':
+            tmp = ist.roll()
+        roll = tmp
+    else:
+        roll = ist.roll()
+
+    if roll == 0:
+        return [ioun_stones_table(ignore_over_96=True), ioun_stones_table(ignore_over_96=True)]
+    elif roll == 1:
+        return [ioun_stones_table(ignore_over_96=True),
+                ioun_stones_table(ignore_over_96=True),
+                ioun_stones_table(ignore_over_96=True)]
+
+    return roll
+
+
+def cursed_items_table():
+    cit = RollTable('d100', {
+        Range(1, 5): 'amulet_inescapable_location',
+        Range(6, 7): 'armour_arrow_attraction',
+        Range(8, 10): 'armour_rage',
+        Range(11, 13): 'bag_devouring',
+        Range(14, 17): 'boots_dancing',
+        Range(18, 22): 'bracers_defencelessness',
+        Range(23, 23): 'broom_animated_attack',
+        Range(24, 24): 'cloak_poisonousness',
+        Range(25, 25): 'crystal_hypnosis_ball',
+        Range(26, 27): 'dust_sneezing_choking',
+        Range(28, 33): 'flask_curses',
+        Range(34, 38): RollTable('d2', {
+            Range(1, 1): 'gauntlets_fumbling_heavy',
+            Range(2, 2): 'gauntlets_fumbling_light',
+        }),
+        Range(39, 39): 'helm_opposite_alignment',
+        Range(40, 44): 'incense_obsession',
+        Range(45, 49): 'mace_blood',
+        Range(50, 52): 'medallion_thought_projection',
+        Range(53, 53): 'necklace_strangulation',
+        Range(54, 55): 'net_snaring',
+        Range(56, 58): 'periapt_foul_rotting',
+        Range(59, 63): 'potion_poison',
+        Range(64, 73): 'ring_clumsiness',
+        Range(74, 75): 'robe_powerlessness',
+        Range(76, 80): 'robe_vermin',
+        Range(81, 81): 'scarab_death',
+        Range(82, 86): 'spear_cursed_backbiter',
+        Range(87, 91): 'stone_weight_loadstone',
+        Range(92, 96): 'sword_-2_cursed',
+        Range(97, 99): 'sword_berserker_+2',
+        Range(100, 100): 'vacuous_grimoire',
+    })
+
+    return cit.roll()
