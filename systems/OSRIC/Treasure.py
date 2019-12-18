@@ -12,8 +12,10 @@ gp_pattern = re.compile(base_pattern + 'gp' + percent_pattern)
 pp_pattern = re.compile(base_pattern + 'pp' + percent_pattern)
 gems_pattern = re.compile(base_pattern + 'gems' + percent_pattern)
 jewellery_pattern = re.compile(base_pattern + 'jewellery' + percent_pattern)
-potions_pattern = re.compile(base_pattern + 'potions' + percent_pattern)
-rings_pattern = re.compile(base_pattern + 'rings' + percent_pattern)
+magic_items_pattern = re.compile(base_pattern + 'magic items?' + percent_pattern)
+scrolls_pattern = re.compile(base_pattern + 'scrolls?' + percent_pattern)
+potions_pattern = re.compile(base_pattern + 'potions?' + percent_pattern)
+rings_pattern = re.compile(base_pattern + 'rings?' + percent_pattern)
 
 gemstone_desc_levels = [
         'Ornamental', 'Semi-Precious', 'Fancy',
@@ -59,6 +61,10 @@ def parse_treasure_text(treasure_text, wandering=True):
     jewellery_match = jewellery_pattern.findall(t)
     jewellery = [jewellery_table() for _ in range(1, sum(get_treasure_list(jewellery_match)) + 1)]
 
+    magic_items_match = magic_items_pattern.findall(t)
+    magic_items = [magic_items_table() for _ in range(1, sum(get_treasure_list(magic_items_match)) + 1)]
+    scrolls_match = scrolls_pattern.findall(t)
+    scrolls = [scrolls_table() for _ in range(1, sum(get_treasure_list(scrolls_match)) + 1)]
     potions_match = potions_pattern.findall(t)
     potions = [potions_table() for _ in range(1, sum(get_treasure_list(potions_match)) + 1)]
     rings_match = rings_pattern.findall(t)
@@ -73,8 +79,9 @@ def parse_treasure_text(treasure_text, wandering=True):
         'gems': gems,
         'jewellery': jewellery,
 
-        'potions': potions,
-        'rings': rings,
+        'magic_items': magic_items + scrolls + potions + rings,
+        # 'potions': potions,
+        # 'rings': rings,
     }
 
 
