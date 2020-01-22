@@ -356,7 +356,22 @@ class WidgetRegistry(dict):
                 qt_widget.setToolTip(widget_tool_tip)
             if widget_data:
                 for item in widget_data:
-                    qt_widget.addItem(item)
+                    if type(item) is str:
+                        qt_widget.addItem(item)
+                    elif type(item) is dict:
+                        # import DbQuery here because it will fail if imported at the top of the module
+                        import DbQuery
+                        table_name = item['TableName']
+                        display_col = DbQuery.getDisplayCol(table_name)
+                        display = item[display_col]
+                        qt_widget.addItem(display, item)
+                    elif type(item) is tuple:
+                        display, item_dict = item
+                        qt_widget.addItem(display, item_dict)
+                    else:
+                        print('Wrong format for item: {}\nExpected str, dict or tuple got {}'.format(item, type(
+                            item).__name__))
+                        return
             if not hide_field:
                 widget_layout.addWidget(QLabel(field_name))
             widget_layout.addWidget(qt_widget)
@@ -696,6 +711,7 @@ class WidgetRegistry(dict):
                 fields[k] = widget.checkedId()
             elif widget_type.lower() == 'combobox':
                 fields[k] = widget.currentText()
+                fields[f'{k} Data'] = widget.currentData()
             elif widget_type.lower() == 'listbox' or widget_type.lower() == 'duallist':
                 item_list = []
                 for i in range(widget.count()):
