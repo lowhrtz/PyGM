@@ -76,10 +76,10 @@ def parse_treasure_text(treasure_text, wandering=True):
         'ep': sum(get_treasure_list(ep_match)),
         'gp': sum(get_treasure_list(gp_match)),
         'pp': sum(get_treasure_list(pp_match)),
-        'gems': gems,
-        'jewellery': jewellery,
+        # 'gems': gems,
+        # 'jewellery': jewellery,
 
-        'magic_items': magic_items + scrolls + potions + rings,
+        'items': gems + jewellery + magic_items + scrolls + potions + rings,
         # 'potions': potions,
         # 'rings': rings,
     }
@@ -1034,7 +1034,8 @@ def swords_table():
             Range(2, 6): 'dancing_sword',
             Range(7, 16): 'defender',
             Range(17, 21): 'dragonbane',
-            Range(32, 36): 'flaming_blade',
+            Range(22, 31): 'flaming_blade',
+            Range(32, 36): 'frost_brand',
             Range(37, 46): 'giantbane',
             Range(47, 51): 'holy_sword',
             Range(52, 53): 'keenblade',
