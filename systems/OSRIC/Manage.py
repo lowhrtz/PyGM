@@ -1008,6 +1008,8 @@ class Campaigns(Manage):
             add_monster_enemy = Widget('Add Monster/Enemy', 'PushButton')
             monster_enemy_radio = Widget('Monster or Enemy', 'RadioButton', data=['Monster', 'Enemy'])
             start_encounter = Widget('Start Encounter', 'PushButton', col_span=4, align='Center')
+            lair_combobox = Widget('Lair', 'ComboBox', data=['No Lair'] + DbQuery.getTable('Monsters'),
+                                   col_span=4, align='Center')
 
             # Add Actions
             add_pc_ally_data = {
@@ -1033,6 +1035,7 @@ class Campaigns(Manage):
             # Initialize GUI
             self.add_row([pc_team, empty, monster_team])
             self.add_row([add_pc_ally, pc_ally_radio, add_monster_enemy, monster_enemy_radio])
+            self.add_row([lair_combobox])
             self.add_row([start_encounter])
 
 
