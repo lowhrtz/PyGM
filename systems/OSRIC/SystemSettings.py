@@ -14,9 +14,10 @@ attributes = [('STR', 'Strength', '3d6'),
               ('CON', 'Constitution', '3d6'),
               ('CHA', 'Charisma', '3d6'),
               # ('COM','Comliness', '3d6'),
-]
+              ]
 life = ['HP', ]
-alignment = ['Lawful Good', 'Neutral Good', 'Chaotic Good', 'Lawful Neutral', 'True Neutral', 'Chaotic Neutral', 'Lawful Evil', 'Neutral Evil', 'Chaotic Evil']
+alignment = ['Lawful Good', 'Neutral Good', 'Chaotic Good', 'Lawful Neutral', 'True Neutral', 'Chaotic Neutral',
+             'Lawful Evil', 'Neutral Evil', 'Chaotic Evil']
 gender = ['Male', 'Female', 'NA']
 economy = {
     'gp': 1,
@@ -141,10 +142,18 @@ def init_system_path(system_path):
 def has_spells_at_level(level, single_class_dict):
     level = int(level)
     level_dict_list = [row for row in single_class_dict['Classes_meta'] if row['Type'] == 'xp table']
-    level_dict = level_dict_list[level-1]
+    level_dict = level_dict_list[level - 1]
     if level_dict['Casting_Level'] != 0 and level_dict['Casting_Level'] != '':
         return True
     return False
+
+
+def get_xp_table_row(level, single_class_dict):
+    level = int(level)
+    level_dict_list = [row for row in single_class_dict['Classes_meta'] if row['Type'] == 'xp table']
+    if level > len(level_dict_list):
+        return level_dict_list[-1]
+    return level_dict_list[level - 1]
 
 
 def has_secondary_spells_at_level(level, single_class):
@@ -175,7 +184,7 @@ def get_attribute_bonuses(attr_key, score):
     return tuple(bonus for bonus in return_bonus[1:])
 
 
-def get_attribute_bonus_string( attr_key, score ):
+def get_attribute_bonus_string(attr_key, score):
     bonuses_dict = {}
     bonuses_dict['STR'] = 'To Hit: {}     Damage: {}     Encumbrance: {}     Minor Test: {}     Major Test: {}%'
     bonuses_dict['INT'] = 'Add\'l Langs: {} Understand Spell Chance: {}% Min/Max Understood / Level: {}'
@@ -184,7 +193,7 @@ def get_attribute_bonus_string( attr_key, score ):
     bonuses_dict['CON'] = 'HP Bonus: {}   Resurrect/Raise Dead: {}%   System Shock: {}%'
     bonuses_dict['CHA'] = 'Max Henchman: {}     Loyalty: {}     Reaction: {}'
 
-    return bonuses_dict[attr_key].format( *get_attribute_bonuses( attr_key, score ) )
+    return bonuses_dict[attr_key].format(*get_attribute_bonuses(attr_key, score))
 
 
 def calculate_ac(attr_dict, class_dict, race_dict, equipment_list):
@@ -309,17 +318,19 @@ def calculate_ac(attr_dict, class_dict, race_dict, equipment_list):
         best_shield = {'AC_Effect': 0}
     return char_base_ac + best_armour['AC_Effect'] + best_shield['AC_Effect']
 
+
 def get_saves(level, attr_dict, class_dict, race_dict):
     saves_dict = {'Aimed_Magic_Items': [],
                   'Breath_Weapons': [],
                   'Death_Paralysis_Poison': [],
                   'Petrifaction_Polymorph': [],
-                  'Spells': [],}
+                  'Spells': [], }
     if 'classes' in class_dict:
-        level_list = [ int(l) for l in level.split('/') ]
-        for i, cl in enumerate( class_dict['classes'] ):
+        level_list = [int(l) for l in level.split('/')]
+        for i, cl in enumerate(class_dict['classes']):
             for meta_row in cl['Classes_meta']:
-                if meta_row['Type'] == 'xp table' and meta_row['Level'] != 'each' and int(meta_row['Level']) == level_list[i]:
+                if meta_row['Type'] == 'xp table' and meta_row['Level'] != 'each' and int(meta_row['Level']) == \
+                        level_list[i]:
                     for save in list(saves_dict.keys()):
                         saves_dict[save].append(meta_row[save])
         if race_dict['unique_id'] in restrictive_races:
@@ -343,27 +354,30 @@ def get_saves(level, attr_dict, class_dict, race_dict):
             for attr_name in list(attr_dict.keys()):
                 if attr_name.lower() in modifier.lower():
                     num_modifier = modifier.lower().replace(attr_name.lower(), attr_dict[attr_name])
-            #print num_modifier
+            # print num_modifier
             for mod in modified.split('/'):
                 for save in list(saves_dict.keys()):
                     if mod.strip().replace(' ', '_') == save:
-                        saves_dict[save] = int( eval(str(saves_dict[save]) + num_modifier) )
+                        saves_dict[save] = int(eval(str(saves_dict[save]) + num_modifier))
                     elif mod.strip().replace(' ', '_') in save:
-                        saves_dict[save] = str(saves_dict[save]) + ' (' + mod.strip() + ' ' + str( int( eval(str(saves_dict[save]) + num_modifier) ) ) + ')'
+                        saves_dict[save] = str(saves_dict[save]) + ' (' + mod.strip() + ' ' + str(
+                            int(eval(str(saves_dict[save]) + num_modifier))) + ')'
                     elif save.replace('_', ' ') in mod:
                         mod_list = mod.split(':')
-                        saves_dict[save] = str(saves_dict[save]) + ' (' + mod_list[1] + ' ' + str( int( eval(str(saves_dict[save]) + num_modifier) ) ) + ')'
+                        saves_dict[save] = str(saves_dict[save]) + ' (' + mod_list[1] + ' ' + str(
+                            int(eval(str(saves_dict[save]) + num_modifier))) + ')'
                     if len(str(saves_dict[save])) > 15:
                         saves_dict[save] = str(saves_dict[save]).replace(' (', '<br />(')
 
     return saves_dict
 
+
 def get_tohit_row(level, class_dict, race_dict):
     tohit_list = []
     if 'classes' in class_dict:
-        level_list = [ int(l) for l in level.split('/') ]
+        level_list = [int(l) for l in level.split('/')]
         bucket = []
-        for i, cl in enumerate( class_dict['classes'] ):
+        for i, cl in enumerate(class_dict['classes']):
             for row in cl['Classes_meta']:
                 if row['Type'] == 'xp table' and row['Level'].isdigit() and int(row['Level']) == level_list[i]:
                     tohit_tuple = (row['To_Hit_-10'],
@@ -450,27 +464,27 @@ def convert_cost_string(cost_string):
 
 
 def get_coinage_from_float(gp_decimal):
-#    bucket = int(gp_decimal * 100)
-#    coin_denominations = sorted(economy, key=lambda x: economy[x], reverse=True)
-#    return_dict = dict.fromkeys(coin_denominations, 0)
-#    for cd in coin_denominations:
-#        if economy[cd] <= 1:
-#            cd_bucket = 0
-#            while bucket >= economy[cd] * 100:
-#                bucket = bucket - int(economy[cd] * 100)
-#                cd_bucket = cd_bucket + 1
-#                return_dict[cd] = cd_bucket
+    #    bucket = int(gp_decimal * 100)
+    #    coin_denominations = sorted(economy, key=lambda x: economy[x], reverse=True)
+    #    return_dict = dict.fromkeys(coin_denominations, 0)
+    #    for cd in coin_denominations:
+    #        if economy[cd] <= 1:
+    #            cd_bucket = 0
+    #            while bucket >= economy[cd] * 100:
+    #                bucket = bucket - int(economy[cd] * 100)
+    #                cd_bucket = cd_bucket + 1
+    #                return_dict[cd] = cd_bucket
 
-#    return return_dict
-    gp_decimal = Decimal( str( gp_decimal ) )
+    #    return return_dict
+    gp_decimal = Decimal(str(gp_decimal))
     coin_denominations = sorted(economy, key=lambda x: economy[x], reverse=True)
     return_dict = dict.fromkeys(coin_denominations, 0)
     for cd in coin_denominations:
         if economy[cd] <= 1:
-            coin_decimal = Decimal( str( economy[cd] ) )
+            coin_decimal = Decimal(str(economy[cd]))
             coin_mod = gp_decimal // coin_decimal
             gp_decimal -= coin_mod * coin_decimal
-            return_dict[cd] = int( coin_mod )
+            return_dict[cd] = int(coin_mod)
 
     return return_dict
 
@@ -565,6 +579,7 @@ def calculate_movement(race_dict, class_dict, attr_dict, equipment_list):
             return f'+{surprise_bonus}'
         else:
             return f'{surprise_bonus}'
+
     surprise_bonus = int(get_attribute_bonuses('DEX', attr_dict['DEX'])[0])
     if equipment_weight <= 35 + int(str_bonus):
         # +1 (for armour lighter than chain mail only)
@@ -587,6 +602,7 @@ def calculate_movement(race_dict, class_dict, attr_dict, equipment_list):
 
     return movement
 
+
 def get_spells_by_level(level, attr_dict, single_class_dict):
     level = int(level)
     primary_spell_string = 'Level_{}_Spells'
@@ -594,7 +610,8 @@ def get_spells_by_level(level, attr_dict, single_class_dict):
     primary = ''
     secondary = ''
     for row in single_class_dict['Classes_meta']:
-        if row['Type'] == 'xp table' and row['Level'].isdigit() and int(row['Level']) == level and row['Casting_Level'] > 0:
+        if row['Type'] == 'xp table' and row['Level'].isdigit() and int(row['Level']) == level and row[
+            'Casting_Level'] > 0:
             for i in range(1, 10):
                 primary_key = primary_spell_string.format(i)
                 secondary_key = secondary_spell_string.format(i)
@@ -612,33 +629,38 @@ def get_spells_by_level(level, attr_dict, single_class_dict):
                     if i > 1:
                         secondary += '/'
                     secondary += str(row[secondary_key])
-    return ( primary, secondary )
+    return (primary, secondary)
 
-def get_turn_undead_row( level, single_class_dict ):
+
+def get_turn_undead_row(level, single_class_dict):
     level = int(level)
     tu_list = []
     col_string = 'Turn_Undead_Type_{}'
     for row in single_class_dict['Classes_meta']:
-        if row['Type'] == 'xp table' and row['Level'].isdigit() and int( row['Level'] ) == level:
-            for i in range( 1, 14 ):
+        if row['Type'] == 'xp table' and row['Level'].isdigit() and int(row['Level']) == level:
+            for i in range(1, 14):
                 col = col_string.format(i)
-                tu_list.append( row[col] )
+                tu_list.append(row[col])
     return tu_list
+
 
 ta_col_list = ['Climb_Walls', 'Find_Traps', 'Hear_Noise', 'Hide_in_Shadows',
                'Move_Quietly', 'Open_Locks', 'Pick_Pockets', 'Read_Languages']
-def get_thief_abilities_row( level, single_class_dict ):
+
+
+def get_thief_abilities_row(level, single_class_dict):
     level = int(level)
     ta_list = []
     for row in single_class_dict['Classes_meta']:
-        if row['Type'] == 'xp table' and row['Level'].isdigit() and int( row['Level'] ) == level:
+        if row['Type'] == 'xp table' and row['Level'].isdigit() and int(row['Level']) == level:
             for ta_col in ta_col_list:
-                ta_list.append( '{}%'.format( row[ta_col] ) )
+                ta_list.append('{}%'.format(row[ta_col]))
     return ta_list
 
-def get_class_abilities( level, attr_dict, single_class_dict ):
+
+def get_class_abilities(level, attr_dict, single_class_dict):
     level = int(level)
-    spells_by_level = get_spells_by_level( level, attr_dict, single_class_dict )
+    spells_by_level = get_spells_by_level(level, attr_dict, single_class_dict)
     cl_ab = []
     if spells_by_level[0]:
         primary_spells = single_class_dict['Primary_Spell_List'].replace('_', ' ').title()
@@ -646,58 +668,60 @@ def get_class_abilities( level, attr_dict, single_class_dict ):
         if spells_by_level[1]:
             secondary_spells = single_class_dict['Secondary_Spell_List'].replace('_', ' ').title()
             cl_ab.append(('{} Spells by Level'.format(secondary_spells), spells_by_level[1]))
-    tu_list = get_turn_undead_row( level, single_class_dict )
-    ta_list = get_thief_abilities_row( level, single_class_dict )
+    tu_list = get_turn_undead_row(level, single_class_dict)
+    ta_list = get_thief_abilities_row(level, single_class_dict)
     for row in single_class_dict['Classes_meta']:
         if row['Type'] == 'ability' and level >= row['Level_Gained']:
             cl_ab.append((row['Ability'], row['Ability_Description']))
             if tu_list and 'turn' in row['Ability'].lower() and 'undead' in row['Ability'].lower():
-                headers = [ 'Type {}'.format( i ) for i in range( 1, 14 ) ]
-                cl_ab.append( ( '', ( headers, tu_list ) ) )
+                headers = ['Type {}'.format(i) for i in range(1, 14)]
+                cl_ab.append(('', (headers, tu_list)))
             if ta_list and 'thief abilities' in row['Ability'].lower():
-                headers = [ h.replace( '_', ' ' ) for h in ta_col_list ]
-                cl_ab.append( ( '', ( headers, ta_list ) ) )
+                headers = [h.replace('_', ' ') for h in ta_col_list]
+                cl_ab.append(('', (headers, ta_list)))
 
     return cl_ab
 
 
-def get_race_dict(character_dict):
-    race_dict = {}
-    for race in DbQuery.getTable('Races'):
-        if race['unique_id'] == character_dict['Race']:
-            race_dict = race
-    return race_dict
+# def get_race_dict(character_dict):
+#     race_dict = {}
+#     for race in DbQuery.getTable('Races'):
+#         if race['unique_id'] == character_dict['Race']:
+#             race_dict = race
+#     return race_dict
 
 
-def get_race_abilities( race_dict ):
+def get_race_abilities(race_dict):
     return_list = []
-    subtype_list = [ 'combat', 'starting languages', 'infravision', 'misc' ]
+    subtype_list = ['combat', 'starting languages', 'infravision', 'misc']
     for row in race_dict['Races_meta']:
         if row['Type'] == 'ability' and row['Subtype'] in subtype_list:
             if row['Subtype'] == 'infravision':
-                first_item = 'Infravision {}'.format( row['Modifier'] )
+                first_item = 'Infravision {}'.format(row['Modifier'])
             elif row['Subtype'] == 'starting languages':
                 first_item = 'Starting Languages: '
             else:
                 first_item = row['Modifier']
-            return_list.append( ( first_item, row['Modified'], row['Notes'] ) )
+            return_list.append((first_item, row['Modified'], row['Notes']))
     return return_list
 
-def get_spell_book( spell_list ):
+
+def get_spell_book(spell_list):
     output_string = ''
     for spell in spell_list:
         spell['Name']
 
-def get_non_proficiency_penalty( class_dict, race_dict ):
+
+def get_non_proficiency_penalty(class_dict, race_dict):
     race_id = race_dict['unique_id']
     if 'classes' in class_dict:
         bucket = []
         for cl in class_dict['classes']:
-            bucket.append( cl['Non-Proficiency_Penalty'] )
+            bucket.append(cl['Non-Proficiency_Penalty'])
         if race_id in restrictive_races:
-            return min( bucket )
+            return min(bucket)
         else:
-            return max( bucket )
+            return max(bucket)
 
     return class_dict['Non-Proficiency_Penalty']
 
@@ -754,31 +778,31 @@ table th {{
 </table>'''
 
 
-def get_character_pdf_markup( character_dict ):
-    class_table = DbQuery.getTable( 'Classes' )
-    race_table = DbQuery.getTable( 'Races' )
-    items_table = DbQuery.getTable( 'Items' )
-    spells_table = DbQuery.getTable( 'Spells' )
+def get_character_pdf_markup(character_dict):
+    class_table = DbQuery.getTable('Classes')
+    race_table = DbQuery.getTable('Races')
+    items_table = DbQuery.getTable('Items')
+    spells_table = DbQuery.getTable('Spells')
 
-    class_dict = { 'Name' : '', 'classes' : [] }
-    classes_list = character_dict['Classes'].split( '/' )
+    class_dict = {'Name': '', 'classes': []}
+    classes_list = character_dict['Classes'].split('/')
     for class_id in classes_list:
         for cl in class_table:
             if class_id == cl['unique_id']:
                 if class_dict['Name'] == '':
-                    if len( classes_list ) == 1:
+                    if len(classes_list) == 1:
                         class_dict = cl
                         break
                     class_dict['Name'] = cl['Name']
                 else:
-                    class_dict['Name'] += '/{}'.format( cl['Name'] )
+                    class_dict['Name'] += '/{}'.format(cl['Name'])
                 class_dict['classes'].append(cl)
 
     level = character_dict['Level']
     class_name = class_dict['Name']
     class_font_size = '14px'
     class_padding = '0px'
-    if len( class_name ) > 15:
+    if len(class_name) > 15:
         class_font_size = '8px'
         class_padding = '4px'
 
@@ -790,12 +814,12 @@ def get_character_pdf_markup( character_dict ):
     ext = character_dict['Portrait_Image_Type']
 
     attr_dict = {
-        'STR' : character_dict['STR'],
-        'INT' : character_dict['INT'],
-        'WIS' : character_dict['WIS'],
-        'DEX' : character_dict['DEX'],
-        'CON' : character_dict['CON'],
-        'CHA' : character_dict['CHA'],
+        'STR': character_dict['STR'],
+        'INT': character_dict['INT'],
+        'WIS': character_dict['WIS'],
+        'DEX': character_dict['DEX'],
+        'CON': character_dict['CON'],
+        'CHA': character_dict['CHA'],
     }
 
     equip_id_list = []
@@ -806,7 +830,7 @@ def get_character_pdf_markup( character_dict ):
     proficiency_id_dict = {}
     for meta_row in character_dict['Characters_meta']:
         if meta_row['Type'] == 'Equipment':
-            equip_id_list.append( meta_row['Entry_ID'] )
+            equip_id_list.append(meta_row['Entry_ID'])
         elif meta_row['Type'] == 'Treasure':
             if meta_row['Entry_ID'] == 'gp':
                 gp = meta_row['Data']
@@ -837,15 +861,15 @@ def get_character_pdf_markup( character_dict ):
     specialised_list = []
     double_specialised_list = []
     for prof in items_table:
-        if prof['Is_Proficiency'].lower() == 'yes' and prof['unique_id'] in list( proficiency_id_dict.keys() ):
+        if prof['Is_Proficiency'].lower() == 'yes' and prof['unique_id'] in list(proficiency_id_dict.keys()):
             prof_name = prof['Name']
-            prof_level = proficiency_id_dict[  prof['unique_id'] ]
+            prof_level = proficiency_id_dict[prof['unique_id']]
             if prof_level == 'P':
-                proficiency_list.append( prof )
+                proficiency_list.append(prof)
             elif prof_level == 'S':
-                specialised_list.append( prof )
+                specialised_list.append(prof)
             elif prof_level == '2XS':
-                double_specialised_list.append( prof )
+                double_specialised_list.append(prof)
 
     # equipment_list = []
     # for equip in items_table:
@@ -856,12 +880,12 @@ def get_character_pdf_markup( character_dict ):
 
     class_abilities = {}
     if 'classes' in class_dict:
-        level_list = [ int(l) for l in level.split('/') ]
-        for i, cl in enumerate( class_dict['classes'] ):
-            class_abilities[ cl['Name'] ] = get_class_abilities( level_list[i], attr_dict, cl )
+        level_list = [int(l) for l in level.split('/')]
+        for i, cl in enumerate(class_dict['classes']):
+            class_abilities[cl['Name']] = get_class_abilities(level_list[i], attr_dict, cl)
     else:
-        class_abilities[ class_dict['Name'] ] = get_class_abilities( level, attr_dict, class_dict )
-    race_abilities = get_race_abilities( race_dict )
+        class_abilities[class_dict['Name']] = get_class_abilities(level, attr_dict, class_dict)
+    race_abilities = get_race_abilities(race_dict)
 
     spellbook = []
     daily_spells = []
@@ -877,40 +901,41 @@ def get_character_pdf_markup( character_dict ):
         if spell['spell_id'] in daily_spells3_id_list:
             daily_spells3.append(spell)
 
-    #print equipment_list
-    saves_dict = get_saves( level, attr_dict, class_dict, race_dict )
-    movement_tuple = calculate_movement( race_dict, class_dict, attr_dict, equipment_list )
+    # print equipment_list
+    saves_dict = get_saves(level, attr_dict, class_dict, race_dict)
+    movement_tuple = calculate_movement(race_dict, class_dict, attr_dict, equipment_list)
     markup_template_dict = {
-        'class_font_size' : class_font_size,
-        'class_padding' : class_padding,
-        'name' : character_dict['Name'],
-        'gender' : character_dict['Gender'],
-        'class' : class_dict['Name'],
-        'alignment' : character_dict['Alignment'],
-        'race' : race_dict['Name'],
-        'xp' : character_dict['XP'],
-        'hp' : character_dict['HP'],
-        'ac' : calculate_ac( attr_dict, class_dict, race_dict, equipment_list ),
-        'level' : level,
-        'age' : character_dict['Age'],
+        'class_font_size': class_font_size,
+        'class_padding': class_padding,
+        'name': character_dict['Name'],
+        'gender': character_dict['Gender'],
+        'class': class_dict['Name'],
+        'alignment': character_dict['Alignment'],
+        'race': race_dict['Name'],
+        'xp': character_dict['XP'],
+        'hp': character_dict['HP'],
+        'ac': calculate_ac(attr_dict, class_dict, race_dict, equipment_list),
+        'level': level,
+        'age': character_dict['Age'],
         'height': character_dict['Height'],
         'weight': character_dict['Weight'],
         'portrait': portrait,
         'image_type': ext,
-        'tohit_row': '<td align=center>' + '</td><td align=center>'.join( get_tohit_row( level, class_dict, race_dict ) ) + '</td>',
-        'gp' : gp,
-        'pp' : pp,
-        'ep' : ep,
-        'sp' : sp,
-        'cp' : cp,
-        'movement_rate' : movement_tuple[0],
-        'movement_desc' : movement_tuple[1],
-        'nonproficiency_penalty' : get_non_proficiency_penalty( class_dict, race_dict ),
-        }
-    for attr_name in list( attr_dict.keys() ):
+        'tohit_row': '<td align=center>' + '</td><td align=center>'.join(
+            get_tohit_row(level, class_dict, race_dict)) + '</td>',
+        'gp': gp,
+        'pp': pp,
+        'ep': ep,
+        'sp': sp,
+        'cp': cp,
+        'movement_rate': movement_tuple[0],
+        'movement_desc': movement_tuple[1],
+        'nonproficiency_penalty': get_non_proficiency_penalty(class_dict, race_dict),
+    }
+    for attr_name in list(attr_dict.keys()):
         markup_template_dict[attr_name] = attr_dict[attr_name]
-        markup_template_dict[ attr_name + '_bonus' ] = get_attribute_bonus_string( attr_name, attr_dict[attr_name] )
-    for save in list( saves_dict.keys() ):
+        markup_template_dict[attr_name + '_bonus'] = get_attribute_bonus_string(attr_name, attr_dict[attr_name])
+    for save in list(saves_dict.keys()):
         markup_template_dict[save] = saves_dict[save]
 
     markup = '''\
@@ -1078,9 +1103,9 @@ page-break-after:always;
 <tr><th>Name</th><th>Damage Vs S or M</th><th>Damage Vs L</th><th>Damage Type</th><th>RoF</th><th>Range</th><th>Max Move</th><th>AC Effect</th><th>Notes</th></tr>
 '''
 
-#    proficiency_page = self.pages['ProficiencyPage']
-#    specialised_list = proficiency_page.specialised_list
-#    double_specialised_list = proficiency_page.double_specialised_list
+    #    proficiency_page = self.pages['ProficiencyPage']
+    #    specialised_list = proficiency_page.specialised_list
+    #    double_specialised_list = proficiency_page.double_specialised_list
     for equip in equipment_list:
         equip_name = equip['Name']
         if equip in double_specialised_list:
@@ -1089,9 +1114,10 @@ page-break-after:always;
             equip_name = equip_name + '<sup>&dagger;</sup>'
         elif equip in proficiency_list:
             equip_name = equip_name + '*'
-        equip_list = [ equip_name, equip['Damage_Vs_S_or_M'], equip['Damage_Vs_L'], equip['Damage_Type'],
-                       equip['Rate_of_Fire'], equip['Range'], equip['Max_Move_Rate'], str( equip['AC_Effect'] ), equip['Notes'] ]
-        markup += '<tr><td align=center>' + '</td><td align=center>'.join( equip_list ) + '</td></tr>'
+        equip_list = [equip_name, equip['Damage_Vs_S_or_M'], equip['Damage_Vs_L'], equip['Damage_Type'],
+                      equip['Rate_of_Fire'], equip['Range'], equip['Max_Move_Rate'], str(equip['AC_Effect']),
+                      equip['Notes']]
+        markup += '<tr><td align=center>' + '</td><td align=center>'.join(equip_list) + '</td></tr>'
 
     markup += '''
 </table></td></tr></table>
@@ -1105,13 +1131,13 @@ page-break-after:always;
 '''
 
     if class_abilities:
-        for cl in list( class_abilities.keys() ):
-            markup += '\n<h5>{} Abilities</h5>\n'.format( cl )
-            for i, a in enumerate( class_abilities[cl] ):
+        for cl in list(class_abilities.keys()):
+            markup += '\n<h5>{} Abilities</h5>\n'.format(cl)
+            for i, a in enumerate(class_abilities[cl]):
                 if a[0]:
                     if i > 0:
                         markup += '<br />'
-                    markup += '<b>{}: </b>{}\n'.format( *a )
+                    markup += '<b>{}: </b>{}\n'.format(*a)
                 else:
                     markup += '<table class=ability align=center border=1>\n<tr>'
                     for h in a[1][0]:
@@ -1122,26 +1148,26 @@ page-break-after:always;
                     markup += '</tr>\n</table>\n'
 
     if race_abilities:
-        markup += '\n<h5>{} Abilites</h5>\n'.format( race_dict['Name'] )
+        markup += '\n<h5>{} Abilites</h5>\n'.format(race_dict['Name'])
         markup += '<ul>\n'
         for a in race_abilities:
             markup += '<li>'
             markup += a[0]
             if a[1]:
-                markup += ' {}'.format( a[1] )
+                markup += ' {}'.format(a[1])
             if a[2]:
-                markup += ' {}'.format( a[2] )
+                markup += ' {}'.format(a[2])
             markup += '</li>\n'
         markup += '</ul>\n'
 
     spellcaster = False
     if 'classes' in class_dict:
-        level_list = [ int(l) for l in level.split( '/' ) ]
-        for i, cl in enumerate( class_dict['classes'] ):
-            if has_spells_at_level( level_list[i], cl ):
+        level_list = [int(l) for l in level.split('/')]
+        for i, cl in enumerate(class_dict['classes']):
+            if has_spells_at_level(level_list[i], cl):
                 spellcaster = True
     else:
-        if has_spells_at_level( level, class_dict ):
+        if has_spells_at_level(level, class_dict):
             spellcaster = True
 
     if spellcaster:
@@ -1162,17 +1188,17 @@ page-break-after:always;
         if spellbook:
             markup += '<h5>Spellbook</h5>\n<hr />'
             for spell in spellbook:
-                markup += spell_item_string.format( **spell )
+                markup += spell_item_string.format(**spell)
             markup += '<hr />\n'
         if daily_spells:
-            markup += '<h5>{} Daily Spells</h5>\n<hr />'.format( daily_spells[0]['Type'].title().replace( '_', ' ' ) )
+            markup += '<h5>{} Daily Spells</h5>\n<hr />'.format(daily_spells[0]['Type'].title().replace('_', ' '))
             for spell in daily_spells:
-                markup += spell_item_string.format( **spell )
+                markup += spell_item_string.format(**spell)
             markup += '<hr />\n'
         if daily_spells2:
-            markup += '<h5>{} Daily Spells</h5>\n<hr />'.format( daily_spells2[0]['Type'].title().replace( '_', ' ' ) )
+            markup += '<h5>{} Daily Spells</h5>\n<hr />'.format(daily_spells2[0]['Type'].title().replace('_', ' '))
             for spell in daily_spells2:
-                markup += spell_item_string.format( **spell )
+                markup += spell_item_string.format(**spell)
             markup += '<hr />\n'
         if daily_spells3:
             markup += '<h5>{} Daily Spells</h5>\n<hr />'.format(daily_spells3[0]['Type'].title().replace('_', ' '))
@@ -1181,27 +1207,92 @@ page-break-after:always;
             markup += '<hr />\n'
 
     t = Template(markup)
-    final_markup = t.safe_substitute( markup_template_dict )
+    final_markup = t.safe_substitute(markup_template_dict)
 
     return '{}.pdf'.format(character_dict['Name']), final_markup
 
 
-MONSTER_XP_PATTERN = re.compile(r'^(\d+)/(\d+)\+(\d+)/hp.*$')
+# MONSTER_XP_PATTERN = re.compile(r'^(\d+)/(\d+) *\+ *(\d+)/hp.*$')
+MONSTER_XP_PATTERN = re.compile(r'^(\d+)/(\d+) *(?:\+ *(\d+)/hp.*)?$')
+monster_xp_table = {
+    0: (5, 1, 3, 25),
+    1: (10, 1, 5, 35),
+    2: (30, 1, 10, 50),
+    3: (50, 2, 15, 60),
+    4: (75, 3, 30, 70),
+    5: (110, 4, 45, 80),
+    6: (160, 6, 70, 120),
+    7: (225, 8, 120, 200),
+    8: (350, 10, 200, 300),
+    9: (600, 12, 300, 400),
+    10: (700, 13, 400, 500),
+    11: (900, 14, 500, 600),
+    12: (1200, 16, 700, 850),
+    13: (1500, 17, 800, 1000),
+    14: (1800, 18, 950, 1200),
+    15: (2100, 19, 1100, 1400),
+    16: (2400, 20, 1250, 1600),
+    17: (2700, 23, 1400, 1800),
+    18: (3000, 25, 1550, 2000),
+    19: (3500, 28, 1800, 2250),
+    20: (4000, 30, 2100, 2500),
+    21: (4500, 33, 2350, 2750),
+    22: (5000, 35, 2600, 3000)
+}
 
 
 # This assumes that the HP key has been added to the monster dictionary
 def get_xp_value(monster):
+    if monster['TableName'] == 'Characters':
+        return calculate_npc_xp(monster)
     pattern_match = MONSTER_XP_PATTERN.match(monster['Level/XP_Value'])
     if pattern_match:
         _, base, per_xp = pattern_match.groups()
+        if per_xp is None:
+            per_xp = 0
         base, per_xp = int(base), int(per_xp)
         return base + (per_xp * int(monster['HP']))
     else:
         return monster['Level/XP_Value']
 
 
+def calculate_npc_xp(character):
+    # import pprint
+    # pprint.pprint(character)
+    levels = character['Level'].split('/')
+    power_level = sum([int(n) for n in levels])
+    if power_level > 22:
+        power_level = 22
+    base, per_hp, special, exceptional = monster_xp_table[power_level]
+    special_multiplier = 0
+    exceptional_multiplier = 0
+    class_dict = get_class_dict(character)
+    if 'classes' in class_dict:
+        class_list = class_dict['classes']
+    else:
+        class_list = [class_dict]
+    for i, cl in enumerate(class_list):
+        if has_spells_at_level(levels[i], cl):
+            xp_table_row = get_xp_table_row(levels[i], cl)
+            if xp_table_row['Level_6_Spells'] > 0:
+                exceptional_multiplier += 1
+            elif xp_table_row['Level_3_Spells'] > 0:
+                special_multiplier += 1
+
+    items_table_dict = {i['unique_id']: i for i in DbQuery.getTable('Items')}
+    ac = calculate_ac(character, class_dict, get_race_dict(character),
+                      [items_table_dict[i['Entry_ID']] for i in character['Characters_meta']
+                       if i['Type'] == 'Equipment'])
+    if ac < -5:
+        exceptional_multiplier += 1
+    elif ac < 0:
+        special_multiplier += 1
+
+    return base + per_hp * character['HP'] + special * special_multiplier + exceptional * exceptional_multiplier
+
+
 def parse_xp_bonus(bonus, attr_dict):
-    if bonus.lower() == 'None':
+    if bonus.lower() == 'none':
         return 0
     bonus_split = bonus.split()
     if len(bonus_split) == 2:
