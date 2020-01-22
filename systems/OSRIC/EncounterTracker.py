@@ -1,3 +1,4 @@
+from copy import copy
 import Dice
 import SystemSettings
 import DbQuery
@@ -7,6 +8,7 @@ import time
 from Common import callback_factory_2param
 from GuiDefs import *
 from ManageDefs import Manage
+import Treasure
 
 
 class EncounterTrackerWizard(Wizard):
@@ -54,11 +56,12 @@ The encounter is about to begin. Remember the order of events:<ol><li>Determine 
         enemies = []
         for enemy in monster_team:
             if enemy['TableName'] == 'Characters':
+                enemy['XP Value'] = SystemSettings.get_xp_value(enemy)
                 enemies.append(enemy)
             else:
                 hd = enemy['HD']
                 if hd.isdigit():
-                    roll_string = f'''{hd}d8'''
+                    roll_string = f'{hd}d8'
                     hp = Dice.rollString(roll_string)
                 elif hd_plus_minus_pattern.match(hd):
                     hd_split = re.split(r'([+-])', hd)
@@ -68,7 +71,9 @@ The encounter is about to begin. Remember the order of events:<ol><li>Determine 
                     roll_string = f'''{hd.replace('hp', '').strip()}'''
                     hp = max(Dice.rollString(roll_string), 1)
                 else:
-                    hp = hd
+                    # hp = hd
+                    hd = Dice.rollString(hd)
+                    hp = Dice.rollString(f'{hd}d8')
                 enemy['HP'] = hp
                 enemy['XP Value'] = SystemSettings.get_xp_value(enemy)
                 enemies.append(enemy)
@@ -321,13 +326,17 @@ class WrapUpPage(WizardPage):
     def __init__(self):
         super().__init__(7, 'Wrap Up')
         self.set_subtitle('Calculate XP and Treasure')
+        self.treasure = {}
 
         # Define Internal Functions
+        def item_tooltip(item, _fields, _pages, _external_data):
+            return f'''{item['Name']}<br />cost: <b>{item['Cost']}</b><br />value: <b>{item['Value']}</b>'''
 
         # Define Widgets
         wrap_up_text = Widget('Wrap Up Text', 'TextLabel', data='You may now collect your spoils!')
         xp_text = Widget('XP Text', 'TextLabel')
         treasure_text = Widget('Treasure Text', 'TextLabel')
+        items_listbox = Widget('Items', 'ListBox', tool_tip=item_tooltip)
 
         # Add Actions
 
@@ -335,22 +344,55 @@ class WrapUpPage(WizardPage):
         self.add_row([wrap_up_text])
         self.add_row([xp_text])
         self.add_row([treasure_text])
+        self.add_row([items_listbox])
 
     def initialize_page(self, fields, pages, external_data):
         enemies = fields['Monster Team']
         xp_text = ', '.join([f'{e["Name"]}: {e["XP Value"]}xp' for e in enemies])
-        # treasure_text = '<br />'.join([f'{e["Name"]}: {e["Treasure"]}' for e in enemies])
-        treasure_text = ''
-        import Treasure
-        import pprint
+        lair = external_data['Lair Data']
+        if lair is None:
+            self.treasure = treasure_dict = {'cp': 0, 'sp': 0, 'ep': 0, 'gp': 0, 'pp': 0, 'items': []}
+        else:
+            self.treasure = treasure_dict = Treasure.parse_treasure_text(lair['Treasure'], wandering=False)
         for enemy in enemies:
-            # print([f'{t["Subcategory"]}, {t["Value"]}, {t["Actual Value"]}' for t in Treasure.parse_treasure_text(enemy['Treasure'], wandering=False)['gems']])
-            # print([f'{t["Name"]} | {t["Value"]} | {t["Actual Value"]}' for t in Treasure.parse_treasure_text(enemy['Treasure'], wandering=False)['jewellery']])
-            # print([f'{p["Name"]} | {p["Value"]}' for p in Treasure.parse_treasure_text(enemy['Treasure'], wandering=False)['potions']])
-            pprint.pprint(Treasure.parse_treasure_text(enemy['Treasure'], wandering=False))
+            if 'Treasure' in enemy:
+                treasure = Treasure.parse_treasure_text(enemy['Treasure'])
+            else:
+                treasure = {c['Entry_ID']: int(c['Data']) for c in enemy['Characters_meta'] if c['Type'] == 'Treasure'}
+                treasure['items'] = [i['Entry_ID'] for i in enemy['Characters_meta'] if i['Type'] == 'Equipment']
+            for k, v in treasure.items():
+                treasure_dict[k] += v
+        # import pprint
+        # pprint.pprint(treasure_dict['items'])
+        treasure_text =\
+            f'''cp: {treasure_dict['cp']}<br />sp: {treasure_dict['sp']}<br />ep: {treasure_dict['ep']}<br />\
+gp: {treasure_dict['gp']}<br />pp: {treasure_dict['pp']}'''
+
+        def get_full_items(items):
+            items_table = DbQuery.getTable('Items')
+            items_indexed = {i['unique_id']: i for i in items_table}
+            full_items = []
+            for item in items:
+                if type(item) is tuple:
+                    gem_type, actual_value = item
+                    gem_type_list = [i for i in items_table if i['Subcategory'] == gem_type]
+                    gem_item = gem_type_list[Dice.randomInt(0, len(gem_type_list) - 1)]
+                    gem_item = copy(gem_item)
+                    gem_item['Value'] = actual_value
+                    full_items.append(gem_item)
+                elif type(item) is list:
+                    print('list:', item)
+                else:
+                    item_dict = copy(items_indexed[item])
+                    if item_dict['Category'] == 'Jewellery':
+                        item_dict['Value'] = Dice.rollString(item_dict['Value'])
+                    full_items.append(item_dict)
+            return full_items
+
         return {
             'XP Text': xp_text,
             'Treasure Text': treasure_text,
+            'Items': get_full_items(treasure_dict['items']),
         }
 
     # def get_next_page_id(self, fields, pages, external_data):
