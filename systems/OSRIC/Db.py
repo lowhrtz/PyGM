@@ -319,8 +319,8 @@ class classes_meta(Table):
 
 class encounters(Table):
     table_name = 'Encounters'
-    cols = ['unique_id','pc_team','enemy_team']
-    colDefs = ['VARCHAR(50) UNIQUE','CLOB','CLOB']
+    cols = ['unique_id','pc_team','enemy_team','campaign_id']
+    colDefs = ['VARCHAR(50) UNIQUE','CLOB','CLOB','VARCHAR(50)']
     blank = 0
     data = [
         ]

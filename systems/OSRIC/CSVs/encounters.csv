@@ -1,4 +1,4 @@
-'Encounters',,
-'unique_id','pc_team','enemy_team'
-'VARCHAR(50) UNIQUE','CLOB','CLOB'
-'blank',,
+'Encounters',,,
+'unique_id','pc_team','enemy_team','campaign_id'
+'VARCHAR(50) UNIQUE','CLOB','CLOB','VARCHAR(50)'
+'blank',,,
