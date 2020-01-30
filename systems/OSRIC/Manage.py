@@ -923,6 +923,9 @@ class Campaigns(Manage):
 
         def __init__(self, extern):
             super().__init__(modality='unblock')
+            campaign_id = extern['Campaign List Current']['unique_id']
+            campaigns = {c['unique_id']: c for c in DbQuery.getTable('Campaigns')}
+            current_campaign = campaigns[campaign_id]
 
             # Define internal functions
             def get_available_characters(owned_items, fields):
@@ -995,8 +998,10 @@ class Campaigns(Manage):
             def add_monster_enemy_callback(chosen_list, _fields):
                 return {'Monster Team': chosen_list}
 
-            def accept_encounter(encounter_tracker_return, _fields):
-                return encounter_tracker_return
+            # def accept_encounter(encounter_tracker_return, _fields):
+            #     import pprint
+            #     pprint.pprint(encounter_tracker_return)
+            #     return encounter_tracker_return
 
             # Define Widgets
             empty = Widget('', 'Empty')
@@ -1029,8 +1034,9 @@ class Campaigns(Manage):
             from EncounterTracker import EncounterTrackerWizard
             self.add_action(Action('ListDialog', add_monster_enemy, monster_team,
                                    callback=add_monster_enemy_callback, data=add_monster_enemy_data))
-            self.add_action(Action('Wizard', start_encounter, data=EncounterTrackerWizard,
-                                   callback=accept_encounter))
+            # self.add_action(Action('Wizard', start_encounter, data=EncounterTrackerWizard))
+            self.add_action(Action('Wizard', start_encounter,
+                                   data=lambda: EncounterTrackerWizard(current_campaign)))
 
             # Initialize GUI
             self.add_row([pc_team, empty, monster_team])

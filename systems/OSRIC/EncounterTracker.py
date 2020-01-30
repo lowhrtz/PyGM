@@ -1,4 +1,4 @@
-from copy import copy
+from copy import copy, deepcopy
 import Dice
 import SystemSettings
 import DbQuery
@@ -13,10 +13,11 @@ import Treasure
 
 class EncounterTrackerWizard(Wizard):
 
-    def __init__(self):
+    def __init__(self, campaign):
         super().__init__('Encounter Tracker', modality='unblock')
+        self.campaign = campaign
 
-        self.add_wizard_page(EncounterIntro())
+        self.add_wizard_page(EncounterIntro(campaign['unique_id']))
         self.add_wizard_page(SurprisePage())
         # self.add_wizard_page(DeclareActionsPage())
         self.add_wizard_page(BattleRoundsPage())
@@ -25,11 +26,36 @@ class EncounterTrackerWizard(Wizard):
         # self.add_wizard_page(SimultaneousAttackPage())
         self.add_wizard_page(WrapUpPage())
 
+    def accept(self, fields, pages, external_data):
+        party_treasure = [t for t in self.campaign['Campaigns_meta'] if t['Type'] == 'Party Treasure']
+        everything_else = [e for e in self.campaign['Campaigns_meta'] if e['Type'] != 'Party Treasure']
+        new_treasure = deepcopy(pages['Wrap Up'].treasure)
+        for pt in party_treasure:
+            t = pt['Data']
+            t = json.loads(t)
+            for k, v in t.items():
+                # print(k, v)
+                new_treasure[k] += v
+        new_treasure_entry = {'Type': 'Party Treasure',
+                              'Entry_ID': None,
+                              'Data': json.dumps(new_treasure),
+                              'Notes': None}
+        everything_else.append(new_treasure_entry)
+        everything = everything_else
+        DbQuery.begin()
+        DbQuery.deleteRow('Campaigns_meta', 'campaign_id', self.campaign['unique_id'])
+        for i in everything:
+            row = self.campaign['unique_id'], i['Type'], i['Entry_ID'], i['Data'], i['Notes']
+            DbQuery.insertRow('Campaigns_meta', row)
+        DbQuery.commit()
+        self.campaign['Campaigns_meta'] = everything
+
 
 class EncounterIntro(WizardPage):
-    def __init__(self):
+    def __init__(self, campaign_id):
         super().__init__(0, 'Encounter Tracker')
         self.set_subtitle('Encounter Wizard')
+        self.campaign_id = campaign_id
         self.encounter_id = None
 
         # Define internal functions
@@ -78,7 +104,7 @@ The encounter is about to begin. Remember the order of events:<ol><li>Determine 
                 enemy['XP Value'] = SystemSettings.get_xp_value(enemy)
                 enemies.append(enemy)
         serialized_enemies = json.dumps(enemies)
-        DbQuery.insertRow('Encounters', (self.encounter_id, '', serialized_enemies))
+        DbQuery.insertRow('Encounters', (self.encounter_id, '', serialized_enemies, self.campaign_id))
         DbQuery.commit()
 
 
@@ -389,10 +415,12 @@ gp: {treasure_dict['gp']}<br />pp: {treasure_dict['pp']}'''
                     full_items.append(item_dict)
             return full_items
 
+        treasure_dict['items'] = get_full_items(treasure_dict['items'])
+
         return {
             'XP Text': xp_text,
             'Treasure Text': treasure_text,
-            'Items': get_full_items(treasure_dict['items']),
+            'Items': treasure_dict['items'],
         }
 
     # def get_next_page_id(self, fields, pages, external_data):
