@@ -61,8 +61,21 @@ def parse_treasure_text(treasure_text, wandering=True):
     jewellery_match = jewellery_pattern.findall(t)
     jewellery = [jewellery_table() for _ in range(1, sum(get_treasure_list(jewellery_match)) + 1)]
 
+    # Because rolling 00 on miscellaneous_magic_table will result in a list of two items
+    # this function is used to flatten the list of magic items
+    def flatten_magic_item_list(mil):
+        ret_mil = []
+        for i in mil:
+            if type(i) is list:
+                for j in i:
+                    ret_mil.append(j)
+            else:
+                ret_mil.append(i)
+        return ret_mil
+
     magic_items_match = magic_items_pattern.findall(t)
     magic_items = [magic_items_table() for _ in range(1, sum(get_treasure_list(magic_items_match)) + 1)]
+    magic_items = flatten_magic_item_list(magic_items)
     scrolls_match = scrolls_pattern.findall(t)
     scrolls = [scrolls_table() for _ in range(1, sum(get_treasure_list(scrolls_match)) + 1)]
     potions_match = potions_pattern.findall(t)
