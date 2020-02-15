@@ -355,22 +355,59 @@ class WrapUpPage(WizardPage):
         self.treasure = {}
 
         # Define Internal Functions
-        def item_tooltip(item, _fields, _pages, _external_data):
+        def item_tooltip(item, _fields, _pages=None, _external_data=None):
             return f'''{item['Name']}<br />cost: <b>{item['Cost']}</b><br />value: <b>{item['Value']}</b>'''
 
+        def fill_items(_owned_items, _fields):
+            items = [item for item in DbQuery.getTable('Items') if not item['Cost'].lower().startswith('proficiency')]
+            # These two lines sort the list to guarantee the tab order
+            category_order = {'General': 0, 'Weapon': 1, 'Armour': 2, 'Clothing': 3}
+            items.sort(key=lambda x: category_order.get(x.get('Category', 'General'), 4))
+            return items
+
+        def add_item(_item, _fields):
+            return {'valid': True}
+
+        def remove_item(_item, _fields):
+            return {'valid': True}
+
+        def change_items_callback(owned_item_list, _fields):
+            return {'Items': owned_item_list}
+
         # Define Widgets
+        empty = Widget('', 'Empty')
         wrap_up_text = Widget('Wrap Up Text', 'TextLabel', data='You may now collect your spoils!')
         xp_text = Widget('XP Text', 'TextLabel')
-        treasure_text = Widget('Treasure Text', 'TextLabel')
-        items_listbox = Widget('Items', 'ListBox', tool_tip=item_tooltip)
+        # treasure_text = Widget('Treasure Text', 'TextLabel')
+        cp = Widget('CP', 'SpinBox')
+        sp = Widget('SP', 'SpinBox')
+        ep = Widget('EP', 'SpinBox')
+        gp = Widget('GP', 'SpinBox')
+        pp = Widget('PP', 'SpinBox')
+        items_listbox = Widget('Items', 'ListBox', tool_tip=item_tooltip, row_span=4)
+        change_items = Widget('Change Items', 'PushButton')
 
         # Add Actions
+        change_items_data = {'fill_avail': fill_items,
+                             'category_field': 'Category',
+                             'tool_tip': item_tooltip,
+                             'add': add_item,
+                             'remove': remove_item}
+        self.add_action(Action('ListDialog', change_items, items_listbox,
+                               callback=change_items_callback, data=change_items_data))
+        self.add_action(Action('Window', items_listbox, callback=lambda f, p, e: None))
 
         # Initialize GUI
         self.add_row([wrap_up_text])
         self.add_row([xp_text])
-        self.add_row([treasure_text])
-        self.add_row([items_listbox])
+        # self.add_row([treasure_text])
+        self.add_row([cp, items_listbox])
+        self.add_row([sp])
+        self.add_row([ep])
+        self.add_row([gp])
+        self.add_row([pp])
+        self.add_row([empty, change_items])
+        # self.add_row([items_listbox])
 
     def initialize_page(self, fields, pages, external_data):
         enemies = fields['Monster Team']
@@ -390,9 +427,9 @@ class WrapUpPage(WizardPage):
                 treasure_dict[k] += v
         # import pprint
         # pprint.pprint(treasure_dict['items'])
-        treasure_text =\
-            f'''cp: {treasure_dict['cp']}<br />sp: {treasure_dict['sp']}<br />ep: {treasure_dict['ep']}<br />\
-gp: {treasure_dict['gp']}<br />pp: {treasure_dict['pp']}'''
+#         treasure_text =\
+#             f'''cp: {treasure_dict['cp']}<br />sp: {treasure_dict['sp']}<br />ep: {treasure_dict['ep']}<br />\
+# gp: {treasure_dict['gp']}<br />pp: {treasure_dict['pp']}'''
 
         def get_full_items(items):
             items_table = DbQuery.getTable('Items')
@@ -419,9 +456,23 @@ gp: {treasure_dict['gp']}<br />pp: {treasure_dict['pp']}'''
 
         return {
             'XP Text': xp_text,
-            'Treasure Text': treasure_text,
+            # 'Treasure Text': treasure_text,
+            'CP': treasure_dict['cp'],
+            'SP': treasure_dict['sp'],
+            'EP': treasure_dict['ep'],
+            'GP': treasure_dict['gp'],
+            'PP': treasure_dict['pp'],
             'Items': treasure_dict['items'],
         }
+
+    def on_change(self, fields, pages, external_data):
+        self.treasure['cp'] = fields['CP']
+        self.treasure['sp'] = fields['SP']
+        self.treasure['ep'] = fields['EP']
+        self.treasure['gp'] = fields['GP']
+        self.treasure['pp'] = fields['PP']
+        self.treasure['items'] = fields['Items']
+        print(self.treasure)
 
     # def get_next_page_id(self, fields, pages, external_data):
     #     if fields['Battle Over'] is False:
