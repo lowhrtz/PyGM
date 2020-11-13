@@ -725,6 +725,7 @@ class WidgetRegistry(dict):
                     if data is None:
                         data = current_item.text()
                 fields['{} Current'.format(k)] = data
+                fields[f'{k} Index'] = widget.currentRow()
             elif widget_type.lower() == 'image':
                 fields[k] = widget.base64
             elif widget_type.lower() == 'resourceselect':
