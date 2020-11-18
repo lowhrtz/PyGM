@@ -1,5 +1,6 @@
 import base64
 import DbQuery
+import json
 import mimetypes
 import os
 import SystemSettings
@@ -162,7 +163,9 @@ class Characters(Manage):
             return {}
         class_table = DbQuery.getTable('Classes')
         race_table = DbQuery.getTable('Races')
+        races_indexed = {r['unique_id']: r for r in race_table}
         items_table = DbQuery.getTable('Items')
+        items_indexed = {i['unique_id']: i for i in items_table}
         spells_table = DbQuery.getTable('Spells')
 
         class_id_list = character_dict['Classes'].split('/')
@@ -179,10 +182,11 @@ class Characters(Manage):
             }
             class_string = '/'.join([cl['Name'] for cl in class_dict['classes']])
 
-        for race in race_table:
-            if race['unique_id'] == character_dict['Race']:
-                race_dict = race
-                break
+        # for race in race_table:
+        #     if race['unique_id'] == character_dict['Race']:
+        #         race_dict = race
+        #         break
+        race_dict = races_indexed[character_dict['Race']]
 
         equip_id_list = []
         spellbook_id_list = []
@@ -234,9 +238,11 @@ class Characters(Manage):
                 proficiency_list.append((prof_display, prof))
 
         equipment_list = []
-        for equip in items_table:
-            if equip['unique_id'] in equip_id_list:
-                equipment_list.append(equip)
+        # for equip in items_table:
+        #     if equip['unique_id'] in equip_id_list:
+        #         equipment_list.append(equip)
+        for e in equip_id_list:
+            equipment_list.append(items_indexed[e])
 
         ac = SystemSettings.calculate_ac(character_dict, class_dict, race_dict, equipment_list)
 
@@ -621,6 +627,9 @@ class Campaigns(Manage):
                                         data=add_rem_char_data, callback=self.add_remove_pc_callback))
         campaign_menu.add_action(Action('ListDialog', Widget('Add/Remove &NPCs', 'MenuAction'), npc_list,
                                         data=add_rem_char_data, callback=self.add_remove_npc_callback))
+
+        campaign_menu.add_action(Action('Window', Widget('Manage Treasure', 'MenuActions'),
+                                        callback=lambda f: self.ManageTreasure(f)))
 
         self.add_menu(campaign_menu)
 
@@ -1043,6 +1052,232 @@ class Campaigns(Manage):
             self.add_row([add_pc_ally, pc_ally_radio, add_monster_enemy, monster_enemy_radio])
             self.add_row([lair_combobox])
             self.add_row([start_encounter])
+
+    class ManageTreasure(Manage):
+
+        def __init__(self, extern):
+            super().__init__(title="Manage Treasure")
+
+            items_table = DbQuery.getTable('Items')
+            items_indexed = {i['unique_id']: i for i in items_table}
+
+            current_campaign = extern['Campaign List Current']
+            campaign_id = current_campaign['unique_id']
+            campaigns_meta = DbQuery.getTable('Campaigns_meta')
+            cml = [m for m in campaigns_meta if m['campaign_id'] == campaign_id and m['Type'] == 'Party Treasure']
+            if len(cml) == 0:
+                pt = {'cp': 0, 'sp': 0, 'ep': 0, 'gp': 0, 'pp': 0, 'items': []}
+            else:
+                party_treasure = cml[0]['Data']
+                pt = json.loads(party_treasure)
+            # print(pt)
+
+            # Define Internal Functions
+            def fill_pc_list(_fields):
+                return {
+                    'PC List': extern['PCs'],
+                    'Party CP': pt['cp'],
+                    'Party SP': pt['sp'],
+                    'Party EP': pt['ep'],
+                    'Party GP': pt['gp'],
+                    'Party PP': pt['pp'],
+                    'Party Items': pt['items']
+                }
+
+            def select_list(fields):
+                pc = fields['PC List Current']
+                if pc is None:
+                    return {}
+                # print(pc['Characters_meta'])
+                cp = 0
+                sp = 0
+                ep = 0
+                gp = 0
+                pp = 0
+                items = []
+                for m in pc['Characters_meta']:
+                    if m['Type'] == 'Treasure':
+                        if m['Entry_ID'] == 'cp':
+                            cp += int(m['Data'])
+                        elif m['Entry_ID'] == 'sp':
+                            sp += int(m['Data'])
+                        elif m['Entry_ID'] == 'ep':
+                            ep += int(m['Data'])
+                        elif m['Entry_ID'] == 'gp':
+                            gp += int(m['Data'])
+                        elif m['Entry_ID'] == 'pp':
+                            pp += int(m['Data'])
+                    elif m['Type'] == 'Equipment':
+                        item = items_indexed[m['Entry_ID']]
+                        item['Data'] = m['Data']
+                        item['PC Notes'] = m['Notes']
+                        items.append(item)
+
+                return {
+                    'CP': cp,
+                    'SP': sp,
+                    'EP': ep,
+                    'GP': gp,
+                    'PP': pp,
+                    'Items': items,
+                }
+
+            def update_treasure(fields):
+                # print(fields['CP'])
+                current_pc = fields['PC List Current']
+                current_pc_id = current_pc['unique_id']
+                pcp = fields['Party CP']
+                psp = fields['Party SP']
+                pep = fields['Party EP']
+                pgp = fields['Party GP']
+                ppp = fields['Party PP']
+                pi = fields['Party Items']
+                jpt = json.dumps({
+                    'cp': pcp,
+                    'sp': psp,
+                    'ep': pep,
+                    'gp': pgp,
+                    'pp': ppp,
+                    'items': pi,
+                })
+                camp_meta = DbQuery.getTable('Campaigns_meta')
+                everything_else =\
+                    [cm for cm in camp_meta if cm['campaign_id'] == campaign_id and cm['Type'] != 'Party Treasure']
+
+                DbQuery.begin()
+                DbQuery.deleteRow('Campaigns_meta', 'campaign_id', campaign_id)
+                DbQuery.insertRow('Campaigns_meta',
+                                  (campaign_id, 'Party Treasure', None, jpt, None)
+                                  )
+                for cm in everything_else:
+                    DbQuery.insertRow('Campaigns_meta', (
+                        campaign_id, cm['Type'], cm['Entry_ID'], cm['Data'], cm['Notes']
+                    ))
+                DbQuery.deleteRow('Characters_meta', 'character_id', current_pc_id)
+                DbQuery.insertRow('Characters_meta', (current_pc_id, 'Treasure', 'cp', fields['CP'], None))
+                DbQuery.insertRow('Characters_meta', (current_pc_id, 'Treasure', 'sp', fields['SP'], None))
+                DbQuery.insertRow('Characters_meta', (current_pc_id, 'Treasure', 'ep', fields['EP'], None))
+                DbQuery.insertRow('Characters_meta', (current_pc_id, 'Treasure', 'gp', fields['GP'], None))
+                DbQuery.insertRow('Characters_meta', (current_pc_id, 'Treasure', 'pp', fields['PP'], None))
+                for item in fields['Items']:
+                    DbQuery.insertRow('Characters_meta', (
+                        current_pc_id, 'Equipment', item['unique_id'], item.get('Data'), item.get('PC Notes')
+                    ))
+                for cm in current_pc['Characters_meta']:
+                    if cm['Type'] != 'Treasure' and cm['Type'] != 'Equipment':
+                        DbQuery.insertRow('Characters_meta', (
+                            current_pc_id, cm['Type'], cm['Entry_ID'], cm['Data'], cm['Notes']
+                        ))
+                DbQuery.commit()
+
+                characters = DbQuery.getTable('Characters')
+                chars_indexed = {c['unique_id']: c for c in characters}
+                pcl = []
+                for pc in extern['PCs']:
+                    p = chars_indexed[pc['unique_id']]
+                    pcl.append(p)
+
+                # print(pcl[0])
+                return pcl
+
+            def coin_callback(value, fields, denomination):
+                if fields['PC List Current'] is None\
+                        or value > fields[f'Party {denomination}']\
+                        or -value > fields[denomination]:
+                    return {}
+                fields[f'Party {denomination}'] -= value
+                fields[denomination] += value
+
+                return {
+                    'PC List': update_treasure(fields),
+                    f'Party {denomination}': fields[f'Party {denomination}'],
+                    denomination: fields[denomination],
+                }
+
+            def item_to_char(fields):
+                current_party_index = fields['Party Items Index']
+                current_pc_index = fields['PC List Index']
+                if current_party_index == -1 or current_pc_index == -1:
+                    return {}
+                pi = fields['Party Items']
+                current_party_item = pi.pop(current_party_index)
+                fields['Items'].append(current_party_item)
+
+                return {
+                    'PC List': update_treasure(fields),
+                    'Party Items': pi,
+                    'Items': fields['Items'],
+                }
+
+            def item_from_char(fields):
+                current_char_item_index = fields['Items Index']
+                current_pc_index = fields['PC List Index']
+                if current_char_item_index == -1 or current_pc_index == -1:
+                    return {}
+                ci = fields['Items']
+                current_char_item = ci.pop(current_char_item_index)
+                fields['Party Items'].append(current_char_item)
+
+                return {
+                    'PC List': update_treasure(fields),
+                    'Party Items': fields['Party Items'],
+                    'Items': ci,
+                }
+
+            def item_tool_tip(item, _fields):
+                # print(item)
+                return f'''\
+<b>{item['Name']}</b><br />
+<b>Category: </b>{item['Category']}
+{'<br /><b>SubCategory: </b>'+item['Subcategory'] if item['Subcategory'] else ''}
+{'<br />' + item['DM_Notes'] if item['DM_Notes'] else ''}
+{'<br />' + item['Notes'] if item['Notes'] else ''}'''
+
+            # Define Widgets
+            edit = False
+            empty = Widget('', 'Empty')
+            party_cp = Widget('Party CP', 'SpinBox', enable_edit=edit, align='Center')
+            cp_button = Widget('Manage CP', 'PushButton')
+            party_sp = Widget('Party SP', 'SpinBox', enable_edit=edit, align='Center')
+            sp_button = Widget('Manage SP', 'PushButton')
+            party_ep = Widget('Party EP', 'SpinBox', enable_edit=edit, align='Center')
+            ep_button = Widget('Manage EP', 'PushButton')
+            party_gp = Widget('Party GP', 'SpinBox', enable_edit=edit, align='Center')
+            gp_button = Widget('Manage GP', 'PushButton')
+            party_pp = Widget('Party PP', 'SpinBox', enable_edit=edit, align='Center')
+            pp_button = Widget('Manage PP', 'PushButton')
+            party_items = Widget('Party Items', 'ListBox', row_span=4, col_span=2, tool_tip=item_tool_tip)
+            pc_list = Widget('PC List_', 'ListBox', row_span=5, tool_tip=SystemSettings.character_tool_tip)
+            ind_cp = Widget('CP', 'SpinBox', enable_edit=edit, align='Center')
+            ind_sp = Widget('SP', 'SpinBox', enable_edit=edit, align='Center')
+            ind_ep = Widget('EP', 'SpinBox', enable_edit=edit, align='Center')
+            ind_gp = Widget('GP', 'SpinBox', enable_edit=edit, align='Center')
+            ind_pp = Widget('PP', 'SpinBox', enable_edit=edit, align='Center')
+            ind_items = Widget('Items', 'ListBox', row_span=4, tool_tip=item_tool_tip)
+            add_item = Widget('Add to Character', 'PushButton', align='Center')
+            rem_item = Widget('Remove from Character', 'PushButton', align='Center')
+
+            # Initialize GUI
+            self.add_row([party_cp, cp_button, pc_list, ind_cp])
+            self.add_row([party_sp, sp_button, empty, ind_sp])
+            self.add_row([party_ep, ep_button, empty, ind_ep])
+            self.add_row([party_gp, gp_button, empty, ind_gp])
+            self.add_row([party_pp, pp_button, empty, ind_pp])
+            self.add_row([party_items, empty, empty, ind_items])
+            self.add_row([empty, empty, add_item])
+            self.add_row([empty, empty, rem_item])
+
+            # Add Actions
+            self.add_action(Action('EntryDialog', party_cp))
+            self.add_action(Action('OnShow', pc_list, callback=fill_pc_list))
+            self.add_action(Action('EntryDialog', cp_button, ind_cp, callback=lambda v, f: coin_callback(v, f, 'CP')))
+            self.add_action(Action('EntryDialog', sp_button, ind_sp, callback=lambda v, f: coin_callback(v, f, 'SP')))
+            self.add_action(Action('EntryDialog', ep_button, ind_ep, callback=lambda v, f: coin_callback(v, f, 'EP')))
+            self.add_action(Action('EntryDialog', gp_button, ind_gp, callback=lambda v, f: coin_callback(v, f, 'GP')))
+            self.add_action(Action('EntryDialog', pp_button, ind_pp, callback=lambda v, f: coin_callback(v, f, 'PP')))
+            self.add_action(Action('FillFields', pc_list, callback=select_list))
+            self.add_action(Action('FillFields', add_item, callback=item_to_char))
+            self.add_action(Action('FillFields', rem_item, callback=item_from_char))
 
 
 class CampaignCreator(Wizard):
