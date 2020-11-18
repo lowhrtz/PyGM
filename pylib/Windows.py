@@ -393,6 +393,8 @@ class WidgetRegistry(dict):
             qt_widget.gui_wizard_page = gui_wizard_page
             if gui_wizard_page:
                 qt_widget.currentRowChanged.connect(lambda: gui_wizard_page.completeChanged.emit())
+                qt_widget.itemChanged.connect(lambda: gui_wizard_page.completeChanged.emit())
+                qt_widget.itemSelectionChanged.connect(lambda: gui_wizard_page.completeChanged.emit())
 
         elif widget_type.lower() == 'duallist':
             widget_layout = QVBoxLayout()
