@@ -29,7 +29,15 @@ class EncounterTrackerWizard(Wizard):
     def accept(self, fields, pages, external_data):
         party_treasure = [t for t in self.campaign['Campaigns_meta'] if t['Type'] == 'Party Treasure']
         everything_else = [e for e in self.campaign['Campaigns_meta'] if e['Type'] != 'Party Treasure']
-        new_treasure = deepcopy(pages['Wrap Up'].treasure)
+        # new_treasure = deepcopy(pages['Wrap Up'].treasure)
+        new_treasure = {
+            'cp': fields['CP'],
+            'sp': fields['SP'],
+            'ep': fields['EP'],
+            'gp': fields['GP'],
+            'pp': fields['PP'],
+            'items': fields['Items'],
+        }
         for pt in party_treasure:
             t = pt['Data']
             t = json.loads(t)
@@ -40,8 +48,8 @@ class EncounterTrackerWizard(Wizard):
                               'Entry_ID': None,
                               'Data': json.dumps(new_treasure),
                               'Notes': None}
-        everything_else.append(new_treasure_entry)
-        everything = everything_else
+        # everything_else.append(new_treasure_entry)
+        everything = everything_else + [new_treasure_entry, ]
         DbQuery.begin()
         DbQuery.deleteRow('Campaigns_meta', 'campaign_id', self.campaign['unique_id'])
         for i in everything:
@@ -465,14 +473,14 @@ class WrapUpPage(WizardPage):
             'Items': treasure_dict['items'],
         }
 
-    def on_change(self, fields, pages, external_data):
-        self.treasure['cp'] = fields['CP']
-        self.treasure['sp'] = fields['SP']
-        self.treasure['ep'] = fields['EP']
-        self.treasure['gp'] = fields['GP']
-        self.treasure['pp'] = fields['PP']
-        self.treasure['items'] = fields['Items']
-        print(self.treasure)
+    # def on_change(self, fields, pages, external_data):
+    #     self.treasure['cp'] = fields['CP']
+    #     self.treasure['sp'] = fields['SP']
+    #     self.treasure['ep'] = fields['EP']
+    #     self.treasure['gp'] = fields['GP']
+    #     self.treasure['pp'] = fields['PP']
+    #     self.treasure['items'] = fields['Items']
+    #     print(self.treasure)
 
     # def get_next_page_id(self, fields, pages, external_data):
     #     if fields['Battle Over'] is False:
