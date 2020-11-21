@@ -1213,7 +1213,8 @@ page-break-after:always;
 
 
 # MONSTER_XP_PATTERN = re.compile(r'^(\d+)/(\d+) *\+ *(\d+)/hp.*$')
-MONSTER_XP_PATTERN = re.compile(r'^(\d+)/(\d+) *(?:\+ *(\d+)/hp.*)?$')
+# MONSTER_XP_PATTERN = re.compile(r'^(\d+)/(\d+) *(?:\+ *(\d+)/hp.*)?$')
+MONSTER_XP_PATTERN = re.compile(r'^([0-9,\,]+)/([0-9,\,]+) *(?:\+ *([0-9,\,]+)/hp.*)?$')
 monster_xp_table = {
     0: (5, 1, 3, 25),
     1: (10, 1, 5, 35),
@@ -1250,6 +1251,9 @@ def get_xp_value(monster):
         _, base, per_xp = pattern_match.groups()
         if per_xp is None:
             per_xp = 0
+        else:
+            per_xp = per_xp.replace(',', '')
+        base = base.replace(',', '')
         base, per_xp = int(base), int(per_xp)
         return base + (per_xp * int(monster['HP']))
     else:
