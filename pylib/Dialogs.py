@@ -161,7 +161,7 @@ class DualListDialog(QDialog):
                 if category_callback:
                     category = category_callback(category, self.get_fields())
                 if category not in list(category_hash.keys()):
-                    category_hash[category] = QListWidget( self )
+                    category_hash[category] = QListWidget(self)
                     tabbed_avail_lists.addTab(category_hash[category], category)
                 add_item_to_listbox(category_hash[category], avail_item, tool_tip, fields)
         else:
