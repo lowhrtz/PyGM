@@ -71,6 +71,7 @@ class EntryDialog(QDialog):
         elif entry_type == self.SPIN_BOX:
             self.entry_widget = QSpinBox(self)
             self.entry_widget.setRange(-1000000000, 1000000000)
+            self.entry_widget.setFocus()
         elif entry_type == self.IMAGE:
             self.filename = None
             image_button = QPushButton('Choose Image', self)
