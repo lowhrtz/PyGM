@@ -295,13 +295,13 @@ class WidgetRegistry(dict):
         elif widget_type.lower() == 'spinbox':
             widget_layout = QHBoxLayout()
             qt_widget = QSpinBox()
+            qt_widget.setRange(-1000000000, 1000000000)
             if widget_data:
                 qt_widget.setValue(widget_data)
             qt_widget.setEnabled(is_enabled)
             qt_widget.setStyleSheet(disabled_stylesheet)
             if not callable(widget_tool_tip):
                 qt_widget.setToolTip(widget_tool_tip)
-            qt_widget.setRange(-1000000000, 1000000000)
             if not hide_field:
                 widget_layout.addWidget(QLabel(field_name))
             widget_layout.addWidget(qt_widget)
