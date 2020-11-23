@@ -2,6 +2,7 @@ import re
 # import DbQuery
 import Dice
 from Common import Range, RollTable
+from SystemSettings import convert_cost_string, get_float_from_coinage
 
 base_pattern = r'(\d+d\d+[+-x×]?[\d,]*|\d+) ?'
 percent_pattern = r' ?(?:\((\d+)%.*\))?'
@@ -28,6 +29,24 @@ gemstone_value_levels = [
 ]
 
 alter_roll_dice_string = '1d10'
+
+
+def get_xp_value(treasure_dict):
+    coin_xp_value = get_float_from_coinage(treasure_dict)
+    total_xp_value = int(coin_xp_value)
+
+    for item in treasure_dict.get('items', []):
+        item_value = item['Value'].replace(',', '').strip() or convert_cost_string(['Cost'])
+        if not item_value:
+            continue
+        if type(item_value) is str and not item_value.isdigit():
+            item_value = Dice.rollString(item_value)
+        if item['Is_Magic'].lower() == 'yes':
+            total_xp_value += int(item_value) // 10
+        else:
+            total_xp_value += int(item_value)
+
+    return total_xp_value
 
 
 def get_treasure_list(match):
