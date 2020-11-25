@@ -1,4 +1,4 @@
-from copy import copy, deepcopy
+from copy import copy  # , deepcopy
 import Dice
 import SystemSettings
 import DbQuery
@@ -27,6 +27,13 @@ class EncounterTrackerWizard(Wizard):
         self.add_wizard_page(WrapUpPage())
 
     def accept(self, fields, pages, external_data):
+        encounters = DbQuery.getTable('Encounters')
+        encounters_indexed = {e['unique_id']: e for e in encounters}
+        characters = DbQuery.getTable('Characters')
+        characters_indexed = {c['unique_id']: c for c in characters}
+        character_classes = DbQuery.getTable('Classes')
+        c_classes_indexed = {c['unique_id']: c for c in character_classes}
+
         party_treasure = [t for t in self.campaign['Campaigns_meta'] if t['Type'] == 'Party Treasure']
         everything_else = [e for e in self.campaign['Campaigns_meta'] if e['Type'] != 'Party Treasure']
         # new_treasure = deepcopy(pages['Wrap Up'].treasure)
@@ -38,6 +45,7 @@ class EncounterTrackerWizard(Wizard):
             'pp': fields['PP'],
             'items': fields['Items'],
         }
+        new_treasure_xp_value = Treasure.get_xp_value(new_treasure)
         for pt in party_treasure:
             t = pt['Data']
             t = json.loads(t)
@@ -48,15 +56,49 @@ class EncounterTrackerWizard(Wizard):
                               'Entry_ID': None,
                               'Data': json.dumps(new_treasure),
                               'Notes': None}
-        # everything_else.append(new_treasure_entry)
+
         everything = everything_else + [new_treasure_entry, ]
         DbQuery.begin()
         DbQuery.deleteRow('Campaigns_meta', 'campaign_id', self.campaign['unique_id'])
         for i in everything:
             row = self.campaign['unique_id'], i['Type'], i['Entry_ID'], i['Data'], i['Notes']
             DbQuery.insertRow('Campaigns_meta', row)
-        DbQuery.commit()
+        # DbQuery.commit()
         self.campaign['Campaigns_meta'] = everything
+
+        encounter_id = pages['Encounter Tracker'].encounter_id
+        enemies_serialized = encounters_indexed[encounter_id]['enemy_team']
+        enemies = json.loads(enemies_serialized)
+        xp_total = sum(e['XP Value'] for e in enemies)
+        if fields['Include Treasure XP']:
+            xp_total += new_treasure_xp_value
+        pc_team = external_data['PC Team']
+        xp_eligible = []
+        for pc in pc_team:
+            pc_id = pc['unique_id']
+            pc = characters_indexed[pc_id]
+            current_hp = get_character_hp(pc)
+            if current_hp > 0:
+                xp_eligible.append(pc)
+        num_of_eligible = len(xp_eligible)
+        xp_per = xp_total // num_of_eligible
+        # print(xp_total, num_of_eligible, xp_per)
+        from decimal import Decimal
+        for pc in xp_eligible:
+            pc_id = pc['unique_id']
+            xp_list = str(pc['XP']).split('/')
+            add_xp = xp_per // len(xp_list)
+            pc_class_list = pc['Classes'].split('/')
+            if len(pc_class_list) == 1:
+                cl = c_classes_indexed[pc_class_list[0]]
+                xp_bonus_string = cl['Experience_Bonus']
+                xp_bonus = SystemSettings.parse_xp_bonus(xp_bonus_string, pc)
+                if xp_bonus:
+                    add_xp = int(add_xp * (1 + Decimal(xp_bonus) / Decimal(100)))
+            new_xp_list = [int(xp) + add_xp for xp in xp_list]
+            new_xp = '/'.join(str(xp) for xp in new_xp_list)
+            DbQuery.update_cols('Characters', 'unique_id', pc_id, ('XP', ), (new_xp, ))
+        DbQuery.commit()
 
 
 class EncounterIntro(WizardPage):
@@ -360,6 +402,7 @@ class WrapUpPage(WizardPage):
     def __init__(self):
         super().__init__(7, 'Wrap Up')
         self.set_subtitle('Calculate XP and Treasure')
+        self.xp_total = None
         self.treasure = {}
 
         # Define Internal Functions
@@ -384,15 +427,18 @@ class WrapUpPage(WizardPage):
 
         # Define Widgets
         empty = Widget('', 'Empty')
-        wrap_up_text = Widget('Wrap Up Text', 'TextLabel', data='You may now collect your spoils!')
-        xp_text = Widget('XP Text', 'TextLabel')
+        wrap_up_text = Widget('Wrap Up Text', 'TextLabel',
+                              col_span=2, align='Center', data='You may now collect your spoils!')
+        # xp_text = Widget('XP Text', 'TextLabel', align='Right')
+        xp_breakdown_button = Widget('XP Breakdown', 'PushButton')
+        include_treasure_xp = Widget('Include Treasure XP', 'CheckBox', data='Include treasure xp?')
         # treasure_text = Widget('Treasure Text', 'TextLabel')
         cp = Widget('CP', 'SpinBox')
         sp = Widget('SP', 'SpinBox')
         ep = Widget('EP', 'SpinBox')
         gp = Widget('GP', 'SpinBox')
         pp = Widget('PP', 'SpinBox')
-        items_listbox = Widget('Items', 'ListBox', tool_tip=item_tooltip, row_span=4)
+        items_listbox = Widget('Items_', 'ListBox', tool_tip=item_tooltip, row_span=5)
         change_items = Widget('Change Items', 'PushButton')
 
         # Add Actions
@@ -401,13 +447,15 @@ class WrapUpPage(WizardPage):
                              'tool_tip': item_tooltip,
                              'add': add_item,
                              'remove': remove_item}
+        self.add_action(Action('Window', xp_breakdown_button,
+                               callback=lambda f, p, e: XPBreakdown(p['Encounter Tracker'].encounter_id)))
         self.add_action(Action('ListDialog', change_items, items_listbox,
                                callback=change_items_callback, data=change_items_data))
-        self.add_action(Action('Window', items_listbox, callback=lambda f, p, e: None))
+        # self.add_action(Action('Window', items_listbox, callback=lambda f, p, e: None))
 
         # Initialize GUI
         self.add_row([wrap_up_text])
-        self.add_row([xp_text])
+        self.add_row([xp_breakdown_button, include_treasure_xp])
         # self.add_row([treasure_text])
         self.add_row([cp, items_listbox])
         self.add_row([sp])
@@ -419,7 +467,10 @@ class WrapUpPage(WizardPage):
 
     def initialize_page(self, fields, pages, external_data):
         enemies = fields['Monster Team']
-        xp_text = ', '.join([f'{e["Name"]}: {e["XP Value"]}xp' for e in enemies])
+        # xp_text = ', '.join([f'{e["Name"]}: {e["XP Value"]}xp' for e in enemies])
+        # print(enemies[0]['XP Value'])
+        # self.xp_total = sum(e['XP Value'] if type(e['XP Value']) is int else 0 for e in enemies)
+        # xp_text = f'''{self.xp_total} XP Total'''
         lair = external_data['Lair Data']
         if lair is None:
             self.treasure = treasure_dict = {'cp': 0, 'sp': 0, 'ep': 0, 'gp': 0, 'pp': 0, 'items': []}
@@ -463,7 +514,7 @@ class WrapUpPage(WizardPage):
         treasure_dict['items'] = get_full_items(treasure_dict['items'])
 
         return {
-            'XP Text': xp_text,
+            # 'XP Text': xp_text,
             # 'Treasure Text': treasure_text,
             'CP': treasure_dict['cp'],
             'SP': treasure_dict['sp'],
@@ -536,6 +587,21 @@ class WrapUpPage(WizardPage):
 #     }
 
 
+def get_meta_indexed(char):
+    meta_indexed = {}
+    for row in char['Characters_meta']:
+        meta_type = row['Type']
+        meta_list = meta_indexed.get(meta_type, [])
+        meta_list.append(row)
+        meta_indexed[meta_type] = meta_list
+    return meta_indexed
+
+
+def get_character_hp(char):
+    meta_indexed = get_meta_indexed(char)
+    return int(meta_indexed.get('Current HP', [{'Data': char['HP']}])[0]['Data'])
+
+
 class HpTracker(Manage):
     def __init__(self, characters, encounter_id):
         super().__init__(title='HP Tracker', modality='unblock')
@@ -551,21 +617,21 @@ class HpTracker(Manage):
         enemies = json.loads(enemies_serialized)
 
         # Define Internal Functions
-        def get_meta_indexed(char):
-            meta_indexed = {}
-            for row in char['Characters_meta']:
-                meta_type = row['Type']
-                meta_list = meta_indexed.get(meta_type, [])
-                meta_list.append(row)
-                meta_indexed[meta_type] = meta_list
-            return meta_indexed
+        # def get_meta_indexed(char):
+        #     meta_indexed = {}
+        #     for row in char['Characters_meta']:
+        #         meta_type = row['Type']
+        #         meta_list = meta_indexed.get(meta_type, [])
+        #         meta_list.append(row)
+        #         meta_indexed[meta_type] = meta_list
+        #     return meta_indexed
 
-        def get_character_hp(char):
-            char_id = char['unique_id']
-            char = pcs_indexed[char_id]
-            meta_indexed = get_meta_indexed(char)
-
-            return int(meta_indexed.get('Current HP', [{'Data': char['HP']}])[0]['Data'])
+        # def get_character_hp(char):
+        #     # char_id = char['unique_id']
+        #     # char = pcs_indexed[char_id]
+        #     meta_indexed = get_meta_indexed(char)
+        #
+        #     return int(meta_indexed.get('Current HP', [{'Data': char['HP']}])[0]['Data'])
 
         def get_enemy_hp(en):
             if en['TableName'] == 'Monsters':
@@ -619,6 +685,7 @@ class HpTracker(Manage):
         self.add_row([pc_team_header])
         for character in characters:
             character_id = character['unique_id']
+            character = pcs_indexed[character_id]
             character_name = Widget('Character Name', 'TextLabel', data=f'<b>{character["Name"]}</b>')
             current_hp = Widget(f'Current HP {character_id}_', 'SpinBox',
                                 enable_edit=False, data=get_character_hp(character))
@@ -641,3 +708,48 @@ class HpTracker(Manage):
                                    callback=callback_factory_2param(adjust_enemy_hp, i)))
             # Initialize GUI
             self.add_row([enemy_name, current_hp, adjust_hp])
+
+
+class XPBreakdown(Manage):
+    def __init__(self, encounter_id):
+        super().__init__(title='XP Breakdown')
+
+        encounters = DbQuery.getTable('Encounters')
+        encounters_indexed = {e['unique_id']: e for e in encounters}
+        enemies_serialized = encounters_indexed[encounter_id]['enemy_team']
+        enemies = json.loads(enemies_serialized)
+
+        def adjust_enemy_xp(dialog_return, fields, enemy_index):
+            new_xp = dialog_return
+            enemy = enemies[enemy_index]
+            enemy['XP Value'] = new_xp
+            serialized_enemies = json.dumps(enemies)
+            DbQuery.update_cols('Encounters', 'unique_id', encounter_id,
+                                ('enemy_team',), (serialized_enemies,))
+            DbQuery.commit()
+
+            new_total = \
+                sum(fields[f] for f in fields if f.startswith('Current XP') and f != f'Current XP {enemy_index}')\
+                + new_xp
+
+            return {
+                f'Current XP {enemy_index}': new_xp,
+                'Total Label': f'<b>Total XP: </b>{new_total}',
+            }
+
+        # Define Widgets
+        total_xp = 0
+        for i, e in enumerate(enemies):
+            xp_value = e['XP Value'] if type(e['XP Value']) is int else 0
+            total_xp += xp_value
+            n = Widget('Name', 'TextLabel', data=f'''<b>{e['Name']}</b>''')
+            w = Widget(f'Current XP {i}_', 'SpinBox', enable_edit=False, data=xp_value)
+            b = Widget(f'Adjust XP {i}', 'PushButton', data='Adjust XP')
+            # Add Action
+            self.add_action(Action('EntryDialog', b, w,
+                                   callback=callback_factory_2param(adjust_enemy_xp, i)))
+            # Initialize GUI
+            self.add_row([n, w, b])
+
+        total_label = Widget('Total Label', 'TextLabel', data=f'<b>Total XP: </b>{total_xp}', col_span=3)
+        self.add_row([total_label])
