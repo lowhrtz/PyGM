@@ -20,7 +20,8 @@ def get_index(environ):
         handouts_title_color = 'darkslategrey'
     else:
         handouts_title_color = 'lightgrey'
-    html = '''<!DOCTYPE html><html>
+    html = '''\
+<!DOCTYPE html><html>
 <head>
 <meta charset="utf-8"/>
 <link rel="icon" type="image/png"
@@ -424,7 +425,6 @@ def get_character_html(character_dict):
     double_specialised_list = []
     for prof in items_table:
         if prof['Is_Proficiency'].lower() == 'yes' and prof['unique_id'] in list(proficiency_id_dict.keys()):
-            # prof_name = prof['Name']
             prof_level = proficiency_id_dict[prof['unique_id']]
             if prof_level == 'P':
                 proficiency_list.append(prof)
@@ -433,17 +433,13 @@ def get_character_html(character_dict):
             elif prof_level == '2XS':
                 double_specialised_list.append(prof)
 
-    # equipment_list = []
-    # for equip in items_table:
-    #     if equip['unique_id'] in equip_id_list:
-    #         equipment_list.append(equip)
     indexed_items = {item['unique_id']: item for item in items_table}
     equipment_list = [indexed_items[equip_id] for equip_id in equip_id_list]
 
     level = character_dict['Level']
     class_abilities = {}
     if 'classes' in class_dict:
-        level_list = [int(l) for l in level.split('/')]
+        level_list = [int(lvl) for lvl in level.split('/')]
         for i, cl in enumerate(class_dict['classes']):
             class_abilities[cl['Name']] = SystemSettings.get_class_abilities(level_list[i], character_dict, cl)
     else:
@@ -650,17 +646,19 @@ def get_save_background(environ):
     return '<h1>Problem saving background!</h1>'
 
 
-def get_existing_character(environ, character_id):
+def get_existing_character(_environ, character_id):
     # pcs = environ['Extern']['PCs']
     pcs = DbQuery.getTable('Characters')
-    for c in pcs:
-        if c['unique_id'] == character_id:
-            # return SystemSettings.get_character_pdf_markup(c)[1]
-            return get_character_html(c)
-    return '<h1>Problem!</h1>'
+    pcs_indexed = {pc['unique_id']: pc for pc in pcs}
+    # for c in pcs:
+    #     if c['unique_id'] == character_id:
+    #         # return SystemSettings.get_character_pdf_markup(c)[1]
+    #         return get_character_html(c)
+    return get_character_html(pcs_indexed[character_id])
+    # return '<h1>Problem!</h1>'
 
 
-def get_new_character(environ):
+def get_new_character(_environ):
     # print(environ['REMOTE_ADDR'])
     return '''\
 <div class="character_area">
@@ -674,7 +672,7 @@ OR<br />
 '''
 
 
-def get_create_page(environ):
+def get_create_page(_environ):
     return '<h1>Not Implemented Yet!</h1>'
 
 
