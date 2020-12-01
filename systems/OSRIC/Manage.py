@@ -19,7 +19,7 @@ mimetypes.add_type('application/font', '.woff2')
 class Characters(Manage):
     def __init__(self):
 
-        super().__init__()
+        super().__init__(modality='unblock')
         empty_widget = Widget('', 'Empty')
         hr = Widget('hr', 'hr', col_span=4)
 
@@ -567,7 +567,7 @@ class Characters(Manage):
 class Campaigns(Manage):
     def __init__(self):
 
-        super().__init__()
+        super().__init__(modality='unblock')
         empty_widget = Widget('', 'Empty')
         hr = Widget('hr', 'hr', col_span=4)
 
