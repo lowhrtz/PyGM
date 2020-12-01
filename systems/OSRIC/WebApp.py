@@ -1,5 +1,7 @@
 import DbQuery
 import SystemSettings
+from base64 import b64decode
+from resources import icon_png
 from urllib.parse import parse_qs
 
 
@@ -21,6 +23,8 @@ def get_index(environ):
     html = '''<!DOCTYPE html><html>
 <head>
 <meta charset="utf-8"/>
+<link rel="icon" type="image/png"
+ href="/icon.png">
 <script>
 function openMenu() {
     document.getElementById("menu").style.width = "500px";
@@ -331,7 +335,6 @@ div.handouts {{
 </div>
 <span id="main">
 {get_title(environ)}
-</div>
 </span>
 </body>
 </html>
@@ -345,7 +348,7 @@ def get_title(environ):
     campaign = environ['Extern']
     return f'''\
 <div class="title">
-<h1 background=>{fields['Title']}</h1>
+<h1>{fields['Title']}</h1>
 <h3>An Adventure in <i>{campaign['Setting']}</i> for the <i>{campaign['Name']}</i> campaign</h3>
 </div>
 '''
@@ -746,11 +749,16 @@ body, button {{
 '''
 
 
+def get_favicon(_environ):
+    return b64decode(icon_png)
+
+
 def adventure(environ, start_response):
     status_ok = '200 OK'
     status_not_found = '404 Not Found'
 
     path_info = environ.get('PATH_INFO', '')
+    content_type = [('Content-type', 'text/html')]
 
     if path_info == '' or path_info == '/':
         html = get_index(environ)
@@ -776,9 +784,16 @@ def adventure(environ, start_response):
     elif path_info == '/save_background':
         html = get_save_background(environ)
         status = status_ok
+    elif path_info == '/icon.png':
+        html = get_favicon(environ)
+        status = status_ok
+        content_type = [('Content-type', 'image/png')]
     else:
         html = '<h1>404 Page Not Found!</h1>'
         status = status_not_found
 
-    start_response(status, [('Content-type', 'text/html')])
-    return [html.encode('utf-8')]
+    if type(html) == str:
+        html = html.encode('utf-8')
+
+    start_response(status, content_type)
+    return [html]
