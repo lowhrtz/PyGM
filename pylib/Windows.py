@@ -978,6 +978,34 @@ class WidgetRegistry(dict):
                     callback_return = callback(filename, self.get_fields())
                 self.fill_fields(callback_return)
 
+        elif action_type.lower() == 'savedialog':
+            if callable(data):
+                if gui_wizard_page:
+                    data_return = data(self.get_fields(), gui_wizard_page.wizard_pages,
+                                       gui_wizard_page.external_data)
+                else:
+                    data_return = data(self.get_fields())
+            else:
+                data_return = data
+            caption = 'Save'
+            file_type = None
+            if type(data_return) == tuple:
+                default_filename, file_type = data_return
+            elif type(data_return) == dict:
+                default_filename = data_return['Default Filename']
+                file_type = data_return['File Type']
+                caption = data_return['Caption']
+            else:
+                default_filename = data_return
+            filename, _ = QFileDialog.getSaveFileName(self.parent, caption, default_filename, filter=file_type)
+            if filename and callback:
+                if gui_wizard_page:
+                    callback_return = callback(filename, self.get_fields(), gui_wizard_page.wizard_pages,
+                                               gui_wizard_page.external_data)
+                else:
+                    callback_return = callback(filename, self.get_fields())
+                self.fill_fields(callback_return)
+
         elif action_type.lower() == 'colordialog':
             title = 'Choose Color'
             if data is not None:
