@@ -749,8 +749,7 @@ class WidgetRegistry(dict):
             elif widget_type.lower() == 'spinbox':
                 widget.setValue(v)
             elif widget_type.lower() == 'radiobutton':
-                for i, radio_button in enumerate(widget.button()):
-                    radio_button.setText(v[i])
+                widget.button(v).setChecked(True)
             elif widget_type.lower() == 'combobox':
                 if type(v).__name__ == 'str':
                     new_index = widget.findText(v)

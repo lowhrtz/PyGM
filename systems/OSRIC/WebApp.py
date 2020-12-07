@@ -12,7 +12,7 @@ def get_index(environ):
         font_css = get_builtin_font_css(fields['BuiltIn Fonts'])
     else:
         try:
-            chosen_font = [f for f in campaign['Resources'] if f['Entry_ID'] == fields['Custom Fonts']][0]
+            chosen_font = [f for f in campaign['Resources'] if f['Entry_ID'] == fields['Resource Fonts']][0]
             font_css = get_custom_font_css(chosen_font['Data'])
         except IndexError:
             font_css = get_builtin_font_css('Times')
@@ -24,8 +24,7 @@ def get_index(environ):
 <!DOCTYPE html><html>
 <head>
 <meta charset="utf-8"/>
-<link rel="icon" type="image/png"
- href="/icon.png">
+<link rel="icon" type="image/png" href="/icon.png">
 <script>
 function openMenu() {
     document.getElementById("menu").style.width = "500px";
