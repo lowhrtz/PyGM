@@ -1150,6 +1150,9 @@ class ManageWindow(CenterableWindow):
             elif widget1_type.lower() == 'listbox':
                 qt_widget = self.widget_registry[widget1_field_name].qt_widget
                 qt_widget.currentRowChanged.connect(callback_factory(self.widget_registry.process_action, action))
+            elif widget1_type.lower() == 'combobox':
+                qt_widget = self.widget_registry[widget1_field_name].qt_widget
+                qt_widget.currentIndexChanged.connect(callback_factory(self.widget_registry.process_action, action))
 
         menu_list = manage.get_menu_list()
         self.widget_registry.fill_menu_bar(self.menuBar(), menu_list, self)
