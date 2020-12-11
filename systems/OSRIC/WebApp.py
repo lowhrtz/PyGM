@@ -10,12 +10,14 @@ def get_index(environ):
     campaign = environ['Extern']
     if fields['Font Radio Button'] == 0:
         font_css = get_builtin_font_css(fields['BuiltIn Fonts'])
-    else:
+    elif fields['Font Radio Button'] == 1:
         try:
             chosen_font = [f for f in campaign['Resources'] if f['Entry_ID'] == fields['Resource Fonts']][0]
             font_css = get_custom_font_css(chosen_font['Data'])
         except IndexError:
             font_css = get_builtin_font_css('Times')
+    else:
+        font_css = get_custom_font_css(fields['Adventure Font'])
     if fields['Handouts Background Light Dark'] == 0:
         handouts_title_color = 'darkslategrey'
     else:

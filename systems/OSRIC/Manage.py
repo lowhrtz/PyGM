@@ -3,6 +3,7 @@ import DbQuery
 import json
 import mimetypes
 import os
+import socket
 import SystemSettings
 import time
 from Common import callback_factory_1param
@@ -11,6 +12,7 @@ from CharacterCreation import CharacterCreationWizard
 from LevelUp import LevelUpWizard
 from ManageDefs import Manage
 from GuiDefs import *
+from QR import get_qr_image
 from wsgiref.simple_server import make_server
 
 mimetypes.add_type('application/font', '.woff2')
@@ -801,8 +803,9 @@ class Campaigns(Manage):
             super().__init__('Adventure Server', modality='unblock')
             adventure_file_type = 'Adventure JSON (*.json)'
             export_fields = ['Title', 'Background Color Preview', 'Chosen Color', 'Title BG Preview',
-                             'Font Radio Button', 'BuiltIn Fonts', 'Resource Fonts', 'Adventure Font',
-                             'Image Resources', 'Handouts Background Preview', 'Handouts Background Light Dark']
+                             'Font Radio Button', 'Image Resources', 'Handouts Background Preview',
+                             'Handouts Background Light Dark']
+            font_fields = ['BuiltIn Fonts', 'Resource Fonts', 'Adventure Font']
 
             # Define Internal Functions
             def save_adventure_data(flds):
@@ -813,7 +816,10 @@ class Campaigns(Manage):
                 }
 
             def save_adventure_callback(filename, flds):
+                frb = flds['Font Radio Button']
+                font_field = font_fields[frb]
                 adv_fields = {k: v for k, v in flds.items() if k in export_fields}
+                adv_fields[font_field] = flds[font_field]
                 with open(filename, 'w') as ajf:
                     ajf.write(json.dumps(adv_fields, indent=4))
 
@@ -822,11 +828,70 @@ class Campaigns(Manage):
             def open_adventure_callback(filename, _flds):
                 with open(filename, 'r') as ajf:
                     adv_serial = ajf.read()
-                return json.loads(adv_serial)
+                adv = json.loads(adv_serial)
+                adv['Image Resources'] = [(i['Entry_ID'], i) for i in adv['Image Resources']]
+                return adv
 
-            def open_handout_file_callback(filename, _flds):
+            def open_handout_file_callback(filename, flds):
+                existing_items = flds['Image Resources']
+                existing_items = [(i['Entry_ID'], i) for i in existing_items]
                 with open(filename, 'rb') as f:
-                    img_data = base64.b64encode(f.read())
+                    img_data = base64.b64encode(f.read()).decode()
+                basename = os.path.basename(filename)
+                new_item = (basename, {'Entry_ID': basename, 'Data': img_data, 'Type': 'image'})
+                existing_items.append(new_item)
+                return {
+                    'Image Resources': existing_items
+                }
+
+            def set_font_callback(filename, _flds):
+                with open(filename, 'rb') as f:
+                    font_data = base64.b64encode(f.read()).decode()
+                return {
+                    'Adventure Font': font_data
+                }
+
+            def my_ip():
+                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                try:
+                    s.connect(('192.0.0.1', 1027))
+                except socket.error:
+                    return None
+                return s.getsockname()[0]
+
+            class QrWindow(Manage):
+
+                def __init__(self):
+                    super().__init__('QR Code', modality='unblock')
+                    url = f'http://{my_ip()}:{port}'
+                    qr_bytes = get_qr_image(url)
+                    qr_b64 = base64.b64encode(qr_bytes).decode()
+
+                    # Define Internal Functions
+                    def qr_markup(_flds):
+                        ml = f'''\
+<body>
+  <br />
+  <div style="text-align: center; margin-top: 200px;">
+    <img src=data:image;base64,{qr_b64} />
+    <h1>{url}</h1>
+  </div>
+</body>
+'''
+                        return '', ml
+
+                    # Define Widgets
+                    qr_code = Widget('QR Code', 'Image', data=qr_b64)
+                    url_text = Widget('URL Text', 'TextLabel', align='Center', data=url)
+
+                    # Initialize GUI
+                    print_menu = Menu('&Print')
+                    print_menu.add_action(Action('PrintPreview', Widget('&Print QR Code', 'MenuAction'),
+                                                 callback=qr_markup))
+                    self.add_menu(print_menu)
+
+                    self.add_row([qr_code, ])
+                    self.add_row([url_text, ])
 
             # Define Widgets
             empty = Widget('', 'Empty')
@@ -844,14 +909,15 @@ class Campaigns(Manage):
                                               style='border: 3px inset grey;')
             chosen_color = Widget('Chosen Color_', 'LineEdit', data='#ffffff', enable_edit=False, stretch=False)
             font_radio_button = Widget('Font Radio Button', 'RadioButton',
-                                       data=['Built-In Font', 'Resource Font', 'Adventure Font'], row_span=3)
+                                       data=['Built-In Font', 'Resource Font', 'Adventure Font'], row_span=3,
+                                       align='Top')
             built_in_fonts = Widget('BuiltIn Fonts_', 'ComboBox',
                                     data=['Times', 'Helvetica', 'Arial', 'Georgia', 'Courier New', 'Monaco'],
                                     col_span=2)
             resource_font_list = [res['Entry_ID'] for res in fields['Resources'] if res['Type'] == 'font']
             resource_fonts = Widget('Resource Fonts_', 'Combobox',
                                     data=resource_font_list, col_span=2)
-            adventure_font = Widget('Adventure Font_', 'LineEdit', enable_edit=False, col_span=2, stretch=False)
+            adventure_font = Widget('Adventure Font_', 'TextEdit', enable_edit=False, col_span=2, stretch=False)
             handout_text = Widget('Handout Text', 'TextLabel', data='Handouts')
             image_resources_data = {'fill_avail': self.fill_image_resources,
                                     'add': self.add_image_resource,
@@ -877,6 +943,19 @@ class Campaigns(Manage):
             handout_menu = Menu('&Handouts')
             handout_menu.add_action(Action('FileDialog', Widget('&Add Handout File', 'MenuAction'),
                                            callback=open_handout_file_callback))
+            self.add_menu(handout_menu)
+
+            font_menu = Menu('F&ont')
+            font_menu.add_action(Action('FileDialog', Widget('&Set Adventure Font', 'MenuAction'),
+                                        callback=set_font_callback, data='Font (*.ttf *.woff *.woff2 *.otf)'))
+            font_menu.add_action(Action('FillFields', Widget('&Clear Adventure Font', 'MenuAction'),
+                                        callback=lambda f: {'Adventure Font': ''}))
+            self.add_menu(font_menu)
+
+            qr_menu = Menu('&QR')
+            qr_menu.add_action(Action('Window', Widget('&Open QR Window', 'MenuAction'),
+                                      callback=lambda f: QrWindow()))
+            self.add_menu(qr_menu)
 
             self.add_row([adventure_title, empty, empty, title_background, clear_title_bg])
             self.add_row([background_color, background_color_preview, chosen_color, title_bg_preview])
@@ -890,7 +969,8 @@ class Campaigns(Manage):
 
             # Initialize web server
             from WebApp import adventure
-            self.web_server = make_server('', 1234, adventure)
+            port = Dice.randomInt(1200, 2000)
+            self.web_server = make_server('', port, adventure)
             self.web_server.timeout = 0
             self.web_server.base_environ['Extern'] = fields
             self.web_server.base_environ['Fields'] = {}
