@@ -6,6 +6,7 @@ import os
 import socket
 import SystemSettings
 import time
+
 from Common import callback_factory_1param
 from decimal import Decimal
 from CharacterCreation import CharacterCreationWizard
@@ -914,14 +915,15 @@ class Campaigns(Manage):
             built_in_fonts = Widget('BuiltIn Fonts_', 'ComboBox',
                                     data=['Times', 'Helvetica', 'Arial', 'Georgia', 'Courier New', 'Monaco'],
                                     col_span=2)
-            resource_font_list = [res['Entry_ID'] for res in fields['Resources'] if res['Type'] == 'font']
-            resource_fonts = Widget('Resource Fonts_', 'Combobox',
-                                    data=resource_font_list, col_span=2)
+            resource_font_list =\
+                [(res['Entry_ID'], res['Data']) for res in fields['Resources'] if res['Type'] == 'font']
+            resource_fonts = Widget('Resource Fonts_', 'Combobox', data=resource_font_list, col_span=2)
             adventure_font = Widget('Adventure Font_', 'TextEdit', enable_edit=False, col_span=2, stretch=False)
             handout_text = Widget('Handout Text', 'TextLabel', data='Handouts')
             image_resources_data = {'fill_avail': self.fill_image_resources,
                                     'add': self.add_image_resource,
-                                    'remove': self.remove_image_resource}
+                                    'remove': self.remove_image_resource,
+                                    'tool_tip': lambda i, f: f"<img src=data:image;base64,{i['Data']} />"}
             image_resources = Widget('Image Resources', 'DualList', data=image_resources_data, col_span=3, row_span=2)
             change_handouts_background = Widget('Change Handouts Background', 'PushButton')
             self.add_action(Action('FileDialog', change_handouts_background,
@@ -950,12 +952,21 @@ class Campaigns(Manage):
                                         callback=set_font_callback, data='Font (*.ttf *.woff *.woff2 *.otf)'))
             font_menu.add_action(Action('FillFields', Widget('&Clear Adventure Font', 'MenuAction'),
                                         callback=lambda f: {'Adventure Font': ''}))
+            font_menu.add_action(Action('FillFields', Widget('Copy Resource Font', 'MenuAction'),
+                                        callback=lambda f: {'Font Radio Button': 2,
+                                                            'Adventure Font': f['Resource Fonts Data']}))
             self.add_menu(font_menu)
 
             qr_menu = Menu('&QR')
             qr_menu.add_action(Action('Window', Widget('&Open QR Window', 'MenuAction'),
                                       callback=lambda f: QrWindow()))
             self.add_menu(qr_menu)
+
+            from ClientManager import ClientsWindow
+            clients_menu = Menu('&Clients')
+            clients_menu.add_action(Action('Window', Widget('&Open Clients Manager', 'MenuActions'),
+                                           callback=lambda f: ClientsWindow()))
+            self.add_menu(clients_menu)
 
             self.add_row([adventure_title, empty, empty, title_background, clear_title_bg])
             self.add_row([background_color, background_color_preview, chosen_color, title_bg_preview])

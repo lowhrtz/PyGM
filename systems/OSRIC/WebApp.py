@@ -7,13 +7,13 @@ from urllib.parse import parse_qs
 
 def get_index(environ):
     fields = environ['Fields']
-    campaign = environ['Extern']
+    # campaign = environ['Extern']
     if fields['Font Radio Button'] == 0:
         font_css = get_builtin_font_css(fields['BuiltIn Fonts'])
     elif fields['Font Radio Button'] == 1:
         try:
-            chosen_font = [f for f in campaign['Resources'] if f['Entry_ID'] == fields['Resource Fonts']][0]
-            font_css = get_custom_font_css(chosen_font['Data'])
+            chosen_font = fields['Resource Fonts Data']
+            font_css = get_custom_font_css(chosen_font)
         except IndexError:
             font_css = get_builtin_font_css('Times')
     else:
