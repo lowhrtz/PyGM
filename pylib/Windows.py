@@ -884,6 +884,8 @@ class WidgetRegistry(dict):
                 font = QFont('Times New Roman', 10, QFont.Normal)
                 document = QTextDocument()
                 document.setDefaultFont(font)
+                # Added to fix line-wrapping issue with p tags in PDFs
+                document.setDefaultStyleSheet("p, li { white-space: normal; }");
                 document.setHtml(pdf_markup)
                 printer = QPrinter(QPrinter.PrinterResolution)
                 printer.setOutputFormat(QPrinter.PdfFormat)
