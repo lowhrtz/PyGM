@@ -1,5 +1,6 @@
 import DbQuery
 import SystemSettings
+import WebCC
 from base64 import b64decode
 from resources import icon_png
 from urllib.parse import parse_qs
@@ -36,12 +37,15 @@ function closeMenu() {
     document.getElementById("menu").style.width = "0";
 }
 
-function openItem(item, post=null) {
+function openItem(item, post=null, evalid=null, target="main") {
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
-            document.getElementById("main").innerHTML = this.responseText;
+            document.getElementById(target).innerHTML = this.responseText;
             closeMenu();
+            if (evalid != null) {
+                eval(document.getElementById(evalid).innerHTML);
+            }
         } else if (this.status == 404) {
             closeMenu();
         }
@@ -59,7 +63,7 @@ function openItem(item, post=null) {
 function createOrChooseCharacter() {
     var create_checked = document.getElementById('c').checked;
     if (create_checked) {
-        openItem('create_page');
+        openItem('create_page', null, 'wizardscript');
     } else {
         openItem('list_characters');
     }
@@ -189,6 +193,15 @@ fieldset {
   right: 25px;
   font-size: 60px;
   margin-left: 50px;
+}
+
+div.page {
+    display: none;
+}
+
+div.page select, div.page input {
+    font-size: 60px;
+    text-align: center;
 }
 
 div.character_area {
@@ -674,7 +687,11 @@ OR<br />
 
 
 def get_create_page(_environ):
-    return '<h1>Not Implemented Yet!</h1>'
+    return WebCC.get_cc_html()
+
+
+def get_classes_options(environ):
+    return WebCC.get_classes_options(environ)
 
 
 def get_list_character(environ):
@@ -729,7 +746,7 @@ def get_choose_character(environ):
 
 def get_builtin_font_css(font):
     return f'''
-body, button {{
+body, button, select {{
     font-family: {font};
 }}
 '''
@@ -742,7 +759,7 @@ def get_custom_font_css(font_base64):
     src: url(data:font;base64,{font_base64});
 }}
 
-body, button {{
+body, button, select {{
     font-family: CustomFont;
 }}
 '''
@@ -773,6 +790,15 @@ def adventure(environ, start_response):
         status = status_ok
     elif path_info == '/create_page':
         html = get_create_page(environ)
+        status = status_ok
+    elif path_info == '/classes_options':
+        html = get_classes_options(environ)
+        status = status_ok
+    elif path_info == '/alignment_options':
+        html = WebCC.get_alignment_options(environ)
+        status = status_ok
+    elif path_info == '/cc_submit':
+        html = WebCC.cc_submit(environ)
         status = status_ok
     elif path_info == '/list_characters':
         html = get_list_character(environ)

@@ -3,6 +3,7 @@ import re
 from decimal import Decimal
 from string import Template
 import DbQuery
+import Dice
 
 systemName = 'Osric'
 subSystemName = 'OSRIC'
@@ -1335,3 +1336,291 @@ def parse_xp_bonus(bonus, attr_dict):
         if bonus_in_effect:
             return 10
     return 0
+
+
+def get_full_class(class_name):
+    classes_indexed = {cl['unique_id']: cl for cl in DbQuery.getTable('Classes')}
+
+    if '/' in class_name:
+        full_class = {
+            'unique_id': class_name.replace('/', '_'),
+            'Name': class_name,
+            'classes': [],
+        }
+        for cl in class_name.split('/'):
+            class_id = cl.lower().replace(' ', '_')
+            class_record = classes_indexed[class_id]
+            full_class['classes'].append(class_record)
+    else:
+        class_id = class_name.lower().replace(' ', '_')
+        full_class = classes_indexed[class_id]
+
+    return full_class
+
+
+def get_available_alignments(full_class):
+    alignment_options = []
+    if 'classes' in full_class:
+        for full_class in full_class['classes']:
+            alignment_options.append(full_class['Alignment'])
+    else:
+        alignment_options.append(full_class['Alignment'])
+
+    alignment_list = list(alignment)
+    for align_option in alignment_options:
+        if align_option == 'Any Good':
+            for align in alignment:
+                if align.endswith('Neutral') or align.endswith('Evil'):
+                    alignment_list.remove(align)
+
+        elif align_option == 'Any Evil':
+            for align in alignment:
+                if align.endswith('Neutral') or align.endswith('Good'):
+                    alignment_list.remove(align)
+
+        elif align_option == 'Any Neutral or Evil':
+            for align in alignment:
+                if align.endswith('Good'):
+                    alignment_list.remove(align)
+
+        elif align_option == 'Neutral only':
+            alignment_list = ['True Neutral', ]
+
+        elif align_option.lower().endswith('only'):
+            alignment_list = [align_option[:-5], ]
+
+    return alignment_list
+
+
+def roll_attributes(wiz_attr_dict, race, full_class):
+    is_warrior = False
+    if 'classes' in full_class:
+        for cl in full_class['classes']:
+            if cl['Category'].lower() == 'warrior':
+                is_warrior = True
+    else:
+        if full_class['Category'].lower() == 'warrior':
+            is_warrior = True
+
+    attr_dict = {}
+    min_dict = {}
+    if not wiz_attr_dict:
+        if 'classes' in full_class:
+            for cl in full_class['classes']:
+                min_scores_string = cl['Minimum_Scores']
+                min_scores_list = [score.strip() for score in min_scores_string.split(',')]
+                for min_score in min_scores_list:
+                    min_score_split = min_score.split()
+                    attr = min_score_split[0]
+                    min_score = int(min_score_split[1])
+                    if attr not in min_dict:
+                        min_dict[attr] = min_score
+                    else:
+                        min_dict[attr] = max(min_score, min_dict[attr])
+        else:
+            min_scores_string = full_class['Minimum_Scores']
+            min_scores_list = [score.strip() for score in min_scores_string.split(',')]
+            for min_score in min_scores_list:
+                min_score_split = min_score.split()
+                attr = min_score_split[0]
+                min_score = int(min_score_split[1])
+                min_dict[attr] = min_score
+
+        if len(min_dict) < 6:
+            for attr in [attr[0] for attr in attributes]:
+                if attr.title() not in min_dict:
+                    min_dict[attr.title()] = 3
+
+        for attr in min_dict:
+            minimum = max(min_dict[attr], race['Minimum_' + attr])
+            maximum = race['Maximum_' + attr]
+            score = Dice.randomInt(minimum, maximum)
+            attr_dict[attr.upper()] = str(score)
+    else:
+        attr_dict = adjust_attributes(wiz_attr_dict, race)
+
+    for attr in attr_dict:
+        if attr.lower() == 'str' and attr_dict[attr] == '18' and is_warrior:
+            score = 18
+            exceptional_strength = Dice.randomInt(1, 99) / float(100)
+            attr_dict[attr] = '{0:.2f}'.format(score + exceptional_strength)
+
+    return attr_dict
+
+
+def adjust_attributes(attr_dict, race_dict):
+    for meta_row in race_dict['Races_meta']:
+        if meta_row['Type'] == 'ability' and meta_row['Subtype'] == 'attribute':
+            attr_to_modify = meta_row['Modified'].upper()[:3]
+            modifier = meta_row['Modifier']
+            attr_orig_score = attr_dict[attr_to_modify]
+            new_score = eval(attr_orig_score + modifier)
+            attr_dict[attr_to_modify] = str(new_score)
+    return attr_dict
+
+
+def roll_hp(attr_dict, level, full_class):
+    hp = 0
+    con_score = attr_dict['CON']
+    con_bonus = get_attribute_bonuses('CON', con_score)[0]
+    con_bonus_list = con_bonus.replace(' for Warriors)', '').split(' (')
+    if len(con_bonus_list) == 1:
+        con_bonus_list.append(con_bonus_list[0])
+    if 'classes' in full_class:
+        for cl in full_class['classes']:
+            hp_temp = 0
+            if cl['Category'].lower() == 'warrior':
+                con_bonus = con_bonus_list[1]
+            else:
+                con_bonus = con_bonus_list[0]
+            hit_dice_string = 'd{}'.format(cl['Hit_Die_Type'])
+            for i in range(0, int(level)):
+                hp_temp += Dice.rollString(hit_dice_string)
+                hp_temp += int(con_bonus)
+            hp += hp_temp // len(full_class['classes']) or 1  # No HP roll should ever be lower than one
+    else:
+        if full_class['Category'].lower() == 'warrior':
+            con_bonus = con_bonus_list[1]
+        else:
+            con_bonus = con_bonus_list[0]
+        hd_number = [row['Hit_Dice'] for row in full_class['Classes_meta']
+                     if row['Type'] == 'xp table' and row['Level'] == '1'][0]
+        hit_dice_string = '{}d{}'.format(hd_number, full_class['Hit_Die_Type'])
+        for i in range(0, int(level)):
+            hp += Dice.rollString(hit_dice_string)
+            hp += int(con_bonus)
+
+    return hp
+
+
+def roll_age(race_dict, full_class):
+    starting_ages = [row for row in race_dict['Races_meta']
+                     if row['Type'] == 'class' and row['Subtype'] == 'starting age']
+
+    class_groups = {'Cleric': ['cleric', 'druid'],
+                    'Fighter': ['fighter', 'ranger', 'paladin'],
+                    'Magic User': ['magic_user', 'illusionist'],
+                    'Thief': ['thief', 'assassin'],
+                    'Druid': ['druid'],
+                    }
+
+    dice_string = ''
+    if 'classes' in full_class:
+        bucket = []
+        for cl in full_class['classes']:
+            for row in starting_ages:
+                if cl['unique_id'] in class_groups[row['Modified']]:
+                    bucket.append( row )
+        rating = 0
+        best_dice = ''
+        for row in bucket:
+            new_rating = eval(row['Modifier'].replace('d', '*'))
+            if new_rating > rating:
+                rating = new_rating
+                best_dice = row['Modifier']
+        dice_string = best_dice
+    else:
+        for row in starting_ages:
+            if full_class['unique_id'] in class_groups[row['Modified']]:
+                dice_string = row['Modifier']
+
+    dice_string_list = dice_string.split('+')
+    dice_string = dice_string_list[1].strip() + '+' + dice_string_list[0].strip()
+    return Dice.rollString(dice_string)
+
+
+def roll_height_weight(race_dict, gender):
+    height_table = [row for row in race_dict['Races_meta']
+                    if row['Type'] == 'height table' and row['Subtype'].lower() == gender.lower()]
+    weight_table = [row for row in race_dict['Races_meta']
+                    if row['Type'] == 'weight table' and row['Subtype'].lower() == gender.lower()]
+
+    height_roll = Dice.randomInt(1, 100)
+    weight_roll = Dice.randomInt(1, 100)
+
+    def lookup(roll, table):
+        for row in table:
+            d = row['Modifier']
+            result = row['Modified']
+            bounds = [int(b) for b in d.split('-')]
+            if bounds[0] <= roll <= bounds[1]:
+                return result
+
+    height_result = lookup(height_roll, height_table)
+    weight_result = lookup(weight_roll, weight_table)
+
+    height_result_list = height_result.split('+')
+    weight_result_list = weight_result.split('+')
+
+    height_base = height_result_list[0].split()
+    height_base_in = int( height_base[0] ) * 12 + int(height_base[2])
+    height_mod = height_result_list[1].replace(' in', '')
+    weight_base = weight_result_list[0].replace(' lbs', '')
+    weight_mod = weight_result_list[1].replace(' lbs', '')
+
+    height = height_base_in + Dice.rollString(height_mod)
+    weight = int(weight_base) + Dice.rollString(weight_mod)
+
+    last_height_roll = Dice.rollString('d6')
+    last_weight_roll = Dice.rollString('d6')
+
+    while last_height_roll == 1 or last_height_roll == 6:
+        height_sign = 1
+        if last_height_roll == 1:
+            height_sign = -1
+        height = height + height_sign * Dice.rollString('1d4')
+        last_height_roll = Dice.rollString('d6')
+
+    while last_weight_roll == 1 or last_weight_roll == 6:
+        weight_sign = 1
+        if last_weight_roll == 1:
+            weight_sign = -1
+        weight = weight + weight_sign * Dice.rollString('1d20')
+        last_weight_roll = Dice.rollString('d6')
+
+    height_tuple = (height // 12, height % 12)
+
+    return height_tuple, weight
+
+
+def add_character(character):
+    data_list = [
+        character['unique_id'],
+        character['Name'],
+        character['Level'],
+        character['XP'],
+        character['Gender'],
+        character['Alignment'],
+        character['Classes'],
+        character['Race'],
+        character['HP'],
+        character['Age'],
+        character['Height'],
+        character['Weight'],
+        '',
+        character['Portrait'],
+        character['Portrait_Image_Type'],
+        character['STR'],
+        character['INT'],
+        character['WIS'],
+        character['DEX'],
+        character['CON'],
+        character['CHA'],
+    ]
+
+    DbQuery.begin()
+    DbQuery.insertRow('Characters', data_list)
+
+    for meta_row in character['Characters_meta']:
+        data_list = [
+            meta_row['character_id'],
+            meta_row['Type'],
+            meta_row['Entry_ID'],
+            meta_row['Data'],
+            meta_row['Notes'],
+        ]
+        DbQuery.insertRow('Characters_meta', data_list)
+
+    DbQuery.commit()
+
+    return DbQuery.getTable('Characters')
