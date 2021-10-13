@@ -1,4 +1,5 @@
 import DbQuery
+import Dice
 import resources
 import SystemSettings
 import time
@@ -239,10 +240,19 @@ def cc_submit(environ):
         classes = full_class['unique_id']
         xp = '0'
 
-    attr_dict = SystemSettings.roll_attributes(None, race, full_class)
+    attr_dict = SystemSettings.adjust_attributes(
+        SystemSettings.roll_attributes(None, race, full_class),
+        race)
     hp = SystemSettings.roll_hp(attr_dict, 1, full_class)
     age = SystemSettings.roll_age(race, full_class)
     height, weight = SystemSettings.roll_height_weight(race, gender)
+
+    proficiency_choices = SystemSettings.get_proficiency_choices(full_class, race)
+    if 'classes' in full_class:
+        slots = max([cl['Initial_Weapon_Proficiencies'] for cl in full_class['classes']])
+    else:
+        slots = full_class['Initial_Weapon_Proficiencies']
+    proficiencies = Dice.get_random_items(proficiency_choices, slots)
 
     character_dict = {
         'unique_id': unique_id,
@@ -257,7 +267,7 @@ def cc_submit(environ):
         'Age': age,
         'Height': f'{height[0]}ft {height[1]}in',
         'Weight': f'{weight} lbs',
-        # 'Portrait': fields['Portrait'],
+        'Portrait': portrait,
         'Portrait_Image_Type': 'jpg',
         'STR': attr_dict['STR'],
         'INT': attr_dict['INT'],
@@ -275,6 +285,7 @@ def cc_submit(environ):
 {class_name}<br />
 {alignment}<br />
 <image src="data:image;base64,{portrait}" style="height: 150px;" /><br />
-{unique_id}
+{unique_id}<br />
+{'<br />'.join([p['Name'] for p in proficiencies])}
 </div>
 '''

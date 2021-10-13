@@ -1624,3 +1624,64 @@ def add_character(character):
     DbQuery.commit()
 
     return DbQuery.getTable('Characters')
+
+
+def starting_items_basic(full_class, race_dict):
+    if 'classes' in full_class:
+        classes = full_class['classes']
+    else:
+        classes = [full_class]
+    item_ids = []
+    if race_dict['unique_id'] == 'elf' and 'fighter' in full_class['unique_id']:
+        percent = Dice.randomInt(1, 100)
+        if percent <= 5:
+            item_ids.append('armour_elfin_chain')
+    if 'wizard' in [cl['Category'] for cl in classes]:
+        item_ids.append('spellbook')
+    if 'cleric' in full_class['unique_id']:
+        item_ids.append('holy_symbol_pewter')
+    if 'druid' in full_class['unique_id']:
+        item_ids.append('holy_symbol_wooden')
+    if 'rogue' in [cl['Category'] for cl in classes]:
+        item_ids.append('thieves_tools')
+
+    return item_ids
+
+
+def get_proficiency_choices(full_class, race_dict):
+    proficiency_table = [row for row in DbQuery.getTable('Items') if row['Is_Proficiency'].lower() == "yes"]
+    if 'classes' in full_class:
+        wp_list = [cl['Weapons_Permitted'] for cl in full_class['classes']]
+        weapons_permitted = race_wp(wp_list, race_dict['unique_id'], proficiency_table)
+    else:
+        weapons_permitted = [weapon.strip().lower() for weapon in full_class['Weapons_Permitted'].split(',')]
+    item_list = []
+    for item_dict in proficiency_table:
+        damage_type_list = [damage_type.strip().lower() for damage_type in item_dict['Damage_Type'].split(',')]
+        if 'any' in weapons_permitted:
+            item_list.append(item_dict)
+        elif any(weapon in item_dict['Name'].lower() for weapon in weapons_permitted):
+            item_list.append(item_dict)
+        elif [i for i in weapons_permitted if i in damage_type_list]:
+            item_list.append(item_dict)
+        elif 'single-handed swords (except bastard swords)' in weapons_permitted:
+            if item_dict['unique_id'].startswith('sword') and \
+                    'both-hand' not in damage_type_list and 'two-hand' not in damage_type_list:
+                item_list.append(item_dict)
+    return item_list
+
+
+def starting_items_add_random(full_class, item_ids=[]):
+    return item_ids
+
+
+def get_initial_wealth(full_class):
+    if 'classes' in full_class:
+        dice_strings = [cl['Initial_Wealth_GP'] for cl in full_class['classes']]
+        best_dice = Dice.get_best_dice(dice_strings)
+        initial_wealth_gp = Dice.rollString(best_dice)
+    else:
+        dice_string = full_class['Initial_Wealth_GP']
+        initial_wealth_gp = Dice.rollString(dice_string)
+
+    return initial_wealth_gp
