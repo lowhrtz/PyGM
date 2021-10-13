@@ -82,3 +82,7 @@ def get_best_dice(dice_string_list):
             best = dice_string
 
     return best
+
+
+def get_random_items(s, n=1):
+    return random.choices(s, k=n)
