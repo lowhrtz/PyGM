@@ -252,7 +252,7 @@ def cc_submit(environ):
         slots = max([cl['Initial_Weapon_Proficiencies'] for cl in full_class['classes']])
     else:
         slots = full_class['Initial_Weapon_Proficiencies']
-    proficiencies = Dice.get_random_items(proficiency_choices, slots)
+    proficiencies = Dice.get_random_items(proficiency_choices, slots, r=False)
 
     character_dict = {
         'unique_id': unique_id,
