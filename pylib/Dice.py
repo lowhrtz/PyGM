@@ -84,5 +84,15 @@ def get_best_dice(dice_string_list):
     return best
 
 
-def get_random_items(s, n=1):
-    return random.choices(s, k=n)
+def get_random_items(s, n=1, r=True):
+    """
+
+    :param s: sequence of items to choose from
+    :param n: number of choices to make (default: 1)
+    :param r: whether or not to repeat chosen elements (default: True)
+    :return: list of choices
+    """
+    if r:
+        return random.choices(s, k=n)
+    else:
+        return random.sample(s, k=n)
