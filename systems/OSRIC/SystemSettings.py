@@ -632,8 +632,8 @@ def get_spells_by_level(level, attr_dict, single_class_dict):
     primary = ''
     secondary = ''
     for row in single_class_dict['Classes_meta']:
-        if row['Type'] == 'xp table' and row['Level'].isdigit() and int(row['Level']) == level and row[
-            'Casting_Level'] > 0:
+        if row['Type'] == 'xp table' and row['Level'].isdigit() \
+                and int(row['Level']) == level and row['Casting_Level'] > 0:
             for i in range(1, 10):
                 primary_key = primary_spell_string.format(i)
                 secondary_key = secondary_spell_string.format(i)
@@ -844,6 +844,7 @@ def get_character_pdf_markup(character_dict):
         'CHA': character_dict['CHA'],
     }
 
+    gp = pp = ep = sp = cp = 0
     equip_id_list = []
     spellbook_id_list = []
     daily_spells_id_list = []
@@ -1597,7 +1598,7 @@ def add_character(character):
         character['Age'],
         character['Height'],
         character['Weight'],
-        '',
+        character['Background'],
         character['Portrait'],
         character['Portrait_Image_Type'],
         character['STR'],
@@ -1669,10 +1670,6 @@ def get_proficiency_choices(full_class, race_dict):
                     'both-hand' not in damage_type_list and 'two-hand' not in damage_type_list:
                 item_list.append(item_dict)
     return item_list
-
-
-def starting_items_add_random(full_class, item_ids=[]):
-    return item_ids
 
 
 def get_initial_wealth(full_class):

@@ -2,6 +2,7 @@ import DbQuery
 import Dice
 import resources
 import SystemSettings
+import WebApp
 import time
 from urllib.parse import parse_qs
 
@@ -112,6 +113,7 @@ function nextPrev(n) {
             "&gender=" + gender + "&alignment=" + alignment + "&portrait=" + portrait;
         // console.log(post);
         openItem("/cc_submit", post);
+        document.getElementById("main").innerHTML = "<h1>Loading Character...</h1>";
         return false;
     }
     
@@ -253,6 +255,8 @@ def cc_submit(environ):
     else:
         slots = full_class['Initial_Weapon_Proficiencies']
     proficiencies = Dice.get_random_items(proficiency_choices, slots, r=False)
+    equipment = SystemSettings.starting_items_basic(full_class, race)
+    equipment.extend([i['unique_id'] for i in Dice.get_random_items(proficiencies)])
 
     character_dict = {
         'unique_id': unique_id,
@@ -267,6 +271,7 @@ def cc_submit(environ):
         'Age': age,
         'Height': f'{height[0]}ft {height[1]}in',
         'Weight': f'{weight} lbs',
+        'Background': '',
         'Portrait': portrait,
         'Portrait_Image_Type': 'jpg',
         'STR': attr_dict['STR'],
@@ -275,17 +280,117 @@ def cc_submit(environ):
         'DEX': attr_dict['DEX'],
         'CON': attr_dict['CON'],
         'CHA': attr_dict['CHA'],
+        'Characters_meta': [],
     }
 
-    return f'''\
-<div style="text-align: center; font-size: 50px;">
-{name}<br />
-{gender}<br />
-{race_id}<br />
-{class_name}<br />
-{alignment}<br />
-<image src="data:image;base64,{portrait}" style="height: 150px;" /><br />
-{unique_id}<br />
-{'<br />'.join([p['Name'] for p in proficiencies])}
-</div>
-'''
+    def make_meta_row(data_list):
+        meta_row = {
+            'character_id': data_list[0],
+            'Type': data_list[1],
+            'Entry_ID': data_list[2],
+            'Data': data_list[3],
+            'Notes': data_list[4]
+        }
+        return meta_row
+
+    for e in equipment:
+        equip_data = [
+            unique_id,
+            'Equipment',
+            e,
+            '',
+            '',
+        ]
+        character_dict['Characters_meta'].append(make_meta_row(equip_data))
+
+    gp_data = [
+        unique_id,
+        'Treasure',
+        'gp',
+        SystemSettings.get_initial_wealth(full_class),
+        '',
+    ]
+    character_dict['Characters_meta'].append(make_meta_row(gp_data))
+
+    for p in proficiencies:
+        p_data = [
+            unique_id,
+            'Proficiency',
+            p['unique_id'],
+            'P',
+            '',
+        ]
+        character_dict['Characters_meta'].append(make_meta_row(p_data))
+
+    if 'classes' in full_class:
+        class_list = full_class['classes']
+    else:
+        class_list = [full_class]
+    spellbook = []
+    daily_1 = []
+    daily_2 = []
+    for i, c in enumerate(class_list):
+        if SystemSettings.has_spells_at_level(1, c):
+            spells = [s for s in DbQuery.getTable('Spells') if s['Type'] == c['unique_id'] and s['Level'] == 1]
+            if c['Category'] == 'wizard':
+                slots = 4
+                if c['unique_id'] == 'magic_user':
+                    slots = 3
+                    for j, s in enumerate(spells):
+                        if s['spell_id'] == 'read_magic':
+                            spellbook.append(spells.pop(j))
+                            break
+                spellbook.extend(Dice.get_random_items(spells, slots, False))
+                spells = spellbook
+            if i == 0:
+                slots = SystemSettings.get_xp_table_row(1, c)['Level_1_Spells']
+                daily_1.extend(Dice.get_random_items(spells, slots))
+            else:
+                slots = SystemSettings.get_xp_table_row(1, c)['Level_1_Spells']
+                daily_2.extend(Dice.get_random_items(spells, slots))
+    for s in spellbook:
+        s_data = [
+            unique_id,
+            'Spellbook',
+            s['spell_id'],
+            '',
+            '',
+        ]
+        character_dict['Characters_meta'].append(make_meta_row(s_data))
+    for d in daily_1:
+        d_data = [
+            unique_id,
+            'DailySpells',
+            d['spell_id'],
+            '',
+            '',
+        ]
+        character_dict['Characters_meta'].append(make_meta_row(d_data))
+    for d in daily_2:
+        d_data = [
+            unique_id,
+            'DailySpells2',
+            d['spell_id'],
+            '',
+            '',
+        ]
+        character_dict['Characters_meta'].append(make_meta_row(d_data))
+
+    SystemSettings.add_character(character_dict)
+    DbQuery.insertRow('WebApp', [environ['REMOTE_ADDR'], unique_id])
+    DbQuery.commit()
+
+    return WebApp.get_character_html(character_dict)
+
+#     return f'''\
+# <div style="text-align: center; font-size: 50px;">
+# {name}<br />
+# {gender}<br />
+# {race_id}<br />
+# {class_name}<br />
+# {alignment}<br />
+# <image src="data:image;base64,{portrait}" style="height: 150px;" /><br />
+# {unique_id}<br />
+# {'<br />'.join([p['Name'] for p in proficiencies])}
+# </div>
+# '''
