@@ -81,7 +81,7 @@ class EncounterTrackerWizard(Wizard):
             if current_hp > 0:
                 xp_eligible.append(pc)
         num_of_eligible = len(xp_eligible)
-        xp_per = xp_total // num_of_eligible
+        xp_per = xp_total // num_of_eligible if num_of_eligible else 0
         # print(xp_total, num_of_eligible, xp_per)
         from decimal import Decimal
         for pc in xp_eligible:
