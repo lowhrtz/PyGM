@@ -6,7 +6,7 @@ import json
 import re
 import time
 from Common import callback_factory_2param
-from GuiDefs import *
+from GuiDefs import Action, DiceWindow, Menu, Widget, Wizard, WizardPage
 from ManageDefs import Manage
 import Treasure
 
