@@ -1196,8 +1196,12 @@ class Campaigns(Manage):
 
             # Define Internal Functions
             def fill_pc_list(_fields):
+                char_table = DbQuery.getTable('Characters')
+                char_indexed = {c['unique_id']: c for c in char_table}
+                pcl = [char_indexed[pc['unique_id']] for pc in extern['PCs']]
                 return {
-                    'PC List': extern['PCs'],
+                    # 'PC List': extern['PCs'],
+                    'PC List': pcl,
                     'Party CP': pt['cp'],
                     'Party SP': pt['sp'],
                     'Party EP': pt['ep'],
