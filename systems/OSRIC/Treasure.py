@@ -36,7 +36,7 @@ def get_xp_value(treasure_dict):
     total_xp_value = int(coin_xp_value)
 
     for item in treasure_dict.get('items', []):
-        item_value = item['Value'].replace(',', '').strip() or convert_cost_string(['Cost'])
+        item_value = str(item['Value']).replace(',', '').strip() or convert_cost_string(['Cost'])
         if not item_value:
             continue
         if type(item_value) is str and not item_value.isdigit():
