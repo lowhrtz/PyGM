@@ -180,7 +180,7 @@ class ChooseMethodPage(WizardPage):
     def __init__(self):
         super().__init__(1, 'Choose Method')
 
-        self.set_subtitle('You must choose but choose wizely.')
+        self.set_subtitle('You must choose but choose wisely.')
 
         empty = Widget('', 'Empty')
         self.add_row([empty, ])
