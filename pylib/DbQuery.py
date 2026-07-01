@@ -17,7 +17,7 @@ def initDB(path):
     DB = sqlite3.connect(path)
     DB.row_factory = dict_factory
     if reset:
-        from Dialogs import ProgressDialog
+        from .Dialogs import ProgressDialog
         table_count = 0
         for k, v in Db.__dict__.items():
             if inspect.isclass(v) and issubclass(v, DbDefs.Table) and v.table_name != DbDefs.Table.table_name:
@@ -27,8 +27,8 @@ def initDB(path):
                                   'Please wait while the database is being prepared for first use.',
                                   value_range, resetDB, None)
         progress.forceShow()
-        from PyQt5 import QtCore
-        progress.setWindowModality(QtCore.Qt.WindowModal)
+        from PyQt6 import QtCore
+        progress.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
         progress.setValue(0)
         progress.start_generator()
 
