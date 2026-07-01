@@ -1,28 +1,28 @@
 import inspect
 import os
-import PyQt5.QtCore as QtCore
-from PyQt5.QtCore import pyqtSignal, QTimer
-from PyQt5.QtWidgets import (QMainWindow, QAction, QWidget, QTabWidget,
-                             QDesktopWidget, QHBoxLayout, QVBoxLayout, QGridLayout,
+import SystemSettings
+import Db
+import DbLayout
+import Manage
+from PyQt6 import QtCore
+from PyQt6.QtCore import pyqtSignal, QIODeviceBase, QMarginsF, QTimer
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QTabWidget,
+                             QHBoxLayout, QVBoxLayout, QGridLayout,
                              QScrollArea, QWizard, QWizardPage, QPushButton, QCheckBox,
                              QLabel, QListWidget, QListWidgetItem, QLineEdit, QTextEdit,
                              QFrame, QComboBox, QSpinBox, QRadioButton, QButtonGroup,
                              QFileDialog, QColorDialog
                              )
-from PyQt5.QtGui import QIcon, QPixmap, QFont, QTextDocument, QDrag
-from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer
-from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog
-import DbDefs
-import SystemSettings
-import Db
-import DbLayout
-import DbQuery
-import Manage
-import ManageDefs
-import resources
-from Common import (find_image, get_pixmap_from_base64, get_default_pixmap, callback_factory,
+from PyQt6.QtGui import QAction, QIcon, QPageSize, QPageLayout, QPixmap, QFont, QTextDocument, QDrag
+from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer
+from PyQt6.QtPrintSupport import QPrinter, QPrintPreviewDialog
+from . import DbDefs
+from . import DbQuery
+from . import ManageDefs
+from . import resources
+from .Common import (find_image, get_pixmap_from_base64, get_default_pixmap, callback_factory,
                     fill_listbox, add_item_to_listbox, remove_item_from_listbox, get_pixmap_from_hex_color)
-from Dialogs import YesNoDialog, EntryDialog, DualListDialog, ProgressDialog
+from .Dialogs import YesNoDialog, EntryDialog, DualListDialog, ProgressDialog, HtmlViewer
 
 
 SYSTEM_PATH = None
@@ -35,7 +35,8 @@ class CenterableWindow(QMainWindow):
 
     def center(self):
         qt_rectangle = self.frameGeometry()
-        center_point = QDesktopWidget().availableGeometry().center()
+        screen = QApplication.primaryScreen()
+        center_point = screen.availableGeometry().center()
         qt_rectangle.moveCenter(center_point)
         self.move(qt_rectangle.topLeft())
 
@@ -50,7 +51,6 @@ class MainWindow(CenterableWindow):
         SYSTEM_PATH = system_path
         SystemSettings.init_system_path(system_path)
 
-        # exitAct = QAction( QIcon( 'exit.png' ), 'Exit', self )
         exit_action = QAction('Exit', self)
         exit_action.setShortcut('Ctrl+Q')
         exit_action.setStatusTip('Exit application')
@@ -97,7 +97,7 @@ class MainWindow(CenterableWindow):
 
     def reset_db(self):
         dialog = YesNoDialog('Reset Database', 'Are you sure you want to reset the database?', self)
-        accepted = dialog.exec_()
+        accepted = dialog.exec()
         # print( accepted )
         if accepted:
             table_count = 0
@@ -109,7 +109,7 @@ class MainWindow(CenterableWindow):
                                       'Please wait while the database is being reset.',
                                       value_range, DbQuery.resetDB, self)
             progress.forceShow()
-            progress.setWindowModality(QtCore.Qt.WindowModal)
+            progress.setWindowModality(QtCore.Qt.WindowModality.WindowModal)
             progress.setValue(0)
             progress.start_generator()
             # reset_db is a generator so it must be iterated over
@@ -140,7 +140,7 @@ class DbWindow(CenterableWindow):
         self.table_name = table_name
         self.parent = parent
 
-        self.setWindowModality(QtCore.Qt.ApplicationModal)
+        self.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
         self.table = DbQuery.getTable(table_name)
         cols = DbQuery.getCols(table_name)
 
@@ -151,7 +151,7 @@ class DbWindow(CenterableWindow):
         # pixmap = QPixmap( find_image( parent.system_path, table_name, '$dummy$' ) )
         pixmap = get_pixmap_from_base64(resources.noImage_jpg)
         portrait.setPixmap(pixmap)
-        left_layout.addWidget(portrait, alignment=QtCore.Qt.AlignCenter)
+        left_layout.addWidget(portrait, alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
 
         self.listbox = listbox = QListWidget(self)
         listbox.currentRowChanged.connect(self.fill_fields)
@@ -159,7 +159,7 @@ class DbWindow(CenterableWindow):
         for row in self.table:
             item = QListWidgetItem()
             item.setText(row[display_col])
-            item.setData(QtCore.Qt.UserRole, row)
+            item.setData(QtCore.Qt.ItemDataRole.UserRole, row)
             listbox.addItem(item)
         left_layout.addWidget(listbox)
         layout.addLayout(left_layout)
@@ -194,7 +194,7 @@ class DbWindow(CenterableWindow):
 
     def fill_fields(self, row_index):
         item = self.listbox.item(row_index)
-        row = item.data(QtCore.Qt.UserRole)
+        row = item.data(QtCore.Qt.ItemDataRole.UserRole)
         for field_name, widget in self.widget_registry.items():
             widget.setText(str(row[field_name]))
 
@@ -204,7 +204,7 @@ class DbWindow(CenterableWindow):
             image_path = find_image(self.parent.system_path, self.table_name, row[unique_col])
             pixmap = QPixmap(image_path)
             if pixmap.height() > 200 or pixmap.width() > 200:
-                pixmap = pixmap.scaled(200, 200, QtCore.Qt.KeepAspectRatio)
+                pixmap = pixmap.scaled(200, 200, QtCore.Qt.AspectRatioMode.KeepAspectRatio)
         else:
             base64 = row[base64_image_col]
             pixmap = get_pixmap_from_base64(base64)
@@ -221,10 +221,11 @@ class WidgetRegistry(dict):
 
     def register_widget(self, widget, gui_wizard_page=None):
         field_name = widget.get_field_name()
-        hide_field = False
-        if field_name.endswith('_'):
-            hide_field = True
-            field_name = field_name[:-1]
+        #hide_field = False
+        #if field_name.endswith('_'):
+        #    hide_field = True
+        #    field_name = field_name[:-1]
+        hide_field = widget.get_hide_field_name()
         widget_type = widget.get_widget_type()
         widget_width = widget.get_width()
         is_enabled = widget.is_edit_enabled()
@@ -282,11 +283,11 @@ class WidgetRegistry(dict):
                 qt_widget.setToolTip(widget_tool_tip)
             if not hide_field:
                 if not stretch:
-                    widget_layout.addWidget(QLabel(field_name), 1, QtCore.Qt.AlignRight)
+                    widget_layout.addWidget(QLabel(field_name), 1, QtCore.Qt.AlignmentFlag.AlignRight)
                 else:
                     widget_layout.addWidget(QLabel(field_name))
             if not stretch:
-                widget_layout.addWidget(qt_widget, 1, QtCore.Qt.AlignLeft)
+                widget_layout.addWidget(qt_widget, 1, QtCore.Qt.AlignmentFlag.AlignLeft)
             else:
                 widget_layout.addWidget(qt_widget)
             if gui_wizard_page:
@@ -360,7 +361,7 @@ class WidgetRegistry(dict):
                         qt_widget.addItem(item)
                     elif type(item) is dict:
                         # import DbQuery here because it will fail if imported at the top of the module
-                        import DbQuery
+                        from pylib import DbQuery
                         table_name = item['TableName']
                         display_col = DbQuery.getDisplayCol(table_name)
                         display = item[display_col]
@@ -471,7 +472,7 @@ class WidgetRegistry(dict):
             # slots_label = QLabel( '<b>{}:</b>{}'.format( slots_name, slots_return ), self.parent )
             slots_label = QLabel('', self.parent)
             qt_widget.slots_label = slots_label
-            widget_layout.addWidget(slots_label, 1, QtCore.Qt.AlignCenter)
+            widget_layout.addWidget(slots_label, 1, QtCore.Qt.AlignmentFlag.AlignCenter)
 
             list_layout = QHBoxLayout()
             button_layout = QVBoxLayout()
@@ -488,7 +489,7 @@ class WidgetRegistry(dict):
                 if current_list.currentRow() == -1:
                     return
                 current_item = current_list.currentItem()
-                current_data = current_item.data(QtCore.Qt.UserRole)
+                current_data = current_item.data(QtCore.Qt.ItemDataRole.UserRole)
                 if gui_wizard_page:
                     add_return = add(current_data, self.get_fields(),
                                      gui_wizard_page.wizard_pages, gui_wizard_page.external_data)
@@ -520,7 +521,7 @@ class WidgetRegistry(dict):
                 if chosen_list.currentRow() == -1:
                     return
                 current_item = chosen_list.currentItem()
-                current_data = current_item.data(QtCore.Qt.UserRole)
+                current_data = current_item.data(QtCore.Qt.ItemDataRole.UserRole)
                 if gui_wizard_page:
                     remove_return = remove(current_data, self.get_fields(), gui_wizard_page.wizard_pages, gui_wizard_page.external_data)
                 else:
@@ -627,7 +628,7 @@ class WidgetRegistry(dict):
 
             def select_resource():
                 current_item = qt_widget.currentItem()
-                resource = current_item.data(QtCore.Qt.UserRole)
+                resource = current_item.data(QtCore.Qt.ItemDataRole.UserRole)
                 res_type, res_data = widget.data(resource, self.get_fields())
                 if res_type.lower() == 'image':
                     res_view.setPixmap(get_pixmap_from_base64(res_data))
@@ -635,22 +636,23 @@ class WidgetRegistry(dict):
                     res_view.setPixmap(get_pixmap_from_base64(resources.font_png))
                 elif res_type.lower() == 'audio':
                     res_view.setPixmap(get_pixmap_from_base64(resources.volume_png))
-                    player = QMediaPlayer(qt_widget)
+                    self.player = QMediaPlayer(qt_widget)
+                    self.audio_output = QAudioOutput()
+                    self.player.setAudioOutput(self.audio_output)
                     self.byte_array = QtCore.QByteArray.fromBase64(res_data.encode())
                     self.buffer = QtCore.QBuffer()
                     self.buffer.setData(self.byte_array)
-                    self.buffer.open(QtCore.QIODevice.ReadOnly)
-                    player.setMedia(QMediaContent(), self.buffer)
-                    player.play()
+                    self.buffer.open(QIODeviceBase.OpenModeFlag.ReadOnly)
+                    self.player.setSourceDevice(self.buffer)
+                    self.player.play()
             qt_widget.clicked.connect(select_resource)
             qt_widget.itemSelectionChanged.connect(select_resource)
 
         elif widget_type.lower() == 'hr':
             widget_layout = QHBoxLayout()
             hr = QFrame(self.parent)
-            # hr.setGeometry( QtCore.QRect( 0, 0, 20, 1 ) )
-            hr.setFrameShape(QFrame.HLine)
-            hr.setFrameShadow(QFrame.Sunken)
+            hr.setFrameShape(QFrame.Shape.HLine)
+            hr.setFrameShadow(QFrame.Shadow.Sunken)
             hr.setLineWidth(2)
             hr.setMidLineWidth(1)
             widget_layout.addWidget(hr)
@@ -718,12 +720,12 @@ class WidgetRegistry(dict):
                 item_list = []
                 for i in range(widget.count()):
                     item = widget.item(i)
-                    item_list.append(item.data(QtCore.Qt.UserRole))
+                    item_list.append(item.data(QtCore.Qt.ItemDataRole.UserRole))
                 fields[k] = item_list
                 current_item = widget.currentItem()
                 data = None
                 if current_item:
-                    data = current_item.data(QtCore.Qt.UserRole)
+                    data = current_item.data(QtCore.Qt.ItemDataRole.UserRole)
                     if data is None:
                         data = current_item.text()
                 fields['{} Current'.format(k)] = data
@@ -734,7 +736,7 @@ class WidgetRegistry(dict):
                 item_list = []
                 for i in range(widget.count()):
                     item = widget.item(i)
-                    item_list.append(item.data(QtCore.Qt.UserRole))
+                    item_list.append(item.data(QtCore.Qt.ItemDataRole.UserRole))
                 fields[k] = item_list
         return fields
 
@@ -881,19 +883,19 @@ class WidgetRegistry(dict):
                 default_filename = callback_return[0]
                 pdf_markup = callback_return[1]
                 # print( pdf_markup )
-                font = QFont('Times New Roman', 10, QFont.Normal)
+                font = QFont('Times New Roman', 10, QFont.Weight.Normal)
                 document = QTextDocument()
                 document.setDefaultFont(font)
                 # Added to fix line-wrapping issue with p tags in PDFs
                 document.setDefaultStyleSheet("p, li { white-space: normal; }");
                 document.setHtml(pdf_markup)
-                printer = QPrinter(QPrinter.PrinterResolution)
-                printer.setOutputFormat(QPrinter.PdfFormat)
-                printer.setPaperSize(QPrinter.A4)
+                printer = QPrinter(QPrinter.PrinterMode.ScreenResolution)
+                printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
+                printer.setPageSize(QPageSize(QPageSize.PageSizeId.A4))
                 printer.setOutputFileName(default_filename)
-                printer.setPageMargins(15, 15, 15, 15, QPrinter.Point)
-                printer.setColorMode(QPrinter.Color)
-                document.setPageSize(QtCore.QSizeF(printer.pageRect().size()))  # This disables printing the page number
+                printer.setPageMargins(QMarginsF(15, 15, 15, 15), QPageLayout.Unit.Point)
+                printer.setColorMode(QPrinter.ColorMode.Color)
+                document.setPageSize(QtCore.QSizeF(printer.pageRect(QPrinter.Unit.Point).size()))  # This disables printing the page number
                 if action_type.lower() == 'savepdf':
                     # print( 'savepdf' )
                     filename, _ = QFileDialog.getSaveFileName(self.parent, 'Save', default_filename,
@@ -905,7 +907,20 @@ class WidgetRegistry(dict):
                 else:
                     preview_dialog = QPrintPreviewDialog(printer)
                     preview_dialog.paintRequested.connect(lambda prntr: document.print(prntr))
-                    preview_dialog.exec_()
+                    preview_dialog.exec()
+
+
+        elif action_type.lower() == 'htmlviewer':
+            if callback is not None:
+                if gui_wizard_page:
+                    callback_return = callback(fields, gui_wizard_page.wizard_pages, gui_wizard_page.external_data)
+                else:
+                    callback_return = callback(fields)
+                if type(callback_return).__name__ != 'tuple' or len(callback_return) == 0:
+                    return
+                title, pdf_markup = callback_return
+                htmlviewer_dialog = HtmlViewer(title, pdf_markup, self.parent)
+                htmlviewer_dialog.exec()
 
         elif action_type.lower() == 'entrydialog':
             # print( 'entrydialog' )
@@ -942,7 +957,7 @@ class WidgetRegistry(dict):
                 image_widget = self[widget2_field_name].qt_widget
                 image_data = image_widget.base64
                 dialog = EntryDialog(title, EntryDialog.IMAGE, value, parent, image_data)
-            accepted = dialog.exec_()
+            accepted = dialog.exec()
             if accepted and callback:
                 callback_return = callback(value[0], fields)
                 self.fill_fields(callback_return)
@@ -958,10 +973,10 @@ class WidgetRegistry(dict):
             listbox = self[widget2_field_name].qt_widget
             owned_items = []
             for i in range(listbox.count()):
-                item_data = listbox.item(i).data(QtCore.Qt.UserRole)
+                item_data = listbox.item(i).data(QtCore.Qt.ItemDataRole.UserRole)
                 owned_items.append(item_data)
             dialog = DualListDialog(title, owned_items, action.get_data(), fields, parent)
-            accepted = dialog.exec_()
+            accepted = dialog.exec()
             if accepted and callback:
                 callback_return = callback(dialog.get_item_list(), fields)
                 self.fill_fields(callback_return)
@@ -1026,7 +1041,7 @@ class WidgetRegistry(dict):
             # parent = self[ widget2_field_name ].qt_widget.parent()
             gui_wizard = GuiWizard(wizard, self.get_fields(), self.parent)
             if wizard.get_modality().lower() == 'block':
-                if gui_wizard.exec_():
+                if gui_wizard.exec():
                     accept_return = gui_wizard.get_accept_return()
                     if callback:
                         callback_return = callback(accept_return, self.get_fields())
@@ -1058,13 +1073,15 @@ class WidgetRegistry(dict):
                 playsound_callback_return = callback(self.get_fields(), gui_wizard_page.wizard_pages, gui_wizard_page.external_data)
             else:
                 playsound_callback_return = callback(self.get_fields())
-            player = QMediaPlayer(widget1.qt_widget)
+            self.player = QMediaPlayer(widget1.qt_widget)
+            self.audio_output = QAudioOutput()
+            self.player.setAudioOutput(self.audio_output)
             self.byte_array = QtCore.QByteArray.fromBase64(playsound_callback_return.encode())
             self.buffer = QtCore.QBuffer()
             self.buffer.setData(self.byte_array)
-            self.buffer.open(QtCore.QIODevice.ReadOnly)
-            player.setMedia(QMediaContent(), self.buffer)
-            player.play()
+            self.buffer.open(QIODeviceBase.OpenModeFlag.ReadOnly)
+            self.player.setSourceDevice(self.buffer)
+            self.player.play()
 
         elif action_type.lower() == 'callbackonly':
             if callback:
@@ -1111,19 +1128,19 @@ class ManageWindow(CenterableWindow):
             for j, widget in enumerate(row):
                 widget_layout = self.widget_registry.register_widget(widget)
                 if widget.get_align() is None:
-                    align = QtCore.Qt.AlignLeft
+                    align = QtCore.Qt.AlignmentFlag.AlignLeft
                 elif widget.get_align().lower() == 'center':
-                    align = QtCore.Qt.AlignCenter
+                    align = QtCore.Qt.AlignmentFlag.AlignCenter
                 elif widget.get_align().lower() == 'left':
-                    align = QtCore.Qt.AlignLeft
+                    align = QtCore.Qt.AlignmentFlag.AlignLeft
                 elif widget.get_align().lower() == 'right':
-                    align = QtCore.Qt.AlignRight
+                    align = QtCore.Qt.AlignmentFlag.AlignRight
                 elif widget.get_align().lower() == 'top':
-                    align = QtCore.Qt.AlignTop
+                    align = QtCore.Qt.AlignmentFlag.AlignTop
                 elif widget.get_align().lower() == 'bottom':
-                    align = QtCore.Qt.AlignBottom
+                    align = QtCore.Qt.AlignmentFlag.AlignBottom
                 else:
-                    align = QtCore.Qt.AlignLeft
+                    align = QtCore.Qt.AlignmentFlag.AlignLeft
 
                 if widget_layout is not None:
                     layout.addLayout(widget_layout, i, j, widget.get_row_span(), widget.get_col_span(), align)
@@ -1160,7 +1177,7 @@ class ManageWindow(CenterableWindow):
         self.widget_registry.fill_menu_bar(self.menuBar(), menu_list, self)
 
         if manage.get_modality() == 'block':
-            self.setWindowModality(QtCore.Qt.ApplicationModal)
+            self.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
         self.setWindowTitle(title)
         self.onshow.emit()
         self.show()
@@ -1197,7 +1214,7 @@ class GuiWizard(QWizard):
         self.external_data = external_data
         self.accept_method = wizard.accept
         self.accept_return = None
-        self.setWizardStyle(QWizard.ClassicStyle)
+        #self.setWizardStyle(QWizard.ClassicStyle)
         self.setWindowTitle(title)
         self.pages = pages = {}
         for page in wizard_pages:
@@ -1238,19 +1255,19 @@ class GuiWizardPage(QWizardPage):
             for j, widget in enumerate(row):
                 widget_layout = widget_registry.register_widget(widget, gui_wizard_page=self)
                 if widget.get_align() is None:
-                    align = QtCore.Qt.AlignLeft
+                    align = QtCore.Qt.AlignmentFlag.AlignLeft
                 elif widget.get_align().lower() == 'center':
-                    align = QtCore.Qt.AlignCenter
+                    align = QtCore.Qt.AlignmentFlag.AlignCenter
                 elif widget.get_align().lower() == 'left':
-                    align = QtCore.Qt.AlignLeft
+                    align = QtCore.Qt.AlignmentFlag.AlignLeft
                 elif widget.get_align().lower() == 'right':
-                    align = QtCore.Qt.AlignRight
+                    align = QtCore.Qt.AlignmentFlag.AlignRight
                 elif widget.get_align().lower() == 'top':
-                    align = QtCore.Qt.AlignTop
+                    align = QtCore.Qt.AlignmentFlag.AlignTop
                 elif widget.get_align().lower() == 'bottom':
-                    align = QtCore.Qt.AlignBottom
+                    align = QtCore.Qt.AlignmentFlag.AlignBottom
                 else:
-                    align = QtCore.Qt.AlignLeft
+                    align = QtCore.Qt.AlignmentFlag.AlignLeft
                 if widget_layout is not None:
                     grid_layout.addLayout(widget_layout, i, j, widget.get_row_span(), widget.get_col_span(), align)
         self.setLayout(grid_layout)
@@ -1346,7 +1363,7 @@ class DragImage(QLabel):
 
     def mousePressEvent(self, mouse_event):
         # print('mouse_event')
-        if mouse_event.button() != QtCore.Qt.LeftButton:
+        if mouse_event.button() != QtCore.Qt.MouseButton.LeftButton:
             return
         drag = QDrag(self)
         mime_data = QtCore.QMimeData()
@@ -1357,4 +1374,4 @@ class DragImage(QLabel):
         mime_data.setProperty('value', field_value)
         drag.setMimeData(mime_data)
         drag.setPixmap(get_pixmap_from_base64(self.image_data))
-        drag.exec_()
+        drag.exec()

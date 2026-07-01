@@ -1,4 +1,4 @@
-from qr_builder import gen_qr_code
+from .qr_builder import gen_qr_code
 
 
 def get_qr_image(text):

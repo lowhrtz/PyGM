@@ -1,10 +1,28 @@
 import os
-import Dice
-import resources
-import PyQt5.QtCore as QtCore
-from PyQt5.QtWidgets import QListWidgetItem
-from PyQt5.QtGui import QColor, QImage, QPixmap
+from . import Dice
+from . import resources
+from PyQt6 import QtCore
+from PyQt6.QtWidgets import QListWidgetItem
+from PyQt6.QtGui import QColor, QImage, QPixmap
 
+
+def get_mimetype_from_base64(b64, extension_list=None):
+    mime_list = {
+             'JVBERi0': 'application/pdf',
+             'R0lGODdh': 'image/gif',
+             'R0lGODlh': 'image/gif',
+             'iVBORw0KGgo': 'image/png',
+             '/9j/': 'image/jpg',
+             #'': '',
+            }
+    if extension_list is not None:
+        mime_list += extension_list
+
+    for b64_header in list(mime_list.keys()):
+        if b64.startswith(b64_header):
+            return mime_list[b64_header]
+
+    return 'application/octet-stream'
 
 def find_image(system_path, table_name, unique_id):
     extensions = ['jpg', 'jpeg', 'gif', 'png', ]
@@ -15,15 +33,13 @@ def find_image(system_path, table_name, unique_id):
         if os.path.isfile(full_name):
             return full_name
 
-    for ext in extensions:
-        # default_image = os.path.join( THIS_DIR, '{}/portraits/default.{}'.format( system_path, ext ) )
-        default_image = os.path.join(system_path, 'portraits/default.{}'.format(ext))
-        if os.path.isfile(default_image):
-            return default_image
+    #for ext in extensions:
+    #    # default_image = os.path.join( THIS_DIR, '{}/portraits/default.{}'.format( system_path, ext ) )
+    #    default_image = os.path.join(system_path, 'portraits/default.{}'.format(ext))
+    #    if os.path.isfile(default_image):
+    #        return default_image
 
-    system_parent = os.path.abspath(os.path.join(system_path, os.pardir))
-    base_dir = os.path.abspath(os.path.join(system_parent, os.pardir))
-    return os.path.join(base_dir, 'images/noImage.jpg')
+    return get_default_pixmap(system_path)
 
 
 def get_default_pixmap(system_path):
@@ -41,12 +57,12 @@ def get_pixmap_from_base64(base64):
     image = QImage.fromData(byte_array)
     pixmap = QPixmap(image)
     if pixmap.height() > 200 or pixmap.width() > 200:
-        pixmap = pixmap.scaled(200, 200, QtCore.Qt.KeepAspectRatio)
+        pixmap = pixmap.scaled(200, 200, QtCore.Qt.AspectRatioMode.KeepAspectRatio)
     return pixmap
 
 
 def get_pixmap_from_hex_color(hex_color, width=200, height=200):
-    image = QImage(width, height, QImage.Format_RGB888)
+    image = QImage(width, height, QImage.Format.Format_RGB888)
     color = QColor(hex_color)
     for y in range(height):
         for x in range(width):
@@ -82,18 +98,18 @@ def add_item_to_listbox(listbox, item, tool_tip=None, fields=None, original_list
         item_dict = item
         table_name = item['TableName']
         # Import DbQuery now because it will fail on initial loading of this module
-        import DbQuery
+        from . import DbQuery
         display_col = DbQuery.getDisplayCol(table_name)
         display = item[display_col]
         list_item = QListWidgetItem()
         list_item.setText(display)
-        list_item.setData(QtCore.Qt.UserRole, item)
+        list_item.setData(QtCore.Qt.ItemDataRole.UserRole, item)
     elif type(item).__name__ == 'tuple':
         display = item[0]
         item_dict = item[1]
         list_item = QListWidgetItem()
         list_item.setText(display)
-        list_item.setData(QtCore.Qt.UserRole, item_dict)
+        list_item.setData(QtCore.Qt.ItemDataRole.UserRole, item_dict)
     else:
         print('Wrong format for item: {}\nExpected str, dict or tuple got {}'.format(item, type(item).__name__))
         return

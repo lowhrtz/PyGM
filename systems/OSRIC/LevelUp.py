@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-import DbQuery
-import Dice
+from pylib import DbQuery
+from pylib import Dice
+from pylib.GuiDefs import *
 import SystemSettings
-from GuiDefs import *
 
 
 class LevelUpWizard(Wizard):
@@ -66,11 +66,11 @@ class IntroPage(WizardPage):
         super().__init__(0, 'Level Up')
         self.set_subtitle('Level-up Wizard')
 
-        text = Widget('Intro Text', 'TextLabel',
-                      align='Center', data='There are one or more classes ready to level up for this character!')
+        text = TextLabel('Intro Text', align='Center', 
+                         data='There are one or more classes ready to level up for this character!')
         self.add_row([text])
 
-        text2 = Widget('Intro Text2', 'TextLabel', align='Center', data='Click <b>Next</b> to continue.')
+        text2 = TextLabel('Intro Text2', align='Center', data='Click <b>Next</b> to continue.')
         self.add_row([text2])
 
         self.ready_list = None
@@ -153,7 +153,7 @@ class SpellbookPage(WizardPage):
             'add': self.add_spell,
             'remove': self.remove_spell,
         }
-        sb_list = Widget('Spellbook', 'DualList', align='Center', data=sb_data)
+        sb_list = DualList('Spellbook', align='Center', data=sb_data)
 
         self.add_row([sb_list, ])
 
@@ -250,7 +250,7 @@ class DailySpellsPage(WizardPage):
             self.field_name = field_name = 'Daily Spells2'
         else:
             self.field_name = field_name = 'Daily Spells3'
-        ds_list = Widget(field_name, 'DualList', data=ds_data)
+        ds_list = DualList(field_name, data=ds_data)
         self.add_row([ds_list, ])
 
         # self.attr_dict = None
@@ -540,7 +540,7 @@ class ProficiencyPage(WizardPage):
             'add': self.add_proficiency,
             'remove': self.remove_proficiency,
         }
-        proficiencies = Widget('Proficiencies', 'DualList', data=prof_data)
+        proficiencies = DualList('Proficiencies', data=prof_data)
 
         self.add_row([proficiencies, ])
 
@@ -708,16 +708,15 @@ class ReviewPage(WizardPage):
         super().__init__(6, 'Review')
         self.set_subtitle('Make sure you like what you see')
 
-        hp_review = Widget('HP Review', 'TextLabel', align='Center')
+        hp_review = TextLabel('HP Review', align='Center')
 
         self.add_row([hp_review, ])
 
-        proficiency_review = Widget('Proficiency Review', 'TextLabel', align='Center')
+        proficiency_review = TextLabel('Proficiency Review', align='Center')
 
         self.add_row([proficiency_review, ])
 
-        daily_spells_review = Widget('Daily Spells Review', 'TextLabel', align='Center')
-        # daily_spells2_review = Widget('Daily Spells2 Review', 'TextLabel', align='Center')
+        daily_spells_review = TextLabel('Daily Spells Review', align='Center')
 
         self.add_row([daily_spells_review, ])
 

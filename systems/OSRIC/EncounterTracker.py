@@ -1,14 +1,14 @@
-from copy import copy  # , deepcopy
-import Dice
-import SystemSettings
-import DbQuery
 import json
 import re
 import time
-from Common import callback_factory_2param
-from GuiDefs import Action, DiceWindow, Menu, Widget, Wizard, WizardPage
-from ManageDefs import Manage
+import SystemSettings
 import Treasure
+from copy import copy  # , deepcopy
+from pylib import Dice
+from pylib import DbQuery
+from pylib.Common import callback_factory_2param
+from pylib.GuiDefs import *
+from pylib.ManageDefs import Manage
 
 
 class EncounterTrackerWizard(Wizard):
@@ -117,7 +117,7 @@ The encounter is about to begin. Remember the order of events:<ol><li>Determine 
 <li>Party with initiative acts first and results take effect</li>
 <li>Party that lost initiative acts and results take effect</li>
 <li>The round is complete (start the next round on step 2)</li></ol>'''
-        intro_text = Widget('Intro Text', 'TextLabel', align='Center', data=info)
+        intro_text = TextLabel('Intro Text', align='Center', data=info)
 
         # Add Actions
 
@@ -202,16 +202,14 @@ Special Defences: {special_defences}<br /><br />
                 return pc_tool_tip(enemy, _fields, _pages, _external)
 
         # Define Widgets
-        pc_team_surprise = Widget('PC Team Surprise', 'SpinBox')
-        open_hp_tracker_button = Widget('Open HP Tracker', 'PushButton', align='Right')
-        pc_team = Widget('PC Team', 'ListBox', tool_tip=pc_tool_tip, col_span=2)
-        monster_team_surprise = Widget('Monster Team Surprise', 'SpinBox')
-        monster_team = Widget('Monster Team', 'ListBox', tool_tip=enemy_tool_tip, col_span=2)
+        pc_team_surprise = SpinBox('PC Team Surprise')
+        open_hp_tracker_button = PushButton('Open HP Tracker', align='Right')
+        pc_team = ListBox('PC Team', tool_tip=pc_tool_tip, col_span=2)
+        monster_team_surprise = SpinBox('Monster Team Surprise')
+        monster_team = ListBox('Monster Team', tool_tip=enemy_tool_tip, col_span=2)
 
         # Add Actions
         self.add_action(Action('Window', open_hp_tracker_button, callback=open_hp_tracker))
-        # self.add_action(Action('Window', pc_team, callback=open_hp_tracker))
-        # self.add_action(Action('Window', monster_team, callback=open_hp_tracker))
 
         # Initialize GUI
         self.add_row([pc_team_surprise, open_hp_tracker_button])
@@ -230,17 +228,6 @@ Special Defences: {special_defences}<br /><br />
             'Monster Team': external_data['Monster Team']
         }
 
-
-# class DeclareActionsPage(WizardPage):
-#     def __init__(self):
-#         super().__init__(2, 'Declare Actions')
-#         self.set_subtitle('Declare spells and general actions')
-#
-#         info = '''Remember to have everybody declare their intended actions<br />
-# for the coming round. If a spellcaster is using a spell<br />
-# then the spell must be declared here.'''
-#         text = Widget('DeclareText', 'TextLabel', data=info)
-#         self.add_row([text])
 
 def spell_tooltip(spell):
     return f'''\
@@ -284,18 +271,18 @@ class BattleRoundsPage(WizardPage):
             }
 
         # Define Widgets
-        round_text = Widget('Round Text', 'TextLabel', data=f'Round {self.round_number}')
-        next_round_button = Widget('Next Round', 'PushButton')
-        open_hp_tracker_button = Widget('Open HP Tracker', 'PushButton', align='Right')
-        initiative_text = Widget('Initiative Text', 'TextLabel', data='<b>Initiative</b>', align='Center', col_span=5)
-        pc_team = Widget('PC Team Initiative', 'SpinBox', col_span=3)
-        monster_team = Widget('Monster Team Initiative', 'SpinBox', col_span=3)
-        pc_team_text = Widget('PC Team Text', 'TextLabel', col_span=3)
-        monster_team_text = Widget('Monster Team Text', 'TextLabel', col_span=3)
-        casting_time_text = Widget('Spell Duration Text', 'TextLabel', data='<b>Casting Time:</b>')
-        casting_time = Widget('Casting Time', 'TextLabel')
-        pc_spells = Widget('PC Spells', 'ListBox', tool_tip=lambda s, f, p, e: spell_tooltip(s), col_span=2)
-        all_spells = Widget('All Spells', 'ListBox', tool_tip=lambda s, f, p, e: spell_tooltip(s), col_span=3)
+        round_text = TextLabel('Round Text', data=f'Round {self.round_number}')
+        next_round_button = PushButton('Next Round')
+        open_hp_tracker_button = PushButton('Open HP Tracker', align='Right')
+        initiative_text = TextLabel('Initiative Text', data='<b>Initiative</b>', align='Center', col_span=5)
+        pc_team = SpinBox('PC Team Initiative', col_span=3)
+        monster_team = SpinBox('Monster Team Initiative', col_span=3)
+        pc_team_text = TextLabel('PC Team Text', col_span=3)
+        monster_team_text = TextLabel('Monster Team Text', col_span=3)
+        casting_time_text = TextLabel('Spell Duration Text', data='<b>Casting Time:</b>')
+        casting_time = TextLabel('Casting Time')
+        pc_spells = ListBox('PC Spells', tool_tip=lambda s, f, p, e: spell_tooltip(s), col_span=2)
+        all_spells = ListBox('All Spells', tool_tip=lambda s, f, p, e: spell_tooltip(s), col_span=3)
 
         # Add Actions
         self.add_action(Action('FillFields', next_round_button, callback=next_round))
@@ -304,7 +291,7 @@ class BattleRoundsPage(WizardPage):
         self.add_action(Action('FillFields', all_spells, callback=lambda f, p, e: select_spell('All Spells', f)))
 
         # Initialize GUI
-        empty = Widget('', 'Empty')
+        empty = Empty()
         self.add_row([round_text, next_round_button, empty, empty, open_hp_tracker_button])
         self.add_row([initiative_text])
         self.add_row([pc_team])
@@ -426,20 +413,18 @@ class WrapUpPage(WizardPage):
             return {'Items': owned_item_list}
 
         # Define Widgets
-        empty = Widget('', 'Empty')
-        wrap_up_text = Widget('Wrap Up Text', 'TextLabel',
+        empty = Empty()
+        wrap_up_text = TextLabel('Wrap Up Text',
                               col_span=2, align='Center', data='You may now collect your spoils!')
-        # xp_text = Widget('XP Text', 'TextLabel', align='Right')
-        xp_breakdown_button = Widget('XP Breakdown', 'PushButton')
-        include_treasure_xp = Widget('Include Treasure XP', 'CheckBox', data='Include treasure xp?')
-        # treasure_text = Widget('Treasure Text', 'TextLabel')
-        cp = Widget('CP', 'SpinBox')
-        sp = Widget('SP', 'SpinBox')
-        ep = Widget('EP', 'SpinBox')
-        gp = Widget('GP', 'SpinBox')
-        pp = Widget('PP', 'SpinBox')
-        items_listbox = Widget('Items_', 'ListBox', tool_tip=item_tooltip, row_span=5)
-        change_items = Widget('Change Items', 'PushButton')
+        xp_breakdown_button = PushButton('XP Breakdown')
+        include_treasure_xp = CheckBox('Include Treasure XP', data='Include treasure xp?')
+        cp = SpinBox('CP')
+        sp = SpinBox('SP')
+        ep = SpinBox('EP')
+        gp = SpinBox('GP')
+        pp = SpinBox('PP')
+        items_listbox = ListBox('Items', tool_tip=item_tooltip, row_span=5, hide_field_name=True)
+        change_items = PushButton('Change Items')
 
         # Add Actions
         change_items_data = {'fill_avail': fill_items,
@@ -678,31 +663,30 @@ class HpTracker(Manage):
 
         # Define Widgets
         tools_menu = Menu('&Tools')
-        tools_menu.add_action(Action('Window', Widget('&Dice Roller', 'MenuAction'), callback=lambda x: DiceWindow()))
+        tools_menu.add_action(Action('Window', MenuAction('&Dice Roller'), callback=lambda x: DiceWindow()))
         self.add_menu(tools_menu)
 
-        pc_team_header = Widget('PC Team Header', 'TextLabel', data='<b>PC Team</b>', align='Center', col_span=3)
+        pc_team_header = TextLabel('PC Team Header', data='<b>PC Team</b>', align='Center', col_span=3)
         self.add_row([pc_team_header])
         for character in characters:
             character_id = character['unique_id']
             character = pcs_indexed[character_id]
-            character_name = Widget('Character Name', 'TextLabel', data=f'<b>{character["Name"]}</b>')
-            current_hp = Widget(f'Current HP {character_id}_', 'SpinBox',
-                                enable_edit=False, data=get_character_hp(character))
-            adjust_hp = Widget(f'Adjust HP {character_id}', 'PushButton', data='Adjust HP')
+            character_name = TextLabel('Character Name', data=f'<b>{character["Name"]}</b>')
+            current_hp = SpinBox(f'Current HP {character_id}', enable_edit=False,
+                                 data=get_character_hp(character), hide_field_name=True)
+            adjust_hp = PushButton(f'Adjust HP {character_id}', data='Adjust HP')
             # Add Actions
             self.add_action(Action('EntryDialog', adjust_hp, current_hp,
                                    callback=callback_factory_2param(adjust_character_hp, character_id)))
             # Initialize GUI
             self.add_row([character_name, current_hp, adjust_hp])
 
-        enemy_team_header = Widget('Enemy Team Header', 'TextLabel',
-                                   data='<b>Enemy Team</b>', align='Center', col_span=3)
+        enemy_team_header = TextLabel('Enemy Team Header', data='<b>Enemy Team</b>', align='Center', col_span=3)
         self.add_row([enemy_team_header])
         for i, enemy in enumerate(enemies):
-            enemy_name = Widget('Enemy Name', 'TextLabel', data=f'<b>{enemy["Name"]}</b>')
-            current_hp = Widget(f'Current HP {i}_', 'SpinBox', enable_edit=False, data=get_enemy_hp(enemy))
-            adjust_hp = Widget(f'Adjust HP {i}', 'PushButton', data='Adjust HP')
+            enemy_name = TextLabel('Enemy Name', data=f'<b>{enemy["Name"]}</b>')
+            current_hp = SpinBox(f'Current HP {i}', enable_edit=False, data=get_enemy_hp(enemy), hide_field_name=True)
+            adjust_hp = PushButton(f'Adjust HP {i}', data='Adjust HP')
             # Add Actions
             self.add_action(Action('EntryDialog', adjust_hp, current_hp,
                                    callback=callback_factory_2param(adjust_enemy_hp, i)))
@@ -742,14 +726,14 @@ class XPBreakdown(Manage):
         for i, e in enumerate(enemies):
             xp_value = e['XP Value'] if type(e['XP Value']) is int else 0
             total_xp += xp_value
-            n = Widget('Name', 'TextLabel', data=f'''<b>{e['Name']}</b>''')
-            w = Widget(f'Current XP {i}_', 'SpinBox', enable_edit=False, data=xp_value)
-            b = Widget(f'Adjust XP {i}', 'PushButton', data='Adjust XP')
+            n = TextLabel('Name', data=f'''<b>{e['Name']}</b>''')
+            w = SpinBox(f'Current XP {i}', enable_edit=False, data=xp_value, hide_field_name=True)
+            b = PushButton(f'Adjust XP {i}', data='Adjust XP')
             # Add Action
             self.add_action(Action('EntryDialog', b, w,
                                    callback=callback_factory_2param(adjust_enemy_xp, i)))
             # Initialize GUI
             self.add_row([n, w, b])
 
-        total_label = Widget('Total Label', 'TextLabel', data=f'<b>Total XP: </b>{total_xp}', col_span=3)
+        total_label = TextLabel('Total Label', data=f'<b>Total XP: </b>{total_xp}', col_span=3)
         self.add_row([total_label])

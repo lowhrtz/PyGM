@@ -2,12 +2,11 @@ import base64
 import os
 import re
 import time
-import DbQuery
-# import Dice
+from pylib import DbQuery
 import SystemSettings
 from decimal import Decimal
-from Common import find_image
-from GuiDefs import *
+from pylib.Common import find_image
+from pylib.GuiDefs import *
 
 
 class CharacterCreationWizard(Wizard):
@@ -168,10 +167,10 @@ class IntroPage(WizardPage):
 
         self.set_subtitle('Character Creation Wizard')
 
-        text = Widget('IntroText', 'TextLabel', align='Center', data='Welcome to the Character Creation Wizard')
+        text = TextLabel('IntroText', align='Center', data='Welcome to the Character Creation Wizard')
         self.add_row([text, ])
 
-        text2 = Widget('Intro Text2', 'TextLabel', align='Center', data='Click <b>Next</b> to continue.')
+        text2 = TextLabel('Intro Text2', align='Center', data='Click <b>Next</b> to continue.')
         self.add_row([text2, ])
 
 
@@ -180,17 +179,17 @@ class ChooseMethodPage(WizardPage):
     def __init__(self):
         super().__init__(1, 'Choose Method')
 
-        self.set_subtitle('You must choose but choose wizely.')
+        self.set_subtitle('You must choose but choose wisely.')
 
-        empty = Widget('', 'Empty')
+        empty = Empty()
         self.add_row([empty, ])
         self.add_row([empty, ])
 
-        text = Widget('ChooseText', 'TextLabel', align='Center', data='How do you want to create your character?')
+        text = TextLabel('ChooseText', align='Center', data='How do you want to create your character?')
         self.add_row([text, ])
 
         choices = ['Roll Attributes First', 'Choose Race, Class, etc. First', ]
-        radio = Widget('ChooseMethod', 'RadioButton', align='Center', data=choices)
+        radio = RadioButton('ChooseMethod', align='Center', data=choices)
         self.add_row([radio, ])
 
     def get_next_page_id(self, fields, pages, external_data):
@@ -316,8 +315,8 @@ class ChooseRacePage(WizardPage):
 
         self.set_subtitle('Choose from the availale races.')
 
-        race_image = Widget('RaceImage', 'Image', data=resources.noImage_jpg)
-        race_list = Widget('Races_', 'ListBox')
+        race_image = Image('RaceImage', data=resources.noImage_jpg)
+        race_list = ListBox('Races', hide_field_name=True)
         self.add_row([race_image, race_list])
         self.add_action(Action('FillFields', race_list, callback=self.change_image))
         self.system_path = SystemSettings.SYSTEM_PATH
@@ -343,8 +342,8 @@ class ChooseClassPage(WizardPage):
         super().__init__(4, 'Choose Class')
 
         self.set_subtitle('Choose from the available classes.')
-        class_image = Widget('ClassImage', 'Image', data=resources.noImage_jpg)
-        class_list = Widget('Classes_', 'ListBox')
+        class_image = Image('ClassImage', data=resources.noImage_jpg)
+        class_list = ListBox('Classes', hide_field_name=True)
         self.add_row([class_image, class_list])
         self.add_action(Action('FillFields', class_list, callback=self.change_image))
         self.system_path = SystemSettings.SYSTEM_PATH
@@ -465,7 +464,7 @@ class SpellbookPage(WizardPage):
             'add': self.add_spell,
             'remove': self.remove_spell,
         }
-        sb_list = Widget('Spellbook', 'DualList', align='Center', data=sb_data)
+        sb_list = DualList('Spellbook', align='Center', data=sb_data)
 
         self.add_row([sb_list, ])
 
@@ -569,7 +568,7 @@ class DailySpellsPage(WizardPage):
             self.field_name = field_name = 'Daily Spells'
         else:
             self.field_name = field_name = 'Daily Spells2'
-        ds_list = Widget(field_name, 'DualList', data=ds_data)
+        ds_list = DualList(field_name, data=ds_data)
         self.add_row([ds_list, ])
 
         self.attr_dict = None
@@ -763,7 +762,7 @@ class ProficiencyPage(WizardPage):
             'add': self.add_proficiency,
             'remove': self.remove_proficiency,
         }
-        profs = Widget('Proficiencies', 'DualList', data=profs_data)
+        profs = DualList('Proficiencies', data=profs_data)
         self.add_row([profs, ])
 
         self.proficiency_table = [row for row in DbQuery.getTable('Items') if row['Is_Proficiency'].lower() == "yes"]
@@ -886,7 +885,7 @@ class EquipmentPage(WizardPage):
             'add': self.buy_equipment,
             'remove': self.sell_equipment,
         }
-        equip = Widget('Equipment', 'DualList', data=eq_data)
+        equip = DualList('Equipment', data=eq_data)
         self.add_row([equip, ])
 
         self.item_table = DbQuery.getTable('Items')
@@ -978,14 +977,14 @@ class InfoPage(WizardPage):
 
         self.set_subtitle('Enter personal informaiton for your character.')
 
-        empty = Widget('Empty', 'Empty')
+        empty = Empty()
         self.add_row([empty, ])
 
-        name = Widget('Name', 'LineEdit')
+        name = LineEdit('Name')
         self.add_row([name, ])
-        alignment = Widget('Alignment', 'ComboBox')
+        alignment = ComboBox('Alignment')
         self.add_row([alignment, ])
-        gender = Widget('Gender', 'ComboBox', data=self.get_gender())
+        gender = ComboBox('Gender', data=self.get_gender())
         self.add_row([gender, ])
 
     def initialize_page(self, fields, pages, external_data):
@@ -1043,19 +1042,19 @@ class ChoosePortraitPage(WizardPage):
 
         self.set_subtitle('Choose a portrait or click <b>Browse</b> to upload your own.')
 
-        portrait = Widget('Portrait', 'Image', row_span=2, data=resources.noImage_jpg)
+        portrait = Image('Portrait', row_span=2, data=resources.noImage_jpg)
         self.add_row([portrait, ])
-        empty = Widget('Empty', 'Empty')
-        image_list = Widget('Images_', 'ListBox')
+        empty = Empty()
+        image_list = ListBox('Images', hide_field_name=True)
         self.add_action(Action('FillFields', image_list, callback=self.select_image))
         self.add_row([empty, image_list, ])
-        browse_button = Widget('Browse', 'PushButton', align='Center')
+        browse_button = PushButton('Browse', align='Center')
         self.add_row([empty, browse_button, ])
         self.add_action(Action('FileDialog', browse_button, callback=self.browse))
 
     def initialize_page(self, fields, pages, external_data):
         # extensions = ['jpg', 'jpeg', 'gif', 'png', ]
-        image_match = re.compile('([-\w]+\.(?:jpg|jpeg|gif|png)$)')
+        image_match = re.compile(r'([-\w]+\.(?:jpg|jpeg|gif|png)$)')
         system_path = SystemSettings.SYSTEM_PATH
         portraits_path = os.path.join(system_path, 'portraits')
         images = []
@@ -1088,14 +1087,14 @@ class ReviewPage(WizardPage):
 
         self.set_subtitle('If you like what you see click <b>Finish</b>.')
 
-        portrait = Widget('ReviewPortrait', 'Image', row_span=4)
-        info = Widget('ReviewInfo', 'TextLabel', col_span=2)
+        portrait = Image('ReviewPortrait', row_span=4)
+        info = TextLabel('ReviewInfo', col_span=2)
         self.add_row([portrait, info, ])
-        empty = Widget('Empty', 'Empty')
-        attrs = Widget('ReviewAttrs', 'TextLabel', col_span=2)
+        empty = Empty()
+        attrs = TextLabel('ReviewAttrs', col_span=2)
         self.add_row([empty, attrs, ])
-        proficiencies = Widget('ReviewProficiencies', 'TextLabel', align='Top')
-        equipment = Widget('ReviewEquipment', 'TextLabel', align='Top')
+        proficiencies = TextLabel('ReviewProficiencies', align='Top')
+        equipment = TextLabel('ReviewEquipment', align='Top')
         self.add_row([empty, proficiencies, equipment, ])
 
         self.attr_dict = None

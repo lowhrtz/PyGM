@@ -1,9 +1,9 @@
-import DbQuery
-import Dice
-import resources
 import SystemSettings
-import WebApp
 import time
+import WebApp
+from pylib import DbQuery
+from pylib import Dice
+from pylib import resources
 from urllib.parse import parse_qs
 
 

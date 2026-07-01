@@ -3,7 +3,8 @@ Pure Python implementation of GM
 
 Dependencies
 ------------------------------------------------------------
-Python 3, PyQt5
+Python 3, PyQt6
 
-Ubuntu:<br />
-`sudo apt install python3 python3-pyqt5 python3-pyqt5.qtmultimedia libqt5multimedia5-plugins`<br />
+Pip:<br />
+`pip install pyqt6 pyqt6-webengine`<br />
+

@@ -1,8 +1,7 @@
 import re
-# import DbQuery
-import Dice
-from Common import Range, RollTable
 from SystemSettings import convert_cost_string, get_float_from_coinage
+from pylib import Dice
+from pylib.Common import Range, RollTable
 
 base_pattern = r'(\d+d\d+[+-x×]?[\d,]*|\d+) ?'
 percent_pattern = r' ?(?:\((\d+)%.*\))?'
@@ -55,7 +54,8 @@ def get_treasure_list(match):
 
 
 def parse_treasure_text(treasure_text, wandering=True):
-    treasure_split = treasure_text.split(';')
+    treasure_split = treasure_text.split(';', maxsplit=1)
+    #print(treasure_split)
     if len(treasure_split) == 1:
         individual = treasure_split[0]
         lair = ''

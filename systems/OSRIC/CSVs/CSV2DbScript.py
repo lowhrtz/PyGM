@@ -21,7 +21,7 @@ class DbScript:
     outputString = ""
 
     def __init__(self, filenameList):
-        self.outputString += "# -*- coding: utf-8 -*-\nfrom DbDefs import Table\n\n"
+        self.outputString += "# -*- coding: utf-8 -*-\nfrom pylib.DbDefs import Table\n\n"
         for filename in filenameList:
             self.addCSV(filename)
         self.prepareOutputString()
@@ -50,7 +50,7 @@ class DbScript:
             for colMeta in colMetaList:
                 if colMeta != "":
                     metaName = colMeta.replace("'", "")
-                    self.outputString += "    " + metaName + " = " + str(colCount) + "\n" 
+                    self.outputString += "    " + metaName + " = " + str(colCount) + "\n"
                 colCount += 1
 
             self.outputString += "    data = [\n"

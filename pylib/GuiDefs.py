@@ -1,21 +1,11 @@
 # -*- coding: utf-8 -*-
-import resources
-import Dice
+from . import resources
+from . import Dice
 
 
 class Widget(object):
-    # field_name = None
-    # widget_type = None
-    # enable_edit = True
-    # height = None
-    # width = None
-    # col_span = 1
-    # row_span = 1
-    # align = None
-    # data = None
-
     def __init__(self, field_name, widget_type, enable_edit=True, height=None, width=None, col_span=1, row_span=1,
-                 stretch=True, align=None, direction='Vertical', data=None, style=None, tool_tip=None):
+                 stretch=True, align=None, direction='Vertical', data=None, style=None, tool_tip=None, hide_field_name=False):
         self.field_name = field_name
         self.widget_type = widget_type
         self.enable_edit = enable_edit
@@ -29,6 +19,7 @@ class Widget(object):
         self.data = data
         self.style = style
         self.tool_tip = tool_tip
+        self.hide_field_name = hide_field_name
 
     def __str__(self):
         return self.field_name
@@ -71,6 +62,9 @@ class Widget(object):
 
     def get_tool_tip(self):
         return self.tool_tip
+
+    def get_hide_field_name(self):
+        return self.hide_field_name
 
 
 class Action(object):
@@ -172,11 +166,11 @@ class DiceWindow(Window):
             }
 
         # Define Widgets
-        dice_string_entry = Widget('Dice String', 'LineEdit', data='1d6')
-        roll_button = Widget('Roll Button', 'PushButton', data='Roll')
-        or_text = Widget('Or Text', 'TextLabel', data='<h3>OR</h3>', align='Center', col_span=2)
-        roll_percentile_button = Widget('Roll Percentile', 'PushButton', align='Center', col_span=2)
-        result = Widget('Result', 'LineEdit', align='Center', col_span=2)
+        dice_string_entry = LineEdit('Dice String', data='1d6')
+        roll_button = PushButton('Roll Button', data='Roll')
+        or_text = TextLabel('Or Text', data='<h3>OR</h3>', align='Center', col_span=2)
+        roll_percentile_button = PushButton('Roll Percentile', align='Center', col_span=2)
+        result = LineEdit('Result', align='Center', col_span=2)
 
         # Add Actions
         self.add_action(Action('FillFields', roll_button, callback=roll_dice))
@@ -233,21 +227,21 @@ class RollMethodsPage(WizardPage):
 
         self.attributes = attributes
         self.attr_dict = None
-        note = Widget('Banner', 'TextLabel', col_span=3,
+        note = TextLabel('Banner', col_span=3,
                       data='<b>Note: </b>If the Next button is still disabled roll again or rearrange')
         self.add_row([note, ])
-        banner = Widget('Banner', 'Image', row_span=len(attributes) + 2, data=resources.rollBanner_jpg)
+        banner = Image('Banner', row_span=len(attributes) + 2, data=resources.rollBanner_jpg)
         if methods is None:
             methods = ['Classic', 'Classic - Drop Lowest', 'Rearrange', 'Rearrange - Drop Lowest']
-        methods = Widget('Methods_', 'ComboBox', align='Center', data=methods)
+        methods = ComboBox('Methods', align='Center', data=methods, hide_field_name=True)
         self.add_action(Action('DragEnable', methods, callback=self.drag_enable))
         self.add_row([banner, methods])
-        empty = Widget('', 'Empty')
+        empty = Empty()
         for attr in attributes:
-            attr_widget = Widget(attr, 'LineEdit', width=40, stretch=False, align='Center')
-            drag_image = Widget('{} Label'.format(attr), 'DragImage', data=(resources.diceSmall_png, attr, False))
+            attr_widget = LineEdit(attr, width=40, stretch=False, align='Center')
+            drag_image = DragImage('{} Label'.format(attr), data=(resources.diceSmall_png, attr, False))
             self.add_row([empty, attr_widget, drag_image, ])
-        roll_button = Widget('Roll', 'PushButton', align='Center')
+        roll_button = PushButton('Roll', align='Center')
         self.add_action(Action('Fillfields', roll_button, callback=self.fill_attribute_fields))
         self.add_row([empty, roll_button, ])
 
@@ -304,3 +298,83 @@ class Wizard(object):
 
     def accept(self, fields, pages, external_data):
         return
+
+
+class CheckBox(Widget):
+    def __init__(self, field_name, **kwargs):
+        super().__init__(field_name, 'CheckBox', **kwargs)
+
+
+class TextEdit(Widget):
+    def __init__(self, field_name, **kwargs):
+        super().__init__(field_name, 'TextEdit', **kwargs)
+
+
+class LineEdit(Widget):
+    def __init__(self, field_name, **kwargs):
+        super().__init__(field_name, 'LineEdit', **kwargs)
+
+
+class SpinBox(Widget):
+    def __init__(self, field_name, **kwargs):
+        super().__init__(field_name, 'SpinBox', **kwargs)
+
+
+class PushButton(Widget):
+    def __init__(self, field_name, **kwargs):
+        super().__init__(field_name, 'PushButton', **kwargs)
+
+
+class RadioButton(Widget):
+    def __init__(self, field_name, **kwargs):
+        super().__init__(field_name, 'RadioButton', **kwargs)
+
+
+class ComboBox(Widget):
+    def __init__(self, field_name, **kwargs):
+        super().__init__(field_name, 'ComboBox', **kwargs)
+
+
+class ListBox(Widget):
+    def __init__(self, field_name, **kwargs):
+        super().__init__(field_name, 'ListBox', **kwargs)
+
+
+class DualList(Widget):
+    def __init__(self, field_name, **kwargs):
+        super().__init__(field_name, 'DualList', **kwargs)
+
+
+class TextLabel(Widget):
+    def __init__(self, field_name, **kwargs):
+        super().__init__(field_name, 'TextLabel', **kwargs)
+
+
+class Image(Widget):
+    def __init__(self, field_name, **kwargs):
+        super().__init__(field_name, 'Image', **kwargs)
+
+
+class DragImage(Widget):
+    def __init__(self, field_name, **kwargs):
+        super().__init__(field_name, 'DragImage', **kwargs)
+
+
+class ResourceSelect(Widget):
+    def __init__(self, field_name, **kwargs):
+        super().__init__(field_name, 'ResourceSelect', **kwargs)
+
+
+class HR(Widget):
+    def __init__(self, **kwargs):
+        super().__init__('', 'HR', **kwargs)
+
+
+class Empty(Widget):
+    def __init__(self, **kwargs):
+        super().__init__('', 'Empty', **kwargs)
+
+
+class MenuAction(Widget):
+    def __init__(self, field_name, **kwargs):
+        super().__init__(field_name, 'MenuAction', **kwargs)

@@ -2,8 +2,8 @@
 import re
 from decimal import Decimal
 from string import Template
-import DbQuery
-import Dice
+from pylib import DbQuery
+from pylib import Dice
 
 systemName = 'Osric'
 subSystemName = 'OSRIC'
@@ -203,11 +203,17 @@ def calculate_ac(attr_dict, class_dict, race_dict, equipment_list):
     ac_bonus = get_attribute_bonuses('DEX', dex_score)[2]
     char_base_ac = base_ac + int(ac_bonus)
 
-    armour_list = [e for e in equipment_list if e['unique_id'].startswith('armour_')]
-    shield_list = [e for e in equipment_list if e['unique_id'].startswith('shield_')]
+    armour_list = [e for e in equipment_list if e['Category'].lower() == 'armour']
+    shield_list = [e for e in equipment_list if e['Category'].lower() == 'shield']
 
     useable_armour = []
     useable_shield = []
+    magical_ac_item = []
+    for e in equipment_list:
+        if e['Category'].lower() == 'misc magic' and type(e['AC_Effect']) is int\
+          and e['Subcategory'].lower() != 'ac exclusive':
+            magical_ac_item.append(e)
+    magical_ac_total = sum(m['AC_Effect'] for m in magical_ac_item)
 
     if 'classes' in class_dict:
         ap_lists = []
@@ -236,7 +242,7 @@ def calculate_ac(attr_dict, class_dict, race_dict, equipment_list):
                 useable_armour = armour_list
             else:
                 for a in armour_list:
-                    if a['Name'] in bucket:
+                    if a['Subcategory'] in bucket:
                         useable_armour.append(a)
             bucket = []
             all_any = True
@@ -256,7 +262,7 @@ def calculate_ac(attr_dict, class_dict, race_dict, equipment_list):
                 useable_shield = shield_list
             else:
                 for s in shield_list:
-                    if s['Name'] in bucket:
+                    if s['Subcategory'] in bucket:
                         useable_shield.append(s)
         else:
             bucket = []
@@ -269,7 +275,7 @@ def calculate_ac(attr_dict, class_dict, race_dict, equipment_list):
                 useable_armour = armour_list
             else:
                 for a in armour_list:
-                    if a['Name'] in bucket:
+                    if a['Subcategory'] in bucket:
                         useable_armour.append(a)
 
             bucket = []
@@ -282,7 +288,7 @@ def calculate_ac(attr_dict, class_dict, race_dict, equipment_list):
                 useable_shield = shield_list
             else:
                 for s in shield_list:
-                    if s['Name'] in bucket:
+                    if s['Subcategory'] in bucket:
                         useable_shield.append(s)
     else:
         armour_permitted_list = [ap.strip() for ap in class_dict['Armour_Permitted'].split(',')]
@@ -293,7 +299,7 @@ def calculate_ac(attr_dict, class_dict, race_dict, equipment_list):
             useable_armour = []
         else:
             for a in armour_list:
-                if a['Name'] in armour_permitted_list:
+                if a['Subcategory'] in armour_permitted_list:
                     useable_armour.append(a)
         if 'Any' in shield_permitted_list:
             useable_shield = shield_list
@@ -301,8 +307,17 @@ def calculate_ac(attr_dict, class_dict, race_dict, equipment_list):
             useable_shield = []
         else:
             for s in shield_list:
-                if s['Name'] in shield_permitted_list:
+                if s['Subcategory'] in shield_permitted_list:
                     useable_shield.append(s)
+
+    if not useable_armour and not useable_shield and not magical_ac_item:
+        best_bracer = None
+        for e in equipment_list:
+            if e['unique_id'].startswith('bracers_armour'):
+                if best_bracer is None or e['AC_Effect'] < best_bracer:
+                    best_bracer = e['AC_Effect']
+        if best_bracer is not None:
+            return min(char_base_ac + best_bracer, 10)
 
     best_armour = None
     for a in useable_armour:
@@ -317,7 +332,7 @@ def calculate_ac(attr_dict, class_dict, race_dict, equipment_list):
         best_armour = {'AC_Effect': 0}
     if best_shield == None:
         best_shield = {'AC_Effect': 0}
-    return char_base_ac + best_armour['AC_Effect'] + best_shield['AC_Effect']
+    return min(char_base_ac + best_armour['AC_Effect'] + best_shield['AC_Effect'] + magical_ac_total, 10)
 
 
 def get_saves(level, attr_dict, class_dict, race_dict):
@@ -799,6 +814,62 @@ table th {{
 <tr><th>HD:</th><td>{monster['HD']}</td></tr>
 </table>'''
 
+def spell_tooltip(spell, _fields):
+    return f'''\
+<h2>{spell['Name']}</h2>
+<b>Reversible: </b>{spell['Reversible']}<br />
+<b>Level: </b>{spell['Level']}<br />
+<b>Damage: </b>{spell['Damage']}<br />
+<b>Range: </b>{spell['Range']}<br />
+<b>Duration: </b>{spell['Duration']}<br />
+<b>Area of Effect: </b>{spell['Area_of_Effect']}<br />
+<b>Components: </b>{spell['Components']}<br />
+<b>Casting Time: </b>{spell['Casting_Time']}<br />
+<b>Saving Throw: </b>{spell['Saving_Throw']}<br />
+<b>Description: </b>{spell['Description']}<br /><br />
+'''
+
+def item_tooltip(item, _fields):
+    tt_string = f'''\
+<h3>{item['Name']}</h3>
+'''
+    if item['Is_Magic'].lower() == 'yes':
+        tt_string += f'''<span style="color: blue;">Magical</span><br />
+'''
+    elif item['Is_Magic'].lower() == 'cursed':
+        tt_string += f'''<span style="color: red;">Cursed</span><br />
+'''
+    tt_string += f'''<b>Category: </b>{item['Category']}<br />
+<b>Subcategory: </b>{item['Subcategory']}<br />
+<b>Weight: </b>{item['Weight']}<br />
+<b>Cost: </b>{item['Cost']}<br />
+<b>Value: </b>{item['Value']}<br />
+'''
+    if item['Damage_Vs_S_or_M'] or item['Damage_Vs_L'] or item['Damage_Type']:
+        tt_string += f'''<b>Dmg Vs S/M: </b>{item['Damage_Vs_S_or_M']}<br />
+<b>Dmg Vs L: </b>{item['Damage_Vs_L']}<br />
+<b>Damage Type: </b>{item['Damage_Type']}<br />
+'''
+    if item['Rate_of_Fire'] or item['Range']:
+        tt_string += f'''<b>ROF: </b>{item['Rate_of_Fire']}<br />
+<b>Range: </b>{item['Range']}<br />
+'''
+    if item['Max_Move_Rate']:
+        tt_string += f'''<b>Max Move Rate: </b>{item['Max_Move_Rate']}<br />
+'''
+    if item['AC_Effect']:
+        tt_string += f'''<b>AC Effect: </b>{item['AC_Effect']}<br />
+'''
+    if item['Ability_Modifier']:
+        tt_string += f'''<b>Ability Modifier: </b>{item['Ability_Modifier']}<br />
+'''
+    if item['Save_Modifier']:
+        tt_string += f'''<b>Save Modifier: </b>{item['Save_Modifier']}<br />
+'''
+    if item['Notes']:
+        tt_string += f'''<b>Notes: </b>{item['Notes']}
+'''
+    return tt_string
 
 def get_character_pdf_markup(character_dict):
     class_table = DbQuery.getTable('Classes')
@@ -888,11 +959,11 @@ def get_character_pdf_markup(character_dict):
             prof_name = prof['Name']
             prof_level = proficiency_id_dict[prof['unique_id']]
             if prof_level == 'P':
-                proficiency_list.append(prof)
+                proficiency_list.append(prof_name)
             elif prof_level == 'S':
-                specialised_list.append(prof)
+                specialised_list.append(prof_name)
             elif prof_level == '2XS':
-                double_specialised_list.append(prof)
+                double_specialised_list.append(prof_name)
 
     # equipment_list = []
     # for equip in items_table:
@@ -1057,7 +1128,8 @@ padding: 2px;
 }
 
 .pre {
-white-space: pre;
+/*white-space: pre;*/
+white-space: preserve;
 }
 
 p.page-break {
@@ -1131,11 +1203,11 @@ page-break-after:always;
     #    double_specialised_list = proficiency_page.double_specialised_list
     for equip in equipment_list:
         equip_name = equip['Name']
-        if equip in double_specialised_list:
+        if equip['Subcategory'] in double_specialised_list:
             equip_name = equip_name + '<sup>&Dagger;</sup>'
-        elif equip in specialised_list:
+        elif equip['Subcategory'] in specialised_list:
             equip_name = equip_name + '<sup>&dagger;</sup>'
-        elif equip in proficiency_list:
+        elif equip['Subcategory'] in proficiency_list:
             equip_name = equip_name + '*'
         equip_list = [equip_name, equip['Damage_Vs_S_or_M'], equip['Damage_Vs_L'], equip['Damage_Type'],
                       equip['Rate_of_Fire'], equip['Range'], equip['Max_Move_Rate'], str(equip['AC_Effect']),

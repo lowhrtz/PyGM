@@ -1,10 +1,11 @@
-import PyQt5.QtCore as QtCore
-from PyQt5.QtWidgets import (QDialog, QFileDialog, QDialogButtonBox, QLayout, QVBoxLayout, QHBoxLayout,
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6 import QtCore
+from PyQt6.QtWidgets import (QDialog, QFileDialog, QDialogButtonBox, QLayout, QVBoxLayout, QHBoxLayout,
                              QLabel, QLineEdit, QTextEdit, QSpinBox, QPushButton, QListWidget,
                              QFrame, QTabWidget, QProgressDialog)
-from PyQt5.QtGui import QPixmap, QIcon
-from Common import get_pixmap_from_base64, add_item_to_listbox, fill_listbox
-import resources
+from PyQt6.QtGui import QPixmap, QIcon
+from .Common import get_pixmap_from_base64, add_item_to_listbox, fill_listbox
+from . import resources
 
 
 class YesNoDialog(QDialog):
@@ -19,12 +20,12 @@ class YesNoDialog(QDialog):
         button_frame = QDialogButtonBox(self)
         layout.addWidget(message_label)
         yes_button.setDefault(True)
-        button_frame.addButton(yes_button, QDialogButtonBox.AcceptRole)
-        button_frame.addButton(no_button, QDialogButtonBox.RejectRole)
+        button_frame.addButton(yes_button, QDialogButtonBox.ButtonRole.AcceptRole)
+        button_frame.addButton(no_button, QDialogButtonBox.ButtonRole.RejectRole)
         button_frame.accepted.connect(self.accept)
         button_frame.rejected.connect(self.reject)
         layout.addWidget(button_frame)
-        layout.setSizeConstraint(QLayout.SetFixedSize)
+        layout.setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
         self.setLayout(layout)
 
 
@@ -39,7 +40,7 @@ class PopupDialog(QDialog):
         button_frame = QDialogButtonBox(self)
         layout.addWidget(message_label)
         ok_button.setDefault(True)
-        button_frame.addButton(ok_button, QDialogButtonBox.AcceptRole)
+        button_frame.addButton(ok_button, QDialogButtonBox.ButtonRole.AcceptRole)
         button_frame.accepted.connect(self.accept)
         layout.addWidget(button_frame)
         layout.setSizeConstraint(QLayout.SetFixedSize)
@@ -81,19 +82,19 @@ class EntryDialog(QDialog):
             self.entry_widget.setPixmap(pixmap)
             layout.addWidget(image_button)
 
-        layout.addWidget(self.entry_widget, 0, QtCore.Qt.AlignCenter)
+        layout.addWidget(self.entry_widget, 0, QtCore.Qt.AlignmentFlag.AlignCenter)
 
         button_frame = QDialogButtonBox(self)
         ok_button = QPushButton('OK', self)
         cancel_button = QPushButton('Cancel', self)
         ok_button.setDefault(True)
-        button_frame.addButton(ok_button, QDialogButtonBox.AcceptRole)
-        button_frame.addButton(cancel_button, QDialogButtonBox.RejectRole)
+        button_frame.addButton(ok_button, QDialogButtonBox.ButtonRole.AcceptRole)
+        button_frame.addButton(cancel_button, QDialogButtonBox.ButtonRole.RejectRole)
         button_frame.accepted.connect(self.ok_pressed)
         button_frame.rejected.connect(self.cancel_pressed)
 
         layout.addWidget(button_frame)
-        layout.setSizeConstraint(QLayout.SetFixedSize)
+        layout.setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
         self.setLayout(layout)
 
     def open_image_file(self):
@@ -183,7 +184,7 @@ class DualListDialog(QDialog):
         if slots:
             slots_return = slots(fields)
             self.slots_label = QLabel('<b>{}:</b>{}'.format(slots_name, slots_return), self)
-            layout.addWidget(self.slots_label, 1, QtCore.Qt.AlignCenter)
+            layout.addWidget(self.slots_label, 1, QtCore.Qt.AlignmentFlag.AlignCenter)
 
         list_layout = QHBoxLayout()
         button_layout = QVBoxLayout()
@@ -199,21 +200,21 @@ class DualListDialog(QDialog):
         remove_button.pressed.connect(self.remove_pressed)
 
         line = QFrame(self)
-        line.setFrameShape(QFrame.HLine)
-        line.setFrameShadow(QFrame.Sunken)
+        line.setFrameShape(QFrame.Shape.HLine)
+        line.setFrameShadow(QFrame.Shadow.Sunken)
         layout.addWidget(line)
 
         button_frame = QDialogButtonBox(self)
         ok_button = QPushButton('OK', self)
         cancel_button = QPushButton('Cancel', self)
-        button_frame.addButton(ok_button, QDialogButtonBox.AcceptRole)
-        button_frame.addButton(cancel_button, QDialogButtonBox.RejectRole)
+        button_frame.addButton(ok_button, QDialogButtonBox.ButtonRole.AcceptRole)
+        button_frame.addButton(cancel_button, QDialogButtonBox.ButtonRole.RejectRole)
 
         button_frame.accepted.connect(self.accept)
         button_frame.rejected.connect(self.reject)
 
         layout.addWidget(button_frame)
-        layout.setSizeConstraint(QLayout.SetFixedSize)
+        layout.setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
         self.setLayout(layout)
 
     def add_pressed(self):
@@ -222,8 +223,8 @@ class DualListDialog(QDialog):
         if current_list.currentRow() == -1:
             return
         current_item = current_list.currentItem()
-        current_data = current_item.data(QtCore.Qt.UserRole)
-        add_return = self.add(current_item.data(QtCore.Qt.UserRole), self.fields)
+        current_data = current_item.data(QtCore.Qt.ItemDataRole.UserRole)
+        add_return = self.add(current_item.data(QtCore.Qt.ItemDataRole.UserRole), self.fields)
         valid = add_return.get('valid')
         slots_new_value = add_return.get('slots_new_value')
         remove = add_return.get('remove')
@@ -251,7 +252,7 @@ class DualListDialog(QDialog):
         if self.chosen_list.currentRow() == -1:
             return
         current_item = self.chosen_list.currentItem()
-        current_data = current_item.data(QtCore.Qt.UserRole)
+        current_data = current_item.data(QtCore.Qt.ItemDataRole.UserRole)
         remove_return = self.remove(current_data, self.fields)
         valid = remove_return.get('valid')
         slots_new_value = remove_return.get('slots_new_value')
@@ -291,7 +292,7 @@ class DualListDialog(QDialog):
         item_list = []
         for i in range(self.chosen_list.count()):
             item = self.chosen_list.item(i)
-            item_data = item.data(QtCore.Qt.UserRole)
+            item_data = item.data(QtCore.Qt.ItemDataRole.UserRole)
             item_list.append(item_data)
         return item_list
 
@@ -313,3 +314,19 @@ class ProgressDialog(QProgressDialog):
             i += 1
             self.setValue(i)
             self.setLabelText('{}\n{}'.format(self.message, yield_return))
+
+
+class HtmlViewer(QDialog):
+    def __init__(self, title, pdf_markup, parent):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.setWindowIcon(QIcon(get_pixmap_from_base64(resources.icon_png)))
+        layout = QVBoxLayout()
+        #message_label = QLabel(message, self)
+        viewer = QWebEngineView()
+        viewer.setHtml(pdf_markup)
+        #layout.addWidget(message_label)
+        layout.addWidget(viewer)
+
+        self.setLayout(layout)
+

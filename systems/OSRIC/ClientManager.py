@@ -1,7 +1,7 @@
-import DbQuery
 import SystemSettings
-from GuiDefs import *
-from ManageDefs import Manage
+from pylib import DbQuery
+from pylib.GuiDefs import *
+from pylib.ManageDefs import Manage
 
 
 class ClientsWindow(Manage):
@@ -60,13 +60,13 @@ Level {current_character['Level']} {character_class}<br />
             }
 
         # Define Widgets
-        empty = Widget('', 'Empty')
+        empty = Empty()
 
-        client_list = Widget('Client List', 'ListBox', col_span=2, row_span=2, tool_tip=client_tool_tip)
-        remove_button = Widget('Remove Client', 'PushButton')
-        change_button = Widget('Change Character', 'PushButton', tool_tip='Set current character to selected client.')
-        character_chooser = Widget('Choose Character', 'ComboBox', align='Top', data=DbQuery.getTable('Characters'))
-        character_info = Widget('Character Info', 'TextLabel', align='Center')
+        client_list = ListBox('Client List', col_span=2, row_span=2, tool_tip=client_tool_tip)
+        remove_button = PushButton('Remove Client')
+        change_button = PushButton('Change Character', tool_tip='Set current character to selected client.')
+        character_chooser = ComboBox('Choose Character', align='Top', data=DbQuery.getTable('Characters'))
+        character_info = TextLabel('Character Info', align='Center')
 
         # Add Actions
         self.add_action(Action('OnShow', empty, callback=fill_client_list))

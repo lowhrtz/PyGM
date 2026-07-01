@@ -2,8 +2,8 @@ import inspect
 import os
 import sqlite3
 import Db
-import DbDefs
 import DbLayout
+from . import DbDefs
 
 DB = None
 SCHEMA_QUERY = 'SELECT sql FROM sqlite_master WHERE type = "table" and name = ?'

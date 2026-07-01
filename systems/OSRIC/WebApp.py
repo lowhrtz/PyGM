@@ -1,8 +1,9 @@
-import DbQuery
 import SystemSettings
 import WebCC
+from pylib import DbQuery
 from base64 import b64decode
-from resources import icon_png
+from pylib.Common import get_mimetype_from_base64
+from pylib.resources import icon_png
 from urllib.parse import parse_qs
 
 
@@ -308,14 +309,16 @@ div.spell + div {
 
     background_image_css = ''
     if fields['Title BG Preview']:
+        bg_mime = get_mimetype_from_base64(fields['Title BG Preview'])
         background_image_css = f'''\
-    background-image: url('data:image;base64,{fields['Title BG Preview']}');
+    background-image: url('data:{bg_mime};base64,{fields['Title BG Preview']}');
     background-position: center;
     background-repeat: no-repeat;
     background-size: cover;
     box-shadow:inset 0 0 10px 5px black;
 '''
 
+    hbg_mime = get_mimetype_from_base64(fields['Handouts Background Preview'])
     html += f'''
 div.title {{
 {background_image_css}
@@ -328,7 +331,7 @@ div.handouts {{
     margin-top: 100px;
     font-size: 400%;
     color: {handouts_title_color};
-    background-image: url(data:image;base64,{fields['Handouts Background Preview']});
+    background-image: url(data:{hbg_mime};base64,{fields['Handouts Background Preview']});
     padding: 30px;
     border-radius: 25px;
     border: 8px outset darkgrey;
@@ -373,7 +376,8 @@ def get_handouts(environ):
     fields = environ['Fields']
     image_tags = ''
     for res in fields['Image Resources']:
-        image_tags += f'<img width=800 src=data:image;base64,{res["Data"]} /><br />'
+        it_mime = get_mimetype_from_base64(res['Data'])
+        image_tags += f'<img width=800 src=data:{it_mime};base64,{res["Data"]} /><br />'
     if image_tags:
         html = f'<div class="handouts">Handouts{image_tags}</div>'
     else:
@@ -478,13 +482,14 @@ def get_character_html(character_dict):
     saves_dict = SystemSettings.get_saves(level, character_dict, class_dict, race_dict)
     movement_tuple = SystemSettings.calculate_movement(race_dict, class_dict, character_dict, equipment_list)
     movement_rate, movement_desc = movement_tuple
+    portrait_mime = get_mimetype_from_base64(character_dict['Portrait'])
     html = f'''\
 <div class="character_sheet">
 <input type="hidden" id="character_id" value="{character_dict['unique_id']}" />
 
 <div class="character_page" style="display: block;" id="basic_info">
 <span style="position: absolute; left: 30px;"><b>HP:</b> {character_dict['HP']}<br /><b>AC:</b> {ac}</span>
-<img style="height: 600px; margin: 30px auto 30px auto;" src="data:image;base64,{character_dict['Portrait']}" />
+<img style="height: 600px; margin: 30px auto 30px auto;" src="data:{portrait_mime};base64,{character_dict['Portrait']}" />
 <b>{character_dict['Name']}</b><br />
 <b>Level:</b> {character_dict['Level']}<br />
 <b>Class:</b> {SystemSettings.get_class_names(character_dict)}<br />
@@ -709,11 +714,12 @@ def get_list_character(environ):
                 br = ''
             cn = c['Name']
             cid = c['unique_id']
+            portrait_mime = get_mimetype_from_base64(c['Portrait'])
             names += f'''\
 <input type="radio" name="characters" value="{cid}" id="{cid}" {checked}>
 <label for="{cid}" class="character_list"
 onmouseover="hoverOnCharacter('{cid}', true)" onmouseout="hoverOnCharacter('{cid}', false )">{cn}</label>{br}
-<div class="character_summary" id="{cid + '_summary'}"><img src="data:image;base64,{c['Portrait']}">{cn}<br />
+<div class="character_summary" id="{cid + '_summary'}"><img src="data:{portrait_mime};base64,{c['Portrait']}">{cn}<br />
 Level {c['Level']} {SystemSettings.get_class_names(c)}</div>'''
 
     html = f'''\
@@ -756,7 +762,7 @@ def get_custom_font_css(font_base64):
     return f'''
 @font-face {{
     font-family: CustomFont;
-    src: url(data:font;base64,{font_base64});
+    src: url(data:application/font;base64,{font_base64});
 }}
 
 body, button, select {{
